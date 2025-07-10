@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/card';
 import { customerPortalAction } from '@/lib/payments/actions';
 import { useActionState } from 'react';
-import { TeamDataWithMembers, User } from '@/lib/db/schema';
-import { removeTeamMember, inviteTeamMember } from '@/app/(login)/actions';
+import { GroupWithMembers, Person } from '@/lib/db/schema';
+import { removeUser, inviteUser } from '@/app/(login)/actions';
 import useSWR from 'swr';
 import { Suspense } from 'react';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,8 @@ import { Loader2, PlusCircle } from 'lucide-react';
 
 type ActionState = {
   error?: string;
-  success?: string;
+  success?: boolean;
+  message?: string;
 };
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -38,7 +39,7 @@ function SubscriptionSkeleton() {
 }
 
 function ManageSubscription() {
-  const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
+  const { data: teamData } = useSWR<GroupWithMembers>('/api/team', fetcher);
 
   return (
     <Card className="mb-8">
@@ -94,17 +95,17 @@ function TeamMembersSkeleton() {
 }
 
 function TeamMembers() {
-  const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
+  const { data: teamData } = useSWR<GroupWithMembers>('/api/team', fetcher);
   const [removeState, removeAction, isRemovePending] = useActionState<
     ActionState,
     FormData
-  >(removeTeamMember, {});
+  >(removeUser, {});
 
-  const getUserDisplayName = (user: Pick<User, 'id' | 'name' | 'email'>) => {
-    return user.name || user.email || 'Unknown User';
+  const getUserDisplayName = (user: Pick<Person, 'id' | 'displayName' | 'email'>) => {
+    return user.displayName || user.email || 'Unknown User';
   };
 
-  if (!teamData?.teamMembers?.length) {
+  if (!teamData?.members?.length) {
     return (
       <Card className="mb-8">
         <CardHeader>
@@ -124,8 +125,8 @@ function TeamMembers() {
       </CardHeader>
       <CardContent>
         <ul className="space-y-4">
-          {teamData.teamMembers.map((member, index) => (
-            <li key={member.id} className="flex items-center justify-between">
+          {teamData.members.map((member) => (
+            <li key={member.person.id} className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Avatar>
                   {/* 
@@ -138,7 +139,7 @@ function TeamMembers() {
                     />
                   */}
                   <AvatarFallback>
-                    {getUserDisplayName(member.user)
+                    {getUserDisplayName(member.person)
                       .split(' ')
                       .map((n) => n[0])
                       .join('')}
@@ -146,26 +147,24 @@ function TeamMembers() {
                 </Avatar>
                 <div>
                   <p className="font-medium">
-                    {getUserDisplayName(member.user)}
+                    {getUserDisplayName(member.person)}
                   </p>
                   <p className="text-sm text-muted-foreground capitalize">
                     {member.role}
                   </p>
                 </div>
               </div>
-              {index > 1 ? (
-                <form action={removeAction}>
-                  <input type="hidden" name="memberId" value={member.id} />
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    disabled={isRemovePending}
-                  >
-                    {isRemovePending ? 'Removing...' : 'Remove'}
-                  </Button>
-                </form>
-              ) : null}
+              <form action={removeAction}>
+                <input type="hidden" name="userId" value={member.person.id} />
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  disabled={isRemovePending}
+                >
+                  {isRemovePending ? 'Removing...' : 'Remove'}
+                </Button>
+              </form>
             </li>
           ))}
         </ul>
@@ -188,12 +187,14 @@ function InviteTeamMemberSkeleton() {
 }
 
 function InviteTeamMember() {
-  const { data: user } = useSWR<User>('/api/user', fetcher);
-  const isOwner = user?.role === 'owner';
+  const { data: user } = useSWR<Person>('/api/user', fetcher);
+  // This check for 'owner' might need to be updated based on your specific logic
+  // for who can invite. For now, we'll check the superadmin flag or the contextual role.
+  const canInvite = user?.isSuperadmin; // Or check for a specific role in teamData
   const [inviteState, inviteAction, isInvitePending] = useActionState<
     ActionState,
     FormData
-  >(inviteTeamMember, {});
+  >(inviteUser, {});
 
   return (
     <Card>
@@ -212,7 +213,7 @@ function InviteTeamMember() {
               type="email"
               placeholder="Enter email"
               required
-              disabled={!isOwner}
+              disabled={!canInvite}
             />
           </div>
           <div>
@@ -221,7 +222,7 @@ function InviteTeamMember() {
               defaultValue="member"
               name="role"
               className="flex space-x-4"
-              disabled={!isOwner}
+              disabled={!canInvite}
             >
               <div className="flex items-center space-x-2 mt-2">
                 <RadioGroupItem value="member" id="member" />
@@ -242,7 +243,7 @@ function InviteTeamMember() {
           <Button
             type="submit"
             className="bg-orange-500 hover:bg-orange-600 text-white"
-            disabled={isInvitePending || !isOwner}
+            disabled={isInvitePending || !canInvite}
           >
             {isInvitePending ? (
               <>
@@ -250,15 +251,13 @@ function InviteTeamMember() {
                 Inviting...
               </>
             ) : (
-              <>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Invite Member
-              </>
+              <PlusCircle className="mr-2 h-4 w-4" />
             )}
+            Invite
           </Button>
         </form>
       </CardContent>
-      {!isOwner && (
+      {!canInvite && (
         <CardFooter>
           <p className="text-sm text-muted-foreground">
             You must be a team owner to invite new members.

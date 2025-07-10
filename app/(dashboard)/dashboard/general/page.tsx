@@ -6,17 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { updateAccount } from '@/app/(login)/actions';
-import { User } from '@/lib/db/schema';
+import { updateProfile } from '@/app/(login)/actions';
+import { type Person } from '@/lib/db/schema';
 import useSWR from 'swr';
 import { Suspense } from 'react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type ActionState = {
-  name?: string;
+  displayName?: string;
   error?: string;
-  success?: string;
+  success?: boolean;
+  message?: string;
 };
 
 type AccountFormProps = {
@@ -33,14 +34,14 @@ function AccountForm({
   return (
     <>
       <div>
-        <Label htmlFor="name" className="mb-2">
+        <Label htmlFor="displayName" className="mb-2">
           Name
         </Label>
         <Input
-          id="name"
-          name="name"
+          id="displayName"
+          name="displayName"
           placeholder="Enter your name"
-          defaultValue={state.name || nameValue}
+          defaultValue={state.displayName || nameValue}
           required
         />
       </div>
@@ -54,7 +55,7 @@ function AccountForm({
           type="email"
           placeholder="Enter your email"
           defaultValue={emailValue}
-          required
+          disabled // Email should not be editable from here
         />
       </div>
     </>
@@ -62,11 +63,11 @@ function AccountForm({
 }
 
 function AccountFormWithData({ state }: { state: ActionState }) {
-  const { data: user } = useSWR<User>('/api/user', fetcher);
+  const { data: user } = useSWR<Person>('/api/user', fetcher);
   return (
     <AccountForm
       state={state}
-      nameValue={user?.name ?? ''}
+      nameValue={user?.displayName ?? ''}
       emailValue={user?.email ?? ''}
     />
   );
@@ -74,7 +75,7 @@ function AccountFormWithData({ state }: { state: ActionState }) {
 
 export default function GeneralPage() {
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
-    updateAccount,
+    updateProfile,
     {}
   );
 
@@ -96,8 +97,8 @@ export default function GeneralPage() {
             {state.error && (
               <p className="text-red-500 text-sm">{state.error}</p>
             )}
-            {state.success && (
-              <p className="text-green-500 text-sm">{state.success}</p>
+            {state.message && (
+              <p className="text-green-500 text-sm">{state.message}</p>
             )}
             <Button
               type="submit"

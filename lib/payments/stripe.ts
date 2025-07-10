@@ -1,10 +1,12 @@
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
-import { Team } from '@/lib/db/schema';
+// Note: We are using the new Group type and aliasing it as Team for now.
+// This will need to be properly refactored when Stripe integration is revisited.
+import { type Group as Team } from '@/lib/db/schema';
 import {
-  getTeamByStripeCustomerId,
   getUser,
-  updateTeamSubscription
+  // getTeamByStripeCustomerId,
+  // updateTeamSubscription
 } from '@/lib/db/queries';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -18,6 +20,10 @@ export async function createCheckoutSession({
   team: Team | null;
   priceId: string;
 }) {
+  // Stripe integration is on the backburner.
+  // This function needs to be refactored to use the new schema.
+  throw new Error('Stripe Checkout is temporarily disabled.');
+  /*
   const user = await getUser();
 
   if (!team || !user) {
@@ -44,9 +50,14 @@ export async function createCheckoutSession({
   });
 
   redirect(session.url!);
+  */
 }
 
 export async function createCustomerPortalSession(team: Team) {
+  // Stripe integration is on the backburner.
+  // This function needs to be refactored to use the new schema.
+  throw new Error('Stripe Customer Portal is temporarily disabled.');
+  /*
   if (!team.stripeCustomerId || !team.stripeProductId) {
     redirect('/pricing');
   }
@@ -112,8 +123,12 @@ export async function createCustomerPortalSession(team: Team) {
     return_url: `${process.env.BASE_URL}/dashboard`,
     configuration: configuration.id
   });
+  */
 }
 
+/*
+// This function is disabled as it depends on the old schema.
+// It needs to be refactored to use mp_core_group and related tables.
 export async function handleSubscriptionChange(
   subscription: Stripe.Subscription
 ) {
@@ -145,6 +160,7 @@ export async function handleSubscriptionChange(
     });
   }
 }
+*/
 
 export async function getStripePrices() {
   const prices = await stripe.prices.list({

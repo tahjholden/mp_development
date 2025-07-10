@@ -5,23 +5,33 @@ import {
   text,
   timestamp,
   integer,
+  uuid,
+  boolean,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }),
+export const mpCorePerson = pgTable('mp_core_person', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  displayName: text('display_name'),
   email: varchar('email', { length: 255 }).notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  role: varchar('role', { length: 20 }).notNull().default('member'),
+  authUid: text('auth_uid').unique(), // Link to Supabase Auth
+  isSuperadmin: boolean('is_superadmin').default(false),
+  organizationId: uuid('organization_id').references(() => mpCoreOrganizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
 });
 
-export const teams = pgTable('teams', {
-  id: serial('id').primaryKey(),
+export const mpCoreOrganizations = pgTable('mp_core_organizations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const mpCoreGroup = pgTable('mp_core_group', {
+  id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 100 }).notNull(),
+  organizationId: uuid('organization_id').references(() => mpCoreOrganizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   stripeCustomerId: text('stripe_customer_id').unique(),
@@ -31,24 +41,24 @@ export const teams = pgTable('teams', {
   subscriptionStatus: varchar('subscription_status', { length: 20 }),
 });
 
-export const teamMembers = pgTable('team_members', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id')
+export const mpCorePersonGroup = pgTable('mp_core_person_group', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  personId: uuid('person_id')
     .notNull()
-    .references(() => users.id),
-  teamId: integer('team_id')
+    .references(() => mpCorePerson.id),
+  groupId: uuid('group_id')
     .notNull()
-    .references(() => teams.id),
-  role: varchar('role', { length: 50 }).notNull(),
+    .references(() => mpCoreGroup.id),
+  role: varchar('role', { length: 50 }).notNull(), // e.g., 'owner', 'admin', 'member'
   joinedAt: timestamp('joined_at').notNull().defaultNow(),
 });
 
 export const activityLogs = pgTable('activity_logs', {
   id: serial('id').primaryKey(),
-  teamId: integer('team_id')
+  organizationId: uuid('organization_id')
     .notNull()
-    .references(() => teams.id),
-  userId: integer('user_id').references(() => users.id),
+    .references(() => mpCoreOrganizations.id),
+  personId: uuid('person_id').references(() => mpCorePerson.id),
   action: text('action').notNull(),
   timestamp: timestamp('timestamp').notNull().defaultNow(),
   ipAddress: varchar('ip_address', { length: 45 }),
@@ -56,75 +66,90 @@ export const activityLogs = pgTable('activity_logs', {
 
 export const invitations = pgTable('invitations', {
   id: serial('id').primaryKey(),
-  teamId: integer('team_id')
+  groupId: uuid('group_id')
     .notNull()
-    .references(() => teams.id),
+    .references(() => mpCoreGroup.id),
   email: varchar('email', { length: 255 }).notNull(),
   role: varchar('role', { length: 50 }).notNull(),
-  invitedBy: integer('invited_by')
+  invitedBy: uuid('invited_by')
     .notNull()
-    .references(() => users.id),
+    .references(() => mpCorePerson.id),
   invitedAt: timestamp('invited_at').notNull().defaultNow(),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
 });
 
-export const teamsRelations = relations(teams, ({ many }) => ({
-  teamMembers: many(teamMembers),
+export const organizationsRelations = relations(mpCoreOrganizations, ({ many }) => ({
+  people: many(mpCorePerson),
+  groups: many(mpCoreGroup),
   activityLogs: many(activityLogs),
+}));
+
+export const groupsRelations = relations(mpCoreGroup, ({ one, many }) => ({
+  organization: one(mpCoreOrganizations, {
+    fields: [mpCoreGroup.organizationId],
+    references: [mpCoreOrganizations.id],
+  }),
+  members: many(mpCorePersonGroup),
   invitations: many(invitations),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
-  teamMembers: many(teamMembers),
+export const peopleRelations = relations(mpCorePerson, ({ one, many }) => ({
+  organization: one(mpCoreOrganizations, {
+    fields: [mpCorePerson.organizationId],
+    references: [mpCoreOrganizations.id],
+  }),
+  groupMemberships: many(mpCorePersonGroup),
   invitationsSent: many(invitations),
 }));
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
-  team: one(teams, {
-    fields: [invitations.teamId],
-    references: [teams.id],
+  group: one(mpCoreGroup, {
+    fields: [invitations.groupId],
+    references: [mpCoreGroup.id],
   }),
-  invitedBy: one(users, {
+  invitedByUser: one(mpCorePerson, {
     fields: [invitations.invitedBy],
-    references: [users.id],
+    references: [mpCorePerson.id],
+    relationName: 'invitedByUser',
   }),
 }));
 
-export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
-  user: one(users, {
-    fields: [teamMembers.userId],
-    references: [users.id],
+export const personGroupRelations = relations(mpCorePersonGroup, ({ one }) => ({
+  person: one(mpCorePerson, {
+    fields: [mpCorePersonGroup.personId],
+    references: [mpCorePerson.id],
   }),
-  team: one(teams, {
-    fields: [teamMembers.teamId],
-    references: [teams.id],
+  group: one(mpCoreGroup, {
+    fields: [mpCorePersonGroup.groupId],
+    references: [mpCoreGroup.id],
   }),
 }));
 
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
-  team: one(teams, {
-    fields: [activityLogs.teamId],
-    references: [teams.id],
+  organization: one(mpCoreOrganizations, {
+    fields: [activityLogs.organizationId],
+    references: [mpCoreOrganizations.id],
   }),
-  user: one(users, {
-    fields: [activityLogs.userId],
-    references: [users.id],
+  person: one(mpCorePerson, {
+    fields: [activityLogs.personId],
+    references: [mpCorePerson.id],
   }),
 }));
 
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-export type Team = typeof teams.$inferSelect;
-export type NewTeam = typeof teams.$inferInsert;
-export type TeamMember = typeof teamMembers.$inferSelect;
-export type NewTeamMember = typeof teamMembers.$inferInsert;
+export type Person = typeof mpCorePerson.$inferSelect;
+export type NewPerson = typeof mpCorePerson.$inferInsert;
+export type Group = typeof mpCoreGroup.$inferSelect;
+export type NewGroup = typeof mpCoreGroup.$inferInsert;
+export type PersonGroup = typeof mpCorePersonGroup.$inferSelect;
+export type NewPersonGroup = typeof mpCorePersonGroup.$inferInsert;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
-export type TeamDataWithMembers = Team & {
-  teamMembers: (TeamMember & {
-    user: Pick<User, 'id' | 'name' | 'email'>;
+export type NewOrganization = typeof mpCoreOrganizations.$inferInsert;
+export type GroupWithMembers = Group & {
+  members: (PersonGroup & {
+    person: Pick<Person, 'id' | 'displayName' | 'email'>;
   })[];
 };
 

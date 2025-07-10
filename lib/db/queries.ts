@@ -1,10 +1,16 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import {
+  activityLogs,
+  mpCorePerson,
+  mpCoreGroup,
+  mpCorePersonGroup,
+  Person,
+} from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
-export async function getUser() {
+export async function getUser(): Promise<Person | null> {
   const sessionCookie = (await cookies()).get('session');
   if (!sessionCookie || !sessionCookie.value) {
     return null;
@@ -14,7 +20,7 @@ export async function getUser() {
   if (
     !sessionData ||
     !sessionData.user ||
-    typeof sessionData.user.id !== 'number'
+    typeof sessionData.user.id !== 'string' // UUIDs are strings
   ) {
     return null;
   }
@@ -23,59 +29,38 @@ export async function getUser() {
     return null;
   }
 
-  const user = await db
+  const userResult = await db
     .select()
-    .from(users)
-    .where(and(eq(users.id, sessionData.user.id), isNull(users.deletedAt)))
+    .from(mpCorePerson)
+    .where(eq(mpCorePerson.id, sessionData.user.id))
     .limit(1);
 
-  if (user.length === 0) {
+  if (userResult.length === 0) {
     return null;
   }
 
-  return user[0];
+  return userResult[0];
 }
 
-export async function getTeamByStripeCustomerId(customerId: string) {
-  const result = await db
-    .select()
-    .from(teams)
-    .where(eq(teams.stripeCustomerId, customerId))
-    .limit(1);
-
-  return result.length > 0 ? result[0] : null;
-}
-
-export async function updateTeamSubscription(
-  teamId: number,
-  subscriptionData: {
-    stripeSubscriptionId: string | null;
-    stripeProductId: string | null;
-    planName: string | null;
-    subscriptionStatus: string;
-  }
-) {
-  await db
-    .update(teams)
-    .set({
-      ...subscriptionData,
-      updatedAt: new Date()
-    })
-    .where(eq(teams.id, teamId));
-}
-
-export async function getUserWithTeam(userId: number) {
+export async function getUserWithTeam(personId: string) {
   const result = await db
     .select({
-      user: users,
-      teamId: teamMembers.teamId
+      person: mpCorePerson,
+      group: mpCoreGroup,
     })
-    .from(users)
-    .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
-    .where(eq(users.id, userId))
+    .from(mpCorePerson)
+    .leftJoin(mpCorePersonGroup, eq(mpCorePerson.id, mpCorePersonGroup.personId))
+    .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
+    .where(eq(mpCorePerson.id, personId))
     .limit(1);
 
-  return result[0];
+  if (!result.length) return null;
+
+  return {
+    ...result[0].person,
+    team: result[0].group, // Keep 'team' property for compatibility for now
+    teamId: result[0].group?.id, // Keep 'teamId' for compatibility
+  };
 }
 
 export async function getActivityLogs() {
@@ -90,11 +75,11 @@ export async function getActivityLogs() {
       action: activityLogs.action,
       timestamp: activityLogs.timestamp,
       ipAddress: activityLogs.ipAddress,
-      userName: users.name
+      userName: mpCorePerson.displayName,
     })
     .from(activityLogs)
-    .leftJoin(users, eq(activityLogs.userId, users.id))
-    .where(eq(activityLogs.userId, user.id))
+    .leftJoin(mpCorePerson, eq(activityLogs.personId, mpCorePerson.id))
+    .where(eq(activityLogs.personId, user.id))
     .orderBy(desc(activityLogs.timestamp))
     .limit(10);
 }
@@ -105,26 +90,26 @@ export async function getTeamForUser() {
     return null;
   }
 
-  const result = await db.query.teamMembers.findFirst({
-    where: eq(teamMembers.userId, user.id),
+  const result = await db.query.mpCorePersonGroup.findFirst({
+    where: eq(mpCorePersonGroup.personId, user.id),
     with: {
-      team: {
+      group: {
         with: {
-          teamMembers: {
+          members: {
             with: {
-              user: {
+              person: {
                 columns: {
                   id: true,
-                  name: true,
-                  email: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  displayName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
 
-  return result?.team || null;
+  return result?.group || null;
 }
