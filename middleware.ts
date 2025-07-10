@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { signToken, verifyToken } from '@/lib/auth/session';
+import { refreshSession } from '@/lib/supabase/middleware';
 
 const protectedRoutes = ['/dashboard', '/admin'];
 const adminRoutes = ['/admin'];
@@ -18,7 +19,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/sign-in', request.url));
   }
 
-  let res = NextResponse.next();
+  // Refresh Supabase auth session if needed
+  const supabaseRes = await refreshSession(request);
+
+  // Use the response from Supabase refresh (if any) as our base response
+  let res = supabaseRes ?? NextResponse.next();
 
   if (sessionCookie) {
     try {
