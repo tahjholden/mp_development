@@ -19,6 +19,11 @@ export const mpCorePerson = pgTable('mp_core_person', {
   organizationId: uuid('organization_id').references(() => mpCoreOrganizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  stripeCustomerId: text('stripe_customer_id').unique(),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  stripeProductId: text('stripe_product_id'),
+  planName: varchar('plan_name', { length: 50 }),
+  subscriptionStatus: varchar('subscription_status', { length: 20 }),
 });
 
 export const mpCoreOrganizations = pgTable('mp_core_organizations', {
@@ -34,11 +39,6 @@ export const mpCoreGroup = pgTable('mp_core_group', {
   organizationId: uuid('organization_id').references(() => mpCoreOrganizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  stripeCustomerId: text('stripe_customer_id').unique(),
-  stripeSubscriptionId: text('stripe_subscription_id').unique(),
-  stripeProductId: text('stripe_product_id'),
-  planName: varchar('plan_name', { length: 50 }),
-  subscriptionStatus: varchar('subscription_status', { length: 20 }),
 });
 
 export const mpCorePersonGroup = pgTable('mp_core_person_group', {

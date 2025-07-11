@@ -4,19 +4,18 @@ import { z } from 'zod';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import {
-  Person,
   mpCorePerson,
   mpCoreGroup,
   mpCorePersonGroup,
+  invitations,
+  mpCoreOrganizations,
   activityLogs,
   type NewPerson,
   type NewGroup,
   type NewPersonGroup,
   type NewActivityLog,
+  type NewOrganization,
   ActivityType,
-  invitations,
-  mpCoreOrganizations,
-  NewOrganization,
 } from '@/lib/db/schema';
 import { setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
@@ -84,13 +83,8 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
-    if (!foundTeam) {
-      return {
-        error: 'You are not part of any team, cannot proceed to checkout.',
-      };
-    }
     const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ team: foundTeam, priceId });
+    return createCheckoutSession({ user: foundUser, priceId });
   }
 
   redirect('/dashboard');
@@ -99,7 +93,7 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 const signUpSchema = z.object({
   email: z.string().email(),
   displayName: z.string().optional(),
-  authUid: z.string(), // From Supabase Auth
+  authUid: z.string(), // Supabase Auth UID
   inviteId: z.string().optional(),
 });
 
@@ -231,13 +225,8 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
-    if (!createdGroup) {
-      return {
-        error: 'You are not part of any team, cannot proceed to checkout.',
-      };
-    }
     const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ team: createdGroup, priceId });
+    return createCheckoutSession({ user: createdPerson, priceId });
   }
 
   redirect('/dashboard');
@@ -270,7 +259,6 @@ export const updatePassword = validatedActionWithUser(
     };
   },
 );
-
 const removeUserSchema = z.object({
   userId: z.string(), // Now a string (UUID)
 });

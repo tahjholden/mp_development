@@ -1,8 +1,10 @@
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
-// Note: We are using the new Group type and aliasing it as Team for now.
-// This will need to be properly refactored when Stripe integration is revisited.
-import { type Group as Team } from '@/lib/db/schema';
+// NOTE:
+// Stripe metadata (customer / subscription / product) is now stored on the
+// mpCorePerson model – *not* on mpCoreGroup.  Until we fully re-enable Stripe
+// billing, we just keep type-checking correct by importing `Person`.
+import { type Person } from '@/lib/db/schema';
 import {
   getUser,
   // getTeamByStripeCustomerId,
@@ -14,19 +16,24 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function createCheckoutSession({
-  team,
+  user,
   priceId
 }: {
-  team: Team | null;
+  user: Person | null;
   priceId: string;
 }) {
   // Stripe integration is on the backburner.
   // This function needs to be refactored to use the new schema.
-  throw new Error('Stripe Checkout is temporarily disabled.');
+  // Instead of throwing, gracefully redirect the user so the sign-in flow
+  // does not break when a checkout is requested.
+  console.warn(
+    'Stripe Checkout requested but integration is disabled. Redirecting to dashboard instead.'
+  );
+  redirect('/dashboard');
   /*
-  const user = await getUser();
+  const authUser = await getUser();
 
-  if (!team || !user) {
+  if (!user || !authUser) {
     redirect(`/sign-up?redirect=checkout&priceId=${priceId}`);
   }
 
@@ -41,8 +48,8 @@ export async function createCheckoutSession({
     mode: 'subscription',
     success_url: `${process.env.BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.BASE_URL}/pricing`,
-    customer: team.stripeCustomerId || undefined,
-    client_reference_id: user.id.toString(),
+    customer: user.stripeCustomerId || undefined,
+    client_reference_id: authUser.id.toString(),
     allow_promotion_codes: true,
     subscription_data: {
       trial_period_days: 14
@@ -53,12 +60,12 @@ export async function createCheckoutSession({
   */
 }
 
-export async function createCustomerPortalSession(team: Team) {
+export async function createCustomerPortalSession(user: Person) {
   // Stripe integration is on the backburner.
   // This function needs to be refactored to use the new schema.
   throw new Error('Stripe Customer Portal is temporarily disabled.');
   /*
-  if (!team.stripeCustomerId || !team.stripeProductId) {
+  if (!user.stripeCustomerId || !user.stripeProductId) {
     redirect('/pricing');
   }
 
@@ -68,7 +75,7 @@ export async function createCustomerPortalSession(team: Team) {
   if (configurations.data.length > 0) {
     configuration = configurations.data[0];
   } else {
-    const product = await stripe.products.retrieve(team.stripeProductId);
+    const product = await stripe.products.retrieve(user.stripeProductId);
     if (!product.active) {
       throw new Error("Team's product is not active in Stripe");
     }
@@ -119,7 +126,7 @@ export async function createCustomerPortalSession(team: Team) {
   }
 
   return stripe.billingPortal.sessions.create({
-    customer: team.stripeCustomerId,
+    customer: user.stripeCustomerId,
     return_url: `${process.env.BASE_URL}/dashboard`,
     configuration: configuration.id
   });
