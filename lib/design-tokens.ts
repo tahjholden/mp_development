@@ -86,6 +86,13 @@ export const colors = {
     900: '#0f172a',
   },
 
+  // Domain-specific colours
+  playerStatus: {
+    active: '#C2B56B',     // same as gold[500]
+    archived: '#A22828',   // same as danger[500]
+    inactive: '#374151',   // same as gray[700]
+  },
+
   // Background colors
   background: {
     primary: '#09090B', // zinc-950
@@ -117,6 +124,7 @@ export const spacing = {
   xl: '2rem',       // 32px
   '2xl': '3rem',    // 48px
   '3xl': '4rem',    // 64px
+  '4xl': '6rem',    // 96px (used for wider gutters in 3-column layouts)
 };
 
 export const borderRadius = {
@@ -214,6 +222,12 @@ export const semanticColors = {
   textTertiary: colors.text.tertiary,
   textGold: colors.text.gold,
 
+  // Basketball specific player statuses
+  playerActive: colors.playerStatus.active,
+  playerArchived: colors.playerStatus.archived,
+  playerInactive: colors.playerStatus.inactive,
+
+
   // Border colors
   border: colors.border.primary,
   borderSecondary: colors.border.secondary,
@@ -250,6 +264,12 @@ export const cssVariables = {
   '--color-border': colors.border.primary,
   '--color-border-secondary': colors.border.secondary,
   '--color-border-gold': colors.border.gold,
+
+  // Player status
+  '--color-player-active': colors.playerStatus.active,
+  '--color-player-archived': colors.playerStatus.archived,
+  '--color-player-inactive': colors.playerStatus.inactive,
+
   '--shadow-sm': shadows.sm,
   '--shadow-md': shadows.md,
   '--shadow-lg': shadows.lg,
