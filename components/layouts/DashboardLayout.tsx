@@ -1,3 +1,6 @@
+/* eslint-disable react/jsx-no-useless-fragment */
+'use client';
+
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/ui/Sidebar';

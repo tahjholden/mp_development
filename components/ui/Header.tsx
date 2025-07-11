@@ -1,3 +1,10 @@
+/* 
+ * Mark this component as a Client Component so that React hooks
+ * such as `useState` and Next.js hooks like `usePathname` work
+ * correctly in the App Router.
+ */
+'use client';
+
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';

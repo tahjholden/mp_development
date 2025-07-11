@@ -11,6 +11,11 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
 export async function getUser(): Promise<Person | null> {
+  // Database might be undefined in environments without POSTGRES_URL.
+  if (!db) {
+    return null;
+  }
+
   const sessionCookie = (await cookies()).get('session');
   if (!sessionCookie || !sessionCookie.value) {
     return null;
@@ -43,6 +48,10 @@ export async function getUser(): Promise<Person | null> {
 }
 
 export async function getUserWithTeam(personId: string) {
+  if (!db) {
+    return null;
+  }
+
   const result = await db
     .select({
       person: mpCorePerson,
@@ -64,6 +73,10 @@ export async function getUserWithTeam(personId: string) {
 }
 
 export async function getActivityLogs() {
+  if (!db) {
+    throw new Error('Database unavailable');
+  }
+
   const user = await getUser();
   if (!user) {
     throw new Error('User not authenticated');
@@ -85,6 +98,10 @@ export async function getActivityLogs() {
 }
 
 export async function getTeamForUser() {
+  if (!db) {
+    return null;
+  }
+
   const user = await getUser();
   if (!user) {
     return null;

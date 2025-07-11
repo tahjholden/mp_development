@@ -25,6 +25,15 @@ const infrastructureSessions = {
  * Get counts of various entities in the database
  */
 export async function getDatabaseCounts() {
+  if (!db) {
+    return {
+      userCount: 0,
+      groupCount: 0,
+      sessionCount: 0,
+      organizationCount: 0,
+    };
+  }
+
   const [userCount] = await db
     .select({ count: sql<number>`count(*)` })
     .from(mpCorePerson);
@@ -54,6 +63,10 @@ export async function getDatabaseCounts() {
  * Get a list of users with pagination
  */
 export async function getUsers(limit = 10, offset = 0) {
+  if (!db) {
+    return [];
+  }
+
   return db
     .select({
       id: mpCorePerson.id,
@@ -72,6 +85,10 @@ export async function getUsers(limit = 10, offset = 0) {
  * Get a list of groups with pagination
  */
 export async function getGroups(limit = 10, offset = 0) {
+  if (!db) {
+    return [];
+  }
+
   return db
     .select({
       id: mpCoreGroup.id,
@@ -88,6 +105,10 @@ export async function getGroups(limit = 10, offset = 0) {
  * Get a list of sessions with pagination
  */
 export async function getSessions(limit = 10, offset = 0) {
+  if (!db) {
+    return [];
+  }
+
   return db.execute<{
     id: string;
     groupId: string;
@@ -119,6 +140,10 @@ export async function getSessions(limit = 10, offset = 0) {
  * Get a user with their associated groups
  */
 export async function getUserWithGroups(userId: string) {
+  if (!db) {
+    return null;
+  }
+
   const user = await db
     .select({
       id: mpCorePerson.id,
@@ -154,6 +179,10 @@ export async function getUserWithGroups(userId: string) {
  * Get a group with its members
  */
 export async function getGroupWithMembers(groupId: string) {
+  if (!db) {
+    return null;
+  }
+
   const group = await db
     .select({
       id: mpCoreGroup.id,
@@ -189,6 +218,10 @@ export async function getGroupWithMembers(groupId: string) {
  * Get a list of organizations
  */
 export async function getOrganizations(limit = 10, offset = 0) {
+  if (!db) {
+    return [];
+  }
+
   return db
     .select({
       id: mpCoreOrganizations.id,
@@ -205,6 +238,10 @@ export async function getOrganizations(limit = 10, offset = 0) {
  * Get sessions for a specific group
  */
 export async function getSessionsByGroup(groupId: string, limit = 10, offset = 0) {
+  if (!db) {
+    return [];
+  }
+
   return db.execute<{
     id: string;
     sessionNumber: number;
@@ -235,6 +272,10 @@ export async function getSessionsByGroup(groupId: string, limit = 10, offset = 0
  * Search for users by name or email
  */
 export async function searchUsers(query: string, limit = 10) {
+  if (!db) {
+    return [];
+  }
+
   return db
     .select({
       id: mpCorePerson.id,
@@ -252,6 +293,10 @@ export async function searchUsers(query: string, limit = 10) {
  * Search for groups by name
  */
 export async function searchGroups(query: string, limit = 10) {
+  if (!db) {
+    return [];
+  }
+
   return db
     .select({
       id: mpCoreGroup.id,

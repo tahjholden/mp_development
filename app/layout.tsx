@@ -26,15 +26,27 @@ export default function RootLayout({
       className={`bg-white dark:bg-gray-950 text-black dark:text-white ${manrope.className}`}
     >
       <body className="min-h-[100dvh] bg-gray-50">
+        {/*
+          Build SWR fallback data conditionally. In local development (or
+          environments without a configured database) `getUser` / `getTeamForUser`
+          will throw because `db` is undefined.  We shield the app from that
+          scenario so that pages not requiring the DB (e.g. marketing / auth)
+          continue to work.
+        */}
         <SWRConfig
-          value={{
-            fallback: {
-              // We do NOT await here
-              // Only components that read this data will suspend
-              '/api/user': getUser(),
-              '/api/team': getTeamForUser()
+          value={(() => {
+            const fallback: Record<string, unknown> = {};
+            try {
+              fallback['/api/user'] = getUser();
+              fallback['/api/team'] = getTeamForUser();
+            } catch (err) {
+              /* eslint-disable no-console */
+              console.warn(
+                '[layout] Database unavailable, skipping SWR fallback data.',
+              );
             }
-          }}
+            return { fallback };
+          })()}
         >
           {children}
         </SWRConfig>
