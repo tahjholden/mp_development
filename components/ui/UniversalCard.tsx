@@ -13,6 +13,7 @@ const cardVariants = cva(
         bordered: "bg-transparent border",
         elevated: "bg-zinc-900 border border-zinc-800 shadow-md",
         flat: "bg-zinc-900",
+        empty: "bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center text-center",
       },
       color: {
         // Color variants
@@ -181,6 +182,111 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
 
 Card.displayName = "Card";
 
+// Props interface for the EmptyStateCard component
+export interface EmptyStateCardProps extends Omit<CardProps, "children"> {
+  icon?: ReactNode;
+  title?: string;
+  message?: string;
+  action?: ReactNode;
+  iconSize?: "sm" | "md" | "lg" | "xl";
+  iconClassName?: string;
+}
+
+// EmptyStateCard component
+const EmptyStateCard = forwardRef<HTMLDivElement, EmptyStateCardProps>(
+  (
+    {
+      className,
+      variant = "default",
+      color = "default",
+      size = "lg",
+      icon,
+      title,
+      message,
+      action,
+      iconSize = "lg",
+      iconClassName,
+      ...props
+    },
+    ref
+  ) => {
+    // Map icon sizes to classes
+    const iconSizeClasses = {
+      sm: "w-12 h-12 mb-3",
+      md: "w-16 h-16 mb-4",
+      lg: "w-20 h-20 mb-5",
+      xl: "w-24 h-24 mb-6",
+    };
+
+    return (
+      <Card
+        variant={variant}
+        color={color}
+        size={size}
+        className={cn("flex flex-col items-center justify-center py-8", className)}
+        ref={ref}
+        {...props}
+      >
+        {icon && (
+          <div className={cn(iconSizeClasses[iconSize], "text-zinc-600", iconClassName)}>
+            {icon}
+          </div>
+        )}
+        {title && <h3 className="text-lg font-medium text-white mb-2">{title}</h3>}
+        {message && <p className="text-sm text-zinc-400 max-w-md mb-6">{message}</p>}
+        {action && <div className="mt-2">{action}</div>}
+      </Card>
+    );
+  }
+);
+
+EmptyStateCard.displayName = "EmptyStateCard";
+
+// PlayerStatusCard component for player list items
+export interface PlayerStatusCardProps extends Omit<CardProps, "color"> {
+  status?: "active" | "archived" | "inactive";
+  selected?: boolean;
+}
+
+// PlayerStatusCard component
+const PlayerStatusCard = forwardRef<HTMLDivElement, PlayerStatusCardProps>(
+  (
+    {
+      className,
+      variant = "default",
+      status = "active",
+      selected = false,
+      hover = "border",
+      ...props
+    },
+    ref
+  ) => {
+    // Map status to border colors
+    const statusClasses = {
+      active: "border-gold-500",
+      archived: "border-danger-500",
+      inactive: "border-zinc-700",
+    };
+
+    return (
+      <Card
+        variant={variant}
+        className={cn(
+          "border-l-4",
+          statusClasses[status],
+          selected && "bg-zinc-800",
+          className
+        )}
+        hover={hover}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+
+PlayerStatusCard.displayName = "PlayerStatusCard";
+
 // Create specialized card components
 const UniversalCard = {
   // Base component for custom styling
@@ -249,11 +355,71 @@ const UniversalCard = {
   StatCard: forwardRef<HTMLDivElement, Omit<CardProps, "variant" | "size">>(
     (props, ref) => <Card variant="bordered" size="sm" ref={ref} {...props} />
   ),
-  EmptyState: forwardRef<HTMLDivElement, Omit<CardProps, "variant" | "className">>(
+  
+  // Enhanced empty state components
+  Empty: EmptyStateCard,
+  
+  // Player status card for list items
+  PlayerStatus: PlayerStatusCard,
+  
+  // Basketball-specific empty states
+  EmptyState: forwardRef<HTMLDivElement, Omit<EmptyStateCardProps, "variant">>(
+    (props, ref) => <EmptyStateCard variant="default" ref={ref} {...props} />
+  ),
+  
+  // Specific basketball empty states
+  SelectPlayerState: forwardRef<HTMLDivElement, Omit<EmptyStateCardProps, "title">>(
     (props, ref) => (
-      <Card 
-        variant="bordered" 
-        className="flex flex-col items-center justify-center text-center p-8" 
+      <EmptyStateCard 
+        title="Select a Player to View Their Profile" 
+        iconSize="lg"
+        ref={ref} 
+        {...props} 
+      />
+    )
+  ),
+  
+  SelectTeamState: forwardRef<HTMLDivElement, Omit<EmptyStateCardProps, "title">>(
+    (props, ref) => (
+      <EmptyStateCard 
+        title="Select a Team to View Their Profile" 
+        iconSize="lg"
+        ref={ref} 
+        {...props} 
+      />
+    )
+  ),
+  
+  NoDataState: forwardRef<HTMLDivElement, Omit<EmptyStateCardProps, "title" | "message">>(
+    (props, ref) => (
+      <EmptyStateCard 
+        title="No Data Available" 
+        message="There are no items to display at this time."
+        iconSize="lg"
+        ref={ref} 
+        {...props} 
+      />
+    )
+  ),
+  
+  AddFirstItemState: forwardRef<HTMLDivElement, Omit<EmptyStateCardProps, "variant">>(
+    (props, ref) => (
+      <EmptyStateCard 
+        variant="bordered"
+        color="gold"
+        iconSize="lg"
+        ref={ref} 
+        {...props} 
+      />
+    )
+  ),
+  
+  NoObservationsState: forwardRef<HTMLDivElement, Omit<EmptyStateCardProps, "title" | "message">>(
+    (props, ref) => (
+      <EmptyStateCard 
+        title="No Observations Yet" 
+        message="This player doesn't have any observations yet."
+        iconSize="md"
         ref={ref} 
         {...props} 
       />
