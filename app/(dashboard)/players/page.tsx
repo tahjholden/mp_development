@@ -5,7 +5,7 @@ import { Shield } from 'lucide-react';
 import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
 import PlayerListCard from '@/components/basketball/PlayerListCard';
 import UniversalCard from '@/components/ui/UniversalCard';
-import UniversalButton from '@/components/ui/UniversalButton';
+import { UniversalButton } from '@/components/ui/UniversalButton';
 import UniversalModal from '@/components/ui/UniversalModal';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import AddPlayerModal from '@/components/basketball/AddPlayerModal';
