@@ -93,9 +93,11 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
   const selectedTeam = teams.find((team) => team.id === formData.teamId);
 
   return (
-    <UniversalModal
-      isOpen={isOpen}
-      onClose={onClose}
+    <UniversalModal.Basic
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
       className="bg-zinc-900 border border-zinc-800 p-0 w-full max-w-md"
     >
       <div className="px-6 py-4 border-b border-zinc-800">
@@ -221,7 +223,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
           </UniversalButton.Primary>
         </div>
       </form>
-    </UniversalModal>
+    </UniversalModal.Basic>
   );
 };
 
