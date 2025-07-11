@@ -5,9 +5,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-if (!process.env.POSTGRES_URL) {
-  throw new Error('POSTGRES_URL environment variable is not set');
-}
+/**
+ * Allow the application to boot even if a DB connection string isn’t
+ * configured.  When `POSTGRES_URL` is absent we export `undefined` for both
+ * `client` and `db` so that callers can handle the “no-database” scenario
+ * explicitly (e.g. in local development without Postgres).
+ */
+const connectionString = process.env.POSTGRES_URL;
 
-export const client = postgres(process.env.POSTGRES_URL);
-export const db = drizzle(client, { schema });
+export const client = connectionString ? postgres(connectionString) : undefined;
+export const db = connectionString
+  ? drizzle(client as NonNullable<typeof client>, { schema })
+  : undefined;
