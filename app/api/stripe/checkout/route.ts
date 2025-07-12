@@ -1,12 +1,16 @@
-import { eq } from 'drizzle-orm';
-import { db } from '@/lib/db/drizzle';
-import { users, teams, teamMembers } from '@/lib/db/schema';
-import { setSession } from '@/lib/auth/session';
+// import { eq } from 'drizzle-orm';
+// import { db } from '@/lib/db/drizzle';
+// import { users, teams, teamMembers } from '@/lib/db/schema';
+// import { setSession } from '@/lib/auth/session';
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/payments/stripe';
-import Stripe from 'stripe';
+// import { stripe } from '@/lib/payments/stripe';
+// import Stripe from 'stripe';
 
 export async function GET(request: NextRequest) {
+  // Stripe checkout is temporarily disabled
+  return NextResponse.redirect(new URL('/dashboard', request.url));
+  
+  /*
   const searchParams = request.nextUrl.searchParams;
   const sessionId = searchParams.get('session_id');
 
@@ -94,4 +98,5 @@ export async function GET(request: NextRequest) {
     console.error('Error handling successful checkout:', error);
     return NextResponse.redirect(new URL('/error', request.url));
   }
+  */
 }

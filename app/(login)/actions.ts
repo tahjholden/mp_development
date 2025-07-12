@@ -5,22 +5,16 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import {
   mpCorePerson,
-  mpCoreGroup,
-  mpCorePersonGroup,
   invitations,
-  mpCoreOrganizations,
   activityLogs,
   type NewPerson,
-  type NewGroup,
-  type NewPersonGroup,
   type NewActivityLog,
-  type NewOrganization,
   ActivityType,
 } from '@/lib/db/schema';
 import { setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { createCheckoutSession } from '@/lib/payments/stripe';
+// import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
 import {
   validatedAction,
@@ -59,11 +53,8 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
   const userWithTeam = await db
     .select({
       user: mpCorePerson,
-      team: mpCoreGroup,
     })
     .from(mpCorePerson)
-    .leftJoin(mpCorePersonGroup, eq(mpCorePerson.id, mpCorePersonGroup.personId))
-    .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
     .where(eq(mpCorePerson.email, email))
     .limit(1);
 
@@ -74,17 +65,18 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     };
   }
 
-  const { user: foundUser, team: foundTeam } = userWithTeam[0];
+  const { user: foundUser } = userWithTeam[0];
 
   await Promise.all([
     setSession(foundUser),
-    logActivity(foundTeam?.organizationId, foundUser.id, ActivityType.SIGN_IN),
+    logActivity(foundUser.organizationId, foundUser.id, ActivityType.SIGN_IN),
   ]);
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
     const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ user: foundUser, priceId });
+    // return createCheckoutSession({ user: foundUser, priceId });
+    redirect('/dashboard');
   }
 
   redirect('/dashboard');
@@ -116,20 +108,11 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     };
   }
 
-  // A user needs a top-level organization.
-  const newOrg: NewOrganization = {
-    name: `${email}'s Organization`,
-  };
-  const [createdOrg] = await db
-    .insert(mpCoreOrganizations)
-    .values(newOrg)
-    .returning();
-
   const newPerson: NewPerson = {
     email,
-    displayName: displayName || email,
+    firstName: displayName || email,
     authUid,
-    organizationId: createdOrg.id,
+    organizationId: null, // We'll handle this later if needed
   };
 
   const [createdPerson] = await db
@@ -144,89 +127,17 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     };
   }
 
-  let groupId: string;
-  let userRole: string;
-  let createdGroup: typeof mpCoreGroup.$inferSelect | null = null;
-
-  if (inviteId) {
-    const [invitation] = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.id, parseInt(inviteId)),
-          eq(invitations.email, email),
-          eq(invitations.status, 'pending'),
-        ),
-      )
-      .limit(1);
-
-    if (invitation) {
-      groupId = invitation.groupId;
-      userRole = invitation.role;
-
-      await db
-        .update(invitations)
-        .set({ status: 'accepted' })
-        .where(eq(invitations.id, invitation.id));
-
-      await logActivity(
-        createdOrg.id,
-        createdPerson.id,
-        ActivityType.ACCEPT_INVITATION,
-      );
-
-      [createdGroup] = await db
-        .select()
-        .from(mpCoreGroup)
-        .where(eq(mpCoreGroup.id, groupId))
-        .limit(1);
-    } else {
-      return { error: 'Invalid or expired invitation.', email };
-    }
-  } else {
-    // Create a new group (team) if there's no invitation
-    const newGroup: NewGroup = {
-      name: `${email}'s Team`,
-      organizationId: createdOrg.id,
-    };
-
-    [createdGroup] = await db.insert(mpCoreGroup).values(newGroup).returning();
-
-    if (!createdGroup) {
-      // Consider rolling back the user creation here in a real app
-      return {
-        error: 'Failed to create team. Please try again.',
-        email,
-      };
-    }
-
-    groupId = createdGroup.id;
-    userRole = 'owner';
-
-    await logActivity(
-      createdOrg.id,
-      createdPerson.id,
-      ActivityType.CREATE_TEAM,
-    );
-  }
-
-  const newPersonGroup: NewPersonGroup = {
-    personId: createdPerson.id,
-    groupId: groupId,
-    role: userRole,
-  };
-
+  // Simplified signup - just create the person
   await Promise.all([
-    db.insert(mpCorePersonGroup).values(newPersonGroup),
-    logActivity(createdOrg.id, createdPerson.id, ActivityType.SIGN_UP),
+    logActivity(createdPerson.organizationId, createdPerson.id, ActivityType.SIGN_UP),
     setSession(createdPerson),
   ]);
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
     const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ user: createdPerson, priceId });
+    // return createCheckoutSession({ user: createdPerson, priceId });
+    redirect('/dashboard');
   }
 
   redirect('/dashboard');
@@ -235,8 +146,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 export async function signOut() {
   const user = await getUser();
   if (!user) return;
-  const userWithTeam = await getUserWithTeam(user.id);
-  await logActivity(userWithTeam?.team?.organizationId, user.id, ActivityType.SIGN_OUT);
+  await logActivity(user.organizationId, user.id, ActivityType.SIGN_OUT);
   (await cookies()).delete('session');
   redirect('/sign-in');
 }

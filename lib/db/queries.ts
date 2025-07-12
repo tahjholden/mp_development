@@ -3,8 +3,6 @@ import { db } from './drizzle';
 import {
   activityLogs,
   mpCorePerson,
-  mpCoreGroup,
-  mpCorePersonGroup,
   Person,
 } from './schema';
 import { cookies } from 'next/headers';
@@ -52,23 +50,23 @@ export async function getUserWithTeam(personId: string) {
     return null;
   }
 
-  const result = await db
-    .select({
-      person: mpCorePerson,
-      group: mpCoreGroup,
-    })
+  const userResult = await db
+    .select()
     .from(mpCorePerson)
-    .leftJoin(mpCorePersonGroup, eq(mpCorePerson.id, mpCorePersonGroup.personId))
-    .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
     .where(eq(mpCorePerson.id, personId))
     .limit(1);
 
-  if (!result.length) return null;
+  if (!userResult.length) return null;
+
+  const user = userResult[0];
 
   return {
-    ...result[0].person,
-    team: result[0].group, // Keep 'team' property for compatibility for now
-    teamId: result[0].group?.id, // Keep 'teamId' for compatibility
+    ...user,
+    team: user.groupId && user.groupName ? {
+      id: user.groupId,
+      name: user.groupName,
+    } : null,
+    teamId: user.groupId,
   };
 }
 
@@ -88,7 +86,7 @@ export async function getActivityLogs() {
       action: activityLogs.action,
       timestamp: activityLogs.timestamp,
       ipAddress: activityLogs.ipAddress,
-      userName: mpCorePerson.displayName,
+      userName: mpCorePerson.firstName,
     })
     .from(activityLogs)
     .leftJoin(mpCorePerson, eq(activityLogs.personId, mpCorePerson.id))
@@ -107,26 +105,15 @@ export async function getTeamForUser() {
     return null;
   }
 
-  const result = await db.query.mpCorePersonGroup.findFirst({
-    where: eq(mpCorePersonGroup.personId, user.id),
-    with: {
-      group: {
-        with: {
-          members: {
-            with: {
-              person: {
-                columns: {
-                  id: true,
-                  displayName: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  // For now, return null since the team tables don't exist in the current schema
+  // The user's team information is stored in groupId and groupName fields
+  if (user.groupId && user.groupName) {
+    return {
+      id: user.groupId,
+      name: user.groupName,
+      // Add other team properties as needed
+    };
+  }
 
-  return result?.group || null;
+  return null;
 }

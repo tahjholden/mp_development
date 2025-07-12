@@ -59,12 +59,12 @@ const navItems: NavItemType[] = [
       },
       {
         title: 'Development Plans',
-        href: '/players/development',
+        href: '/development-plans',
         icon: <ChevronRight size={16} />,
       },
       {
         title: 'Observations',
-        href: '/players/observations',
+        href: '/observations',
         icon: <ChevronRight size={16} />,
       },
     ],

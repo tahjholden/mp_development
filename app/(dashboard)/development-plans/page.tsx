@@ -1,25 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ThreeColumnLayout } from '@/components/basketball/ThreeColumnLayout'
+import DashboardLayout from '@/components/layouts/DashboardLayout'
+import UniversalCard from '@/components/ui/UniversalCard'
 import { UniversalButton } from '@/components/ui/UniversalButton'
-import { UniversalCard } from '@/components/ui/UniversalCard'
-import { UniversalModal } from '@/components/ui/UniversalModal'
-import { PersonType, Capability } from '@/lib/db/role-logic'
-import { currentUserHasCapability } from '@/lib/db/user-service'
-import { BasketballRoleType } from '@/lib/db/basketball-roles'
-import { format } from 'date-fns'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, CheckCircle, Circle, Clock, Edit, Plus, Search, Trash2, XCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
+import { Plus, Edit, Trash2, CheckCircle, Circle, Clock } from 'lucide-react'
 
 // Types for development plans
 interface DevelopmentPlan {
@@ -47,502 +32,205 @@ interface DevelopmentGoal {
   completedDate?: string
 }
 
-interface Player {
-  id: string
-  name: string
-  teamId: string
-  teamName: string
-}
-
 // Main component
 export default function DevelopmentPlansPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  
-  // State for user role and permissions
-  const [userRole, setUserRole] = useState<PersonType | null>(null)
-  const [isCoach, setIsCoach] = useState(false)
-  const [isPlayer, setIsPlayer] = useState(false)
-  const [canCreatePlans, setCanCreatePlans] = useState(false)
-  const [canEditPlans, setCanEditPlans] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
-  // State for development plans
   const [plans, setPlans] = useState<DevelopmentPlan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<DevelopmentPlan | null>(null)
-  const [players, setPlayers] = useState<Player[]>([])
-  
-  // State for filters
-  const [playerFilter, setPlayerFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  
-  // State for modals
-  const [createModalOpen, setCreateModalOpen] = useState(false)
-  const [editModalOpen, setEditModalOpen] = useState(false)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  
-  // Fetch user role and permissions
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
-    async function fetchUserRoleAndPermissions() {
+    const fetchDevelopmentPlans = async () => {
       try {
-        // Fetch current user data
-        const response = await fetch('/api/user')
-        if (!response.ok) throw new Error('Failed to fetch user data')
+        setLoading(true)
+        setError(null)
         
-        const userData = await response.json()
-        setUserRole(userData.primaryRole)
+        const response = await fetch('/api/development-plans')
+        if (!response.ok) {
+          throw new Error('Failed to fetch development plans')
+        }
         
-        // Check if user is a coach or player
-        setIsCoach(userData.primaryRole === PersonType.COACH || 
-                   userData.roles?.includes(PersonType.COACH))
+        const data = await response.json()
+        setPlans(data)
         
-        setIsPlayer(userData.primaryRole === PersonType.PLAYER)
-        
-        setCanCreatePlans(userData.isAdmin || userData.isSuperadmin || userData.primaryRole === PersonType.COACH)
-        setCanEditPlans(userData.isAdmin || userData.isSuperadmin || userData.primaryRole === PersonType.COACH)
-        
-        // After permissions are set, fetch plans
-        fetchDevelopmentPlans()
+        if (data.length > 0) {
+          setSelectedPlan(data[0])
+        }
       } catch (err) {
-        console.error('Error fetching user role:', err)
-        setError('Failed to load user permissions')
+        console.error('Error fetching development plans:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch development plans')
+        setPlans([])
+      } finally {
         setLoading(false)
       }
     }
-    
-    fetchUserRoleAndPermissions()
+
+    fetchDevelopmentPlans()
   }, [])
-  
-  // Fetch development plans based on user role
-  async function fetchDevelopmentPlans() {
-    try {
-      setLoading(true)
-      
-      // Fetch players first (for filtering)
-      const playersResponse = await fetch('/api/players')
-      if (playersResponse.ok) {
-        const playersData = await playersResponse.json()
-        setPlayers(playersData)
-      }
-      
-      // Fetch development plans
-      const plansResponse = await fetch('/api/development-plans')
-      if (plansResponse.ok) {
-        const plansData = await plansResponse.json()
-        setPlans(plansData)
-        
-        // If there are plans and none is selected, select the first one
-        if (plansData.length > 0 && !selectedPlan) {
-          setSelectedPlan(plansData[0])
-        }
-      } else {
-        // Use mock data if API doesn't exist yet
-        const mockPlans = [
-          {
-            id: '1',
-            playerId: 'player-1',
-            playerName: 'Andrew Hemschoot',
-            coachId: 'coach-1',
-            coachName: 'Tahj Holden',
-            title: 'Shooting Form Improvement',
-            description: 'Focus on improving shooting form with emphasis on elbow alignment and follow-through.',
-            status: 'active',
-            startDate: '2025-06-01T00:00:00Z',
-            endDate: '2025-08-01T00:00:00Z',
-            goals: [
-              {
-                id: 'goal-1',
-                title: 'Elbow Alignment',
-                description: 'Maintain proper elbow alignment during shot',
-                status: 'in_progress',
-                targetDate: '2025-06-15T00:00:00Z'
-              },
-              {
-                id: 'goal-2',
-                title: 'Follow-through',
-                description: 'Hold follow-through until ball reaches basket',
-                status: 'not_started',
-                targetDate: '2025-07-01T00:00:00Z'
-              }
-            ],
-            createdAt: '2025-05-30T10:00:00Z',
-            updatedAt: '2025-05-30T10:00:00Z'
-          }
-        ]
-        setPlans(mockPlans)
-        if (mockPlans.length > 0) {
-          setSelectedPlan(mockPlans[0])
-        }
-      }
-      
-      setLoading(false)
-    } catch (err) {
-      console.error('Error fetching development plans:', err)
-      setError('Failed to load development plans')
-      setLoading(false)
-    }
-  }
-  
-  // Filter plans based on selected filters
-  const filteredPlans = plans.filter(plan => {
-    // Filter by player
-    if (playerFilter !== 'all' && plan.playerId !== playerFilter) {
-      return false
-    }
-    
-    // Filter by status
-    if (statusFilter !== 'all' && plan.status !== statusFilter) {
-      return false
-    }
-    
-    // Filter by search query
-    if (searchQuery && !plan.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !plan.playerName.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false
-    }
-    
-    return true
-  })
-  
-  // Calculate plan progress
-  const calculateProgress = (plan: DevelopmentPlan) => {
-    if (plan.goals.length === 0) return 0
-    const completedGoals = plan.goals.filter(goal => goal.status === 'completed').length
-    return Math.round((completedGoals / plan.goals.length) * 100)
-  }
-  
-  // Get status badge color
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft':
-        return 'bg-gray-200 text-gray-800'
       case 'active':
-        return 'bg-green-100 text-green-800'
+        return 'text-green-500 bg-green-500/20'
       case 'completed':
-        return 'bg-blue-100 text-blue-800'
+        return 'text-blue-500 bg-blue-500/20'
+      case 'draft':
+        return 'text-yellow-500 bg-yellow-500/20'
       case 'archived':
-        return 'bg-amber-100 text-amber-800'
+        return 'text-gray-500 bg-gray-500/20'
       default:
-        return 'bg-gray-200 text-gray-800'
+        return 'text-gray-500 bg-gray-500/20'
     }
   }
-  
-  // Get goal status icon
+
   const getGoalStatusIcon = (status: string) => {
     switch (status) {
-      case 'not_started':
-        return <Circle className="w-5 h-5 text-gray-400" />
-      case 'in_progress':
-        return <Clock className="w-5 h-5 text-amber-500" />
       case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-500" />
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'in_progress':
+        return <Clock className="h-4 w-4 text-yellow-500" />
+      case 'not_started':
+        return <Circle className="h-4 w-4 text-gray-500" />
       default:
-        return <Circle className="w-5 h-5 text-gray-400" />
+        return <Circle className="h-4 w-4 text-gray-500" />
     }
   }
-  
-  // Left column content - Filters
-  const leftColumn = (
-    <div className="space-y-4">
-      <UniversalCard>
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Filters</h2>
-          
-          <div className="space-y-4">
-            {/* Search */}
-            <div>
-              <label className="text-sm font-medium mb-1 block">Search</label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Search plans..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Development Plans">
+        <div className="space-y-6">
+          <UniversalCard.Default>
+            <div className="animate-pulse">
+              <div className="h-4 bg-zinc-700 rounded w-1/4 mb-4"></div>
+              <div className="h-4 bg-zinc-700 rounded w-1/2"></div>
             </div>
-            
-            {/* Player filter */}
-            <div>
-              <label className="text-sm font-medium mb-1 block">Player</label>
-              <Select
-                value={playerFilter}
-                onValueChange={setPlayerFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Players" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Players</SelectItem>
-                  {players.map(player => (
-                    <SelectItem key={player.id} value={player.id}>
-                      {player.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Status filter */}
-            <div>
-              <label className="text-sm font-medium mb-1 block">Status</label>
-              <Select
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          </UniversalCard.Default>
         </div>
-      </UniversalCard>
-      
-      {/* Actions */}
-      {canCreatePlans && (
-        <UniversalCard>
-          <div className="p-4">
-            <h2 className="text-lg font-semibold mb-4">Actions</h2>
-            <UniversalButton 
-              className="w-full"
-              onClick={() => setCreateModalOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Development Plan
-            </UniversalButton>
-          </div>
-        </UniversalCard>
-      )}
-    </div>
-  )
-  
-  // Middle column content - Plans list
-  const middleColumn = (
-    <div className="space-y-4">
-      <UniversalCard>
-        <div className="p-4">
-          <h2 className="text-lg font-semibold">Development Plans</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            {filteredPlans.length} {filteredPlans.length === 1 ? 'plan' : 'plans'} found
-          </p>
-          
-          {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
+      </DashboardLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout title="Development Plans">
+        <div className="space-y-6">
+          <UniversalCard.Default>
+            <div className="text-center py-8">
+              <p className="text-red-400 mb-4">{error}</p>
+              <UniversalButton.Primary onClick={() => window.location.reload()}>
+                Try Again
+              </UniversalButton.Primary>
             </div>
-          ) : error ? (
-            <div className="p-4 text-center">
-              <p className="text-red-500">{error}</p>
-              <UniversalButton 
-                variant="outline" 
-                className="mt-2"
-                onClick={() => fetchDevelopmentPlans()}
-              >
-                Retry
-              </UniversalButton>
-            </div>
-          ) : filteredPlans.length === 0 ? (
-            <div className="text-center p-8 border border-dashed rounded-lg">
-              <p className="text-gray-500 mb-4">No development plans found</p>
-              {canCreatePlans && (
-                <UniversalButton onClick={() => setCreateModalOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Development Plan
-                </UniversalButton>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredPlans.map(plan => (
-                <UniversalCard 
-                  key={plan.id}
-                  className={cn(
-                    "cursor-pointer hover:border-primary transition-colors",
-                    selectedPlan?.id === plan.id ? "border-primary" : ""
-                  )}
-                  onClick={() => setSelectedPlan(plan)}
-                >
-                  <div className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{plan.title}</h3>
-                        <p className="text-sm text-gray-500">{plan.playerName}</p>
-                      </div>
-                      <Badge className={getStatusColor(plan.status)}>
-                        {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
-                      </Badge>
-                    </div>
-                    
-                    <div className="mt-3">
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>Progress</span>
-                        <span>{calculateProgress(plan)}%</span>
-                      </div>
-                      <Progress value={calculateProgress(plan)} className="h-2" />
-                    </div>
-                    
-                    <div className="mt-3 flex justify-between text-xs text-gray-500">
-                      <span>Created: {format(new Date(plan.createdAt), 'MMM d, yyyy')}</span>
-                      <span>Due: {format(new Date(plan.endDate), 'MMM d, yyyy')}</span>
-                    </div>
-                  </div>
-                </UniversalCard>
-              ))}
-            </div>
-          )}
+          </UniversalCard.Default>
         </div>
-      </UniversalCard>
-    </div>
-  )
-  
-  // Right column content - Selected plan details
-  const rightColumn = selectedPlan ? (
-    <div className="space-y-4">
-      <UniversalCard>
-        <div className="p-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-lg font-semibold">{selectedPlan.title}</h2>
-              <p className="text-sm text-gray-500">
-                Player: {selectedPlan.playerName} | Coach: {selectedPlan.coachName}
-              </p>
+      </DashboardLayout>
+    )
+  }
+
+  return (
+    <DashboardLayout title="Development Plans">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Development Plans</h1>
+          <UniversalButton.Primary>
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Plan
+          </UniversalButton.Primary>
+        </div>
+
+        {/* Plans List */}
+        {plans.length === 0 ? (
+          <UniversalCard.Default>
+            <div className="text-center py-8">
+              <p className="text-zinc-400 mb-4">No development plans found.</p>
+              <p className="text-zinc-500 text-sm">Create your first development plan to get started.</p>
             </div>
-            
-            <div className="flex space-x-2">
-              {canEditPlans && (
-                <>
-                  <UniversalButton
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditModalOpen(true)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </UniversalButton>
+          </UniversalCard.Default>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {plans.map((plan) => (
+              <UniversalCard.Default
+                key={plan.id}
+                title={plan.title}
+                subtitle={`Player: ${plan.playerName}`}
+                className={`cursor-pointer transition-all hover:bg-zinc-800/50 ${
+                  selectedPlan?.id === plan.id ? 'ring-2 ring-gold-500' : ''
+                }`}
+                onClick={() => setSelectedPlan(plan)}
+              >
+                <div className="space-y-4">
+                  <p className="text-zinc-400 text-sm">{plan.description}</p>
                   
-                  <UniversalButton
-                    size="sm"
-                    variant="outline"
-                    className="text-red-500 hover:bg-red-50"
-                    onClick={() => setDeleteModalOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </UniversalButton>
-                </>
-              )}
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <Badge className={getStatusColor(selectedPlan.status)}>
-              {selectedPlan.status.charAt(0).toUpperCase() + selectedPlan.status.slice(1)}
-            </Badge>
-            
-            <div className="mt-3">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Overall Progress</span>
-                <span>{calculateProgress(selectedPlan)}%</span>
-              </div>
-              <Progress value={calculateProgress(selectedPlan)} className="h-2" />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-              <div>
-                <p className="text-gray-500">Start Date</p>
-                <p>{format(new Date(selectedPlan.startDate), 'MMM d, yyyy')}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">End Date</p>
-                <p>{format(new Date(selectedPlan.endDate), 'MMM d, yyyy')}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Created</p>
-                <p>{format(new Date(selectedPlan.createdAt), 'MMM d, yyyy')}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Last Updated</p>
-                <p>{format(new Date(selectedPlan.updatedAt), 'MMM d, yyyy')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </UniversalCard>
-      
-      <UniversalCard>
-        <div className="p-4">
-          <h3 className="font-semibold mb-2">Description</h3>
-          <p className="text-sm">{selectedPlan.description}</p>
-        </div>
-      </UniversalCard>
-      
-      <UniversalCard>
-        <div className="p-4">
-          <h3 className="font-semibold mb-4">Development Goals</h3>
-          
-          {selectedPlan.goals.length === 0 ? (
-            <p className="text-sm text-gray-500">No goals defined for this plan.</p>
-          ) : (
-            <div className="space-y-4">
-              {selectedPlan.goals.map(goal => (
-                <div key={goal.id} className="border rounded-lg p-3">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1">
-                      {getGoalStatusIcon(goal.status)}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{goal.title}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{goal.description}</p>
-                      <div className="flex justify-between mt-2 text-xs text-gray-500">
-                        <span>Target: {format(new Date(goal.targetDate), 'MMM d, yyyy')}</span>
-                        {goal.completedDate && (
-                          <span>Completed: {format(new Date(goal.completedDate), 'MMM d, yyyy')}</span>
-                        )}
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(plan.status)}`}>
+                      {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+                    </span>
+                    
+                    <div className="flex gap-2">
+                      <UniversalButton.Secondary size="sm">
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </UniversalButton.Secondary>
+                      <UniversalButton.Danger size="sm">
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </UniversalButton.Danger>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </UniversalCard>
-    </div>
-  ) : (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center p-8">
-        <p className="text-gray-500">Select a development plan to view details</p>
-      </div>
-    </div>
-  )
-  
-  return (
-    <>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Development Plans</h1>
-            <p className="text-gray-500">Create and manage player development plans</p>
+              </UniversalCard.Default>
+            ))}
           </div>
-        </div>
-        
-        <ThreeColumnLayout
-          leftColumn={leftColumn}
-          middleColumn={middleColumn}
-          rightColumn={rightColumn}
-        />
+        )}
+
+        {/* Selected Plan Details */}
+        {selectedPlan && (
+          <UniversalCard.Default title="Plan Details">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Player</h4>
+                  <p className="text-white">{selectedPlan.playerName}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Coach</h4>
+                  <p className="text-white">{selectedPlan.coachName}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Start Date</h4>
+                  <p className="text-white">{new Date(selectedPlan.startDate).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-zinc-400 mb-2">End Date</h4>
+                  <p className="text-white">{new Date(selectedPlan.endDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-zinc-400 mb-3">Goals</h4>
+                <div className="space-y-3">
+                  {selectedPlan.goals.map((goal) => (
+                    <div key={goal.id} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        {getGoalStatusIcon(goal.status)}
+                        <div>
+                          <p className="text-white font-medium">{goal.title}</p>
+                          <p className="text-zinc-400 text-sm">{goal.description}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-zinc-500">
+                        Due: {new Date(goal.targetDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </UniversalCard.Default>
+        )}
       </div>
-    </>
+    </DashboardLayout>
   )
 }

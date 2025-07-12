@@ -98,12 +98,9 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      title="Add New Player"
       className="bg-zinc-900 border border-zinc-800 p-0 w-full max-w-md"
     >
-      <div className="px-6 py-4 border-b border-zinc-800">
-        <h2 className="text-xl font-semibold text-gold-500">Add New Player</h2>
-      </div>
-      
       <form onSubmit={handleSubmit} className="p-6">
         <div className="space-y-6">
           <div>

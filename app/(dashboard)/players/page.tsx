@@ -1,47 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
 import PlayerListCard from '@/components/basketball/PlayerListCard';
 import UniversalCard from '@/components/ui/UniversalCard';
-import { UniversalButton } from '@/components/ui/UniversalButton';
+import UniversalButton from '@/components/ui/UniversalButton';
 import UniversalModal from '@/components/ui/UniversalModal';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import AddPlayerModal from '@/components/basketball/AddPlayerModal';
 import ArchivePlanModal from '@/components/basketball/ArchivePlanModal';
 
-// Mock data for demonstration
-const mockPlayers = [
-  { id: '1', name: 'Andrew Hemschoot', teamId: '1', status: 'active' },
-  { id: '2', name: 'Ben Swersky', teamId: '1', status: 'active' },
-  { id: '3', name: 'Brody Miller', teamId: '1', status: 'active' },
-  { id: '4', name: 'Carrie Jones', teamId: '2', status: 'active' },
-  { id: '5', name: 'Cole Hamilton', teamId: '2', status: 'active' },
-  { id: '6', name: 'Cole Holden', teamId: '1', status: 'active' },
-  { id: '7', name: 'Dillon Rice', teamId: '1', status: 'active' },
-  { id: '8', name: 'HOW HOW', teamId: '2', status: 'active' },
-  { id: '9', name: 'Jimmy Jim', teamId: '2', status: 'archived' },
-  { id: '10', name: 'Jimmy Red', teamId: '3', status: 'active' },
-  { id: '11', name: 'Joe Jones', teamId: '3', status: 'archived' },
-  { id: '12', name: 'John Doe', teamId: '3', status: 'active' },
-  { id: '13', name: 'JP Fernandez', teamId: '1', status: 'archived' },
-  { id: '14', name: 'LJ Spitale', teamId: '2', status: 'active' },
-  { id: '15', name: 'Michael Jordan', teamId: '3', status: 'archived' },
-  { id: '16', name: 'Sam Marlow', teamId: '1', status: 'archived' },
-];
-
-const mockTeams = [
-  { id: '1', name: 'MPBC 2033' },
-  { id: '2', name: 'Team Test' },
-  { id: '3', name: 'AAA FFF' },
-];
-
 export default function PlayersPage() {
-  // State for selected player
+  const [players, setPlayers] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-  
-  // State for modal visibility
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
   const [showArchivePlanModal, setShowArchivePlanModal] = useState(false);
@@ -73,10 +46,10 @@ export default function PlayersPage() {
     
     // Create a new player object
     const newPlayer = {
-      id: `${mockPlayers.length + 1}`,
+      id: `${players.length + 1}`,
       name: `${data.firstName} ${data.lastName}`,
       teamId: data.teamId,
-      status: 'active',
+      status: 'active' as const,
     };
     
     // For demo purposes, we'll just log it
@@ -109,6 +82,17 @@ export default function PlayersPage() {
     // Close the modal
     setShowArchivePlanModal(false);
   };
+
+  useEffect(() => {
+    // Fetch teams
+    fetch('/api/user/teams')
+      .then(res => res.json())
+      .then(data => setTeams(data));
+    // Fetch players
+    fetch('/api/dashboard/players')
+      .then(res => res.json())
+      .then(data => setPlayers(data));
+  }, []);
 
   return (
     <DashboardLayout>
@@ -143,8 +127,8 @@ export default function PlayersPage() {
           
           leftColumn={
             <PlayerListCard
-              players={mockPlayers}
-              teams={mockTeams}
+              players={players}
+              teams={teams}
               selectedPlayerId={selectedPlayer?.id}
               onPlayerSelect={handlePlayerSelect}
               onAddPlayer={handleAddPlayer}
@@ -172,7 +156,7 @@ export default function PlayersPage() {
                       <div>
                         <p className="text-sm text-zinc-400">Team</p>
                         <p className="text-white">
-                          {mockTeams.find(t => t.id === selectedPlayer.teamId)?.name || 'No Team'}
+                          {teams.find(t => t.id === selectedPlayer.teamId)?.name || 'No Team'}
                         </p>
                       </div>
                     </div>
@@ -190,10 +174,11 @@ export default function PlayersPage() {
                   </div>
                 </UniversalCard.Default>
               ) : (
-                <UniversalCard.SelectPlayerState
-                  icon={<Shield className="text-zinc-700" />}
-                  message="Select a player from the list to view their profile details."
-                />
+                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center">
+                  <Shield className="text-zinc-700 w-20 h-20 mb-5" />
+                  <h3 className="text-lg font-medium text-white mb-2">Select a Player to View Their Profile</h3>
+                  <p className="text-sm text-zinc-400 max-w-md mb-6">Select a player from the list to view their profile details.</p>
+                </div>
               )}
               
               {/* Development Plan Section */}
@@ -235,10 +220,11 @@ export default function PlayersPage() {
                   </div>
                 </UniversalCard.Default>
               ) : (
-                <UniversalCard.SelectPlayerState
-                  icon={<Shield className="text-zinc-700" />}
-                  message="Select a player to view their development plan."
-                />
+                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center">
+                  <Shield className="text-zinc-700 w-20 h-20 mb-5" />
+                  <h3 className="text-lg font-medium text-white mb-2">Select a Player to View Their Profile</h3>
+                  <p className="text-sm text-zinc-400 max-w-md mb-6">Select a player to view their development plan.</p>
+                </div>
               )}
             </>
           }
@@ -256,15 +242,18 @@ export default function PlayersPage() {
                   }
                 >
                   {/* If there are no observations */}
-                  <UniversalCard.NoObservationsState
-                    icon={<Shield className="text-zinc-700" />}
-                  />
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Shield className="text-zinc-700 w-16 h-16 mb-4" />
+                    <h3 className="text-lg font-medium text-white mb-2">No Observations Yet</h3>
+                    <p className="text-sm text-zinc-400 max-w-md mb-6">This player doesn't have any observations yet.</p>
+                  </div>
                 </UniversalCard.Default>
               ) : (
-                <UniversalCard.SelectPlayerState
-                  icon={<Shield className="text-zinc-700" />}
-                  message="Select a player to view their observations."
-                />
+                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center">
+                  <Shield className="text-zinc-700 w-20 h-20 mb-5" />
+                  <h3 className="text-lg font-medium text-white mb-2">Select a Player to View Their Profile</h3>
+                  <p className="text-sm text-zinc-400 max-w-md mb-6">Select a player to view their observations.</p>
+                </div>
               )}
               
               {/* PDP Archive Section */}
@@ -287,14 +276,15 @@ export default function PlayersPage() {
           isOpen={showAddPlayerModal}
           onClose={() => setShowAddPlayerModal(false)}
           onSubmit={handleAddPlayerSubmit}
-          teams={mockTeams}
+          teams={teams}
         />
         
         {/* Delete Player Confirmation Modal */}
-        <UniversalModal.Confirmation
-          isOpen={showDeletePlayerModal}
-          onClose={() => setShowDeletePlayerModal(false)}
+        <UniversalModal.Confirm
+          open={showDeletePlayerModal}
+          onOpenChange={setShowDeletePlayerModal}
           onConfirm={handleDeletePlayerConfirm}
+          onCancel={() => setShowDeletePlayerModal(false)}
           title="Delete Player"
           description={`Are you sure you want to delete ${selectedPlayer?.name}? This action cannot be undone.`}
           confirmText="Delete"
