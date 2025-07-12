@@ -7,6 +7,7 @@ import {
   integer,
   uuid,
   boolean,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -76,6 +77,31 @@ export const invitations = pgTable('infrastructure_invitations', {
     .references(() => mpCorePerson.id),
   invitedAt: timestamp('invited_at').notNull().defaultNow(),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
+});
+
+export const mpbc_observations = pgTable('mpbc_observations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  player_id: uuid('player_id'),
+  observer_id: uuid('observer_id'),
+  skill_tags: text('skill_tags'),
+  cla_category: text('cla_category'),
+  context: text('context'),
+  observation_text: text('observation_text'),
+  performance_rating: integer('performance_rating'),
+  basketball_specific_metrics: jsonb('basketball_specific_metrics'),
+  created_at: timestamp('created_at'),
+  updated_at: timestamp('updated_at'),
+  development_plan_id: uuid('development_plan_id'),
+  archived_at: timestamp('archived_at'),
+  archived_by: uuid('archived_by'),
+  org_id: uuid('org_id'),
+  person_id: uuid('person_id'),
+  group_id: uuid('group_id'),
+  cycle_id: uuid('cycle_id'),
+  organization_id: uuid('organization_id'),
+  tags: text('tags'),
+  observation_date: timestamp('observation_date'),
+  updated_by: uuid('updated_by'),
 });
 
 // Relations are simplified since groups and organizations are embedded in current_participants

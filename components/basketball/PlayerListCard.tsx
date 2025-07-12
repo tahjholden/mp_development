@@ -141,9 +141,9 @@ const PlayerListCard = ({
       
       <div className="overflow-y-auto px-4 pb-4 space-y-2" style={{ maxHeight }}>
         {filteredPlayers.length > 0 ? (
-          filteredPlayers.map((player) => (
+          filteredPlayers.map((player, index) => (
             <UniversalCard.PlayerStatus
-              key={player.id}
+              key={`${player.id}-${player.name}-${index}`}
               status={player.status || 'active'}
               selected={player.id === selectedPlayerId}
               hover="border"

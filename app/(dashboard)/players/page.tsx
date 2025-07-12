@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Plus, Eye, Edit, Trash2, Star, Tag } from 'lucide-react';
 import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
 import PlayerListCard from '@/components/basketball/PlayerListCard';
 import UniversalCard from '@/components/ui/UniversalCard';
@@ -11,6 +11,26 @@ import DashboardLayout from '@/components/layouts/DashboardLayout';
 import AddPlayerModal from '@/components/basketball/AddPlayerModal';
 import ArchivePlanModal from '@/components/basketball/ArchivePlanModal';
 
+// Types for observations
+interface Observation {
+  id: string;
+  playerId: string;
+  playerName: string;
+  coachId: string;
+  coachName: string;
+  title: string;
+  description: string;
+  type: 'practice' | 'game' | 'skill_development' | 'physical' | 'mental' | 'other';
+  category: string;
+  rating: number;
+  date: string;
+  tags: string[];
+  notes: string;
+  private: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function PlayersPage() {
   const [players, setPlayers] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
@@ -18,6 +38,9 @@ export default function PlayersPage() {
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
   const [showArchivePlanModal, setShowArchivePlanModal] = useState(false);
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [loadingObservations, setLoadingObservations] = useState(true);
+  const [errorObservations, setErrorObservations] = useState<string | null>(null);
   
   // Handler for adding a new player
   const handleAddPlayer = () => {
@@ -87,12 +110,55 @@ export default function PlayersPage() {
     // Fetch teams
     fetch('/api/user/teams')
       .then(res => res.json())
-      .then(data => setTeams(data));
+      .then(data => {
+        // Deduplicate teams by id
+        const uniqueTeams = Array.from(
+          new Map(data.map((team: any) => [team.id, team])).values()
+        );
+        uniqueTeams.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        setTeams(uniqueTeams);
+      });
     // Fetch players
     fetch('/api/dashboard/players')
       .then(res => res.json())
       .then(data => setPlayers(data));
+    // Fetch observations
+    setLoadingObservations(true);
+    setErrorObservations(null);
+    fetch('/api/observations')
+      .then(res => res.json())
+      .then(data => setObservations(data))
+      .catch(err => setErrorObservations('Failed to fetch observations'))
+      .finally(() => setLoadingObservations(false));
   }, []);
+
+  // Helper to get rating stars
+  const getRatingStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${i < rating ? 'text-yellow-500 fill-current' : 'text-zinc-600'}`}
+      />
+    ));
+  };
+
+  // Helper to get type badge
+  const getTypeBadge = (type: string) => {
+    const typeColors: Record<string, string> = {
+      practice: 'text-blue-500 bg-blue-500/20',
+      game: 'text-green-500 bg-green-500/20',
+      skill_development: 'text-purple-500 bg-purple-500/20',
+      physical: 'text-orange-500 bg-orange-500/20',
+      mental: 'text-pink-500 bg-pink-500/20',
+      other: 'text-gray-500 bg-gray-500/20',
+    };
+    return typeColors[type] || typeColors.other;
+  };
+
+  // Filter observations for the selected player
+  const playerObservations = selectedPlayer
+    ? observations.filter(obs => obs.playerId === selectedPlayer.id)
+    : [];
 
   return (
     <DashboardLayout>
@@ -241,12 +307,64 @@ export default function PlayersPage() {
                     </UniversalButton.Primary>
                   }
                 >
-                  {/* If there are no observations */}
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Shield className="text-zinc-700 w-16 h-16 mb-4" />
-                    <h3 className="text-lg font-medium text-white mb-2">No Observations Yet</h3>
-                    <p className="text-sm text-zinc-400 max-w-md mb-6">This player doesn't have any observations yet.</p>
-                  </div>
+                  {loadingObservations ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <p className="text-zinc-400 text-sm mb-4">Loading observations...</p>
+                    </div>
+                  ) : errorObservations ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <p className="text-red-400 text-sm mb-4">{errorObservations}</p>
+                    </div>
+                  ) : playerObservations.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Shield className="text-zinc-700 w-16 h-16 mb-4" />
+                      <h3 className="text-lg font-medium text-white mb-2">No Observations Yet</h3>
+                      <p className="text-sm text-zinc-400 max-w-md mb-6">This player doesn't have any observations yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {playerObservations.map((observation) => (
+                        <UniversalCard.Default
+                          key={observation.id}
+                          title={observation.title}
+                          subtitle={`Coach: ${observation.coachName}`}
+                          className="transition-all hover:bg-zinc-800/50"
+                        >
+                          <div className="space-y-2">
+                            <p className="text-zinc-400 text-sm">{observation.description}</p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                {observation.private && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-red-500 bg-red-500/20">
+                                    Private
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                {getRatingStars(observation.rating)}
+                              </div>
+                            </div>
+                            {observation.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {observation.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-zinc-400 bg-zinc-800"
+                                  >
+                                    <Tag className="h-3 w-3 mr-1" />
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <span className="text-xs text-zinc-500">
+                              {new Date(observation.date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </UniversalCard.Default>
+                      ))}
+                    </div>
+                  )}
                 </UniversalCard.Default>
               ) : (
                 <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center">

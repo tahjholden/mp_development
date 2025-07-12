@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson } from '@/lib/db/schema';
+import { mpCorePerson, mpbc_observations } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET() {
@@ -16,34 +16,33 @@ export async function GET() {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
-    // For now, return empty array since we don't have an observations table
-    // In a real implementation, you would query the observations table
-    // This could be extended to create the table and store real observations
-    
-    // Get players that could have observations
-    const players = await db
+    // Fetch real observations joined with player info
+    const results = await db
       .select({
-        id: mpCorePerson.id,
-        firstName: mpCorePerson.firstName,
-        lastName: mpCorePerson.lastName,
-        email: mpCorePerson.email,
-        teamId: mpCorePerson.groupId,
-        teamName: mpCorePerson.groupName,
-        position: mpCorePerson.position,
-        role: mpCorePerson.role,
-        personType: mpCorePerson.personType,
+        id: mpbc_observations.id,
+        playerId: mpCorePerson.id,
+        playerName: mpCorePerson.firstName,
+        title: mpbc_observations.context,
+        description: mpbc_observations.observation_text,
+        rating: mpbc_observations.performance_rating,
+        date: mpbc_observations.created_at,
+        tags: mpbc_observations.tags,
+        createdAt: mpbc_observations.created_at,
+        updatedAt: mpbc_observations.updated_at,
       })
-      .from(mpCorePerson)
-      .where(
-        and(
-          eq(mpCorePerson.personType, 'player'),
-          isNotNull(mpCorePerson.groupId)
-        )
-      );
+      .from(mpbc_observations)
+      .leftJoin(mpCorePerson, eq(mpbc_observations.player_id, mpCorePerson.id))
+      .where(eq(mpCorePerson.personType, 'player'));
 
-    // Return empty array for now - this would be replaced with actual observations
-    // when the observations table is created
-    const observations: any[] = [];
+    // Map tags and other fields if needed
+    const observations = results.map(obs => ({
+      ...obs,
+      tags: obs.tags ? obs.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+      rating: typeof obs.rating === 'number' ? obs.rating : 0,
+      playerName: obs.playerName || '',
+      title: obs.title || '',
+      description: obs.description || '',
+    }));
 
     return NextResponse.json(observations);
   } catch (error) {
