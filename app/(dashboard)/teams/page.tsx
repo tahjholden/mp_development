@@ -95,8 +95,13 @@ export default function TeamsPage() {
     setShowAddTeamModal(true);
   };
 
+  // Deduplicate teams by id and sort alphabetically by name before rendering
+  const uniqueTeams = Array.from(
+    new Map(teams.map((team: any) => [team.id, team])).values()
+  ).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
   // Check if there are any teams
-  const hasTeams = teams.length > 0;
+  const hasTeams = uniqueTeams.length > 0;
 
   if (isLoading) {
     return (
@@ -135,7 +140,7 @@ export default function TeamsPage() {
             hasTeams ? (
               <UniversalCard.Default title="Teams">
                 <div className="space-y-2 py-2">
-                  {teams.map((team) => (
+                  {uniqueTeams.map((team) => (
                     <UniversalCard.PlayerStatus
                       key={team.id}
                       status={team.id === selectedTeam?.id ? 'active' : 'inactive'}

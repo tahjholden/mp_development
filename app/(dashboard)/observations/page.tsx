@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import DashboardLayout from '@/components/layouts/DashboardLayout'
-import UniversalCard from '@/components/ui/UniversalCard'
-import { UniversalButton } from '@/components/ui/UniversalButton'
-import { Plus, Edit, Eye, Trash2, Star, Tag } from 'lucide-react'
+import { Plus, Edit, Eye, Trash2, Star, Tag, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react'
+import { Sidebar } from '@/components/ui/Sidebar'
 
 // Types for observations
 interface Observation {
@@ -15,8 +13,6 @@ interface Observation {
   coachName: string
   title: string
   description: string
-  type: 'practice' | 'game' | 'skill_development' | 'physical' | 'mental' | 'other'
-  category: string
   rating: number
   date: string
   tags: string[]
@@ -26,6 +22,18 @@ interface Observation {
   updatedAt: string
 }
 
+interface Player {
+  id: string
+  name: string
+  team: string
+  observations: number
+}
+
+interface Team {
+  id: string
+  name: string
+}
+
 // Main component
 export default function ObservationsPage() {
   const [observations, setObservations] = useState<Observation[]>([])
@@ -33,246 +41,296 @@ export default function ObservationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Pagination state for observations
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+
+  // Player/team data for left column
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+
+  // Filter observations by selected player
+  const filteredObservations = selectedPlayerId 
+    ? observations.filter(obs => obs.playerId === selectedPlayerId)
+    : observations;
+  
+  const paginatedObservations = filteredObservations.slice(0, page * pageSize);
+  const hasMore = filteredObservations.length > paginatedObservations.length;
+
+  const filteredPlayers = players.filter((player) => {
+    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
+    return matchesSearch && matchesTeam;
+  });
+
+  // Handle player selection with toggle functionality
+  const handlePlayerSelect = (playerId: string) => {
+    if (selectedPlayerId === playerId) {
+      // Clicking the same player again - show all observations
+      setSelectedPlayerId(null);
+    } else {
+      // Clicking a different player - filter to their observations
+      setSelectedPlayerId(playerId);
+    }
+  };
+
+  // Fetch real data
   useEffect(() => {
-    const fetchObservations = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
         
-        const response = await fetch('/api/observations')
-        if (!response.ok) {
+        // Fetch observations
+        const observationsResponse = await fetch('/api/observations')
+        if (!observationsResponse.ok) {
           throw new Error('Failed to fetch observations')
         }
+        const observationsData = await observationsResponse.json()
+        setObservations(observationsData)
         
-        const data = await response.json()
-        setObservations(data)
+        // Fetch players
+        const playersResponse = await fetch('/api/dashboard/players')
+        if (playersResponse.ok) {
+          const playersData = await playersResponse.json()
+          const transformedPlayers = playersData.map((player: any) => ({
+            id: player.id,
+            name: player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown Player',
+            team: player.team_name || player.team || 'No Team',
+            observations: observationsData.filter((obs: any) => obs.playerId === player.id).length
+          }))
+          setPlayers(transformedPlayers)
+        }
+
+        // Fetch teams
+        const teamsResponse = await fetch('/api/user/teams')
+        if (teamsResponse.ok) {
+          const teamsData = await teamsResponse.json()
+          // Deduplicate teams by id
+          const uniqueTeams = Array.from(new Map((teamsData as any[]).map((team: any) => [team.id, team])).values()) as Team[];
+          setTeams(uniqueTeams)
+        }
         
-        if (data.length > 0) {
-          setSelectedObservation(data[0])
+        if (observationsData.length > 0) {
+          setSelectedObservation(observationsData[0])
         }
       } catch (err) {
-        console.error('Error fetching observations:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch observations')
+        console.error('Error fetching data:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch data')
         setObservations([])
       } finally {
         setLoading(false)
       }
     }
 
-    fetchObservations()
+    fetchData()
   }, [])
 
-  const getRatingStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < rating ? 'text-yellow-500 fill-current' : 'text-zinc-600'}`}
-      />
-    ))
-  }
-
-  const getTypeBadge = (type: string) => {
-    const typeColors = {
-      practice: 'text-blue-500 bg-blue-500/20',
-      game: 'text-green-500 bg-green-500/20',
-      skill_development: 'text-purple-500 bg-purple-500/20',
-      physical: 'text-orange-500 bg-orange-500/20',
-      mental: 'text-pink-500 bg-pink-500/20',
-      other: 'text-gray-500 bg-gray-500/20'
-    }
-    return typeColors[type as keyof typeof typeColors] || typeColors.other
-  }
+  // Reset page when player selection changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedPlayerId]);
 
   if (loading) {
     return (
-      <DashboardLayout title="Observations">
-        <div className="space-y-6">
-          <UniversalCard.Default>
-            <div className="animate-pulse">
-              <div className="h-4 bg-zinc-700 rounded w-1/4 mb-4"></div>
-              <div className="h-4 bg-zinc-700 rounded w-1/2"></div>
-            </div>
-          </UniversalCard.Default>
+      <div className="h-screen w-screen bg-[#161616] flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center w-full">
+          <span className="text-zinc-400 text-lg font-semibold mb-4">Loading observations...</span>
+          <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
         </div>
-      </DashboardLayout>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <DashboardLayout title="Observations">
-        <div className="space-y-6">
-          <UniversalCard.Default>
-            <div className="text-center py-8">
-              <p className="text-red-400 mb-4">{error}</p>
-              <UniversalButton.Primary onClick={() => window.location.reload()}>
-                Try Again
-              </UniversalButton.Primary>
-            </div>
-          </UniversalCard.Default>
+      <div className="min-h-screen p-4 bg-[#161616] flex items-center justify-center">
+        <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+          {error}
         </div>
-      </DashboardLayout>
+      </div>
     )
   }
 
   return (
-    <DashboardLayout title="Observations">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">Observations</h1>
-          <UniversalButton.Primary>
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Observation
-          </UniversalButton.Primary>
+    <div className="flex min-h-screen h-full bg-black text-white" style={{ background: 'black' }}>
+      {/* Header - exact replica with coach info */}
+      <header className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between" style={{ boxShadow: 'none' }}>
+        <span className="text-2xl font-bold tracking-wide text-[#d8cc97]" style={{ letterSpacing: '0.04em' }}>
+          MP Player Development
+        </span>
+        <div className="flex flex-col items-end">
+          <span className="text-base font-semibold text-white leading-tight">Coach</span>
+          <span className="text-xs text-[#d8cc97] leading-tight">coach@example.com</span>
+          <span className="text-xs text-white leading-tight">Coach</span>
+        </div>
+      </header>
+      {/* Sidebar */}
+      <Sidebar 
+        user={{
+          name: "Coach",
+          email: "coach@example.com", 
+          role: "Coach"
+        }}
+      />
+      {/* Main Content */}
+      <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
+        {/* LEFT PANE: Player List */}
+        <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Players</h2>
+          
+          {/* Search Input */}
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
+            />
+          </div>
+
+          {/* Team Filter */}
+          <div className="relative mb-6">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
+            <button
+              onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
+              className="w-full pl-10 pr-4 py-3 text-left bg-zinc-800 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:border-[#d8cc97] flex items-center justify-between"
+            >
+              <span>{teamFilter === 'all' ? 'All Teams' : teamFilter}</span>
+              {isTeamDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {isTeamDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-full bg-zinc-800 border border-zinc-700 rounded shadow-lg overflow-hidden">
+                <button
+                  onClick={() => { setTeamFilter('all'); setIsTeamDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-700 text-white"
+                >
+                  All Teams
+                </button>
+                {teams.map(team => (
+                  <button
+                    key={team.id}
+                    onClick={() => { setTeamFilter(team.name); setIsTeamDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-700 text-white"
+                  >
+                    {team.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Player List */}
+          <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
+            {filteredPlayers.length === 0 ? (
+              <div className="text-sm text-gray-500 text-center py-4">No players found</div>
+            ) : (
+              filteredPlayers.map((player) => (
+                <div
+                  key={player.id}
+                  onClick={() => handlePlayerSelect(player.id)}
+                  className={`p-4 rounded cursor-pointer transition-all ${
+                    selectedPlayerId === player.id
+                      ? "bg-[#d8cc97] text-black font-semibold"
+                      : "bg-zinc-800 hover:bg-zinc-700"
+                  }`}
+                >
+                  <p className="font-medium">{player.name}</p>
+                  <p className="text-xs text-gray-400">
+                    {player.observations} observations
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Observations List */}
-        {observations.length === 0 ? (
-          <UniversalCard.Default>
-            <div className="text-center py-8">
-              <p className="text-zinc-400 mb-4">No observations found.</p>
-              <p className="text-zinc-500 text-sm">Create your first observation to get started.</p>
-            </div>
-          </UniversalCard.Default>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {observations.map((observation) => (
-              <UniversalCard.Default
-                key={observation.id}
-                title={observation.title}
-                subtitle={`Player: ${observation.playerName}`}
-                className={`cursor-pointer transition-all hover:bg-zinc-800/50 ${
-                  selectedObservation?.id === observation.id ? 'ring-2 ring-gold-500' : ''
-                }`}
-                onClick={() => setSelectedObservation(observation)}
-              >
-                <div className="space-y-4">
-                  <p className="text-zinc-400 text-sm">{observation.description}</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTypeBadge(observation.type)}`}>
-                        {observation.type.charAt(0).toUpperCase() + observation.type.slice(1)}
-                      </span>
-                      {observation.private && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-red-500 bg-red-500/20">
-                          Private
-                        </span>
-                      )}
+        {/* CENTER PANE: Observations */}
+        <div className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
+            {selectedPlayerId 
+              ? `${players.find(p => p.id === selectedPlayerId)?.name}'s Observations`
+              : "All Observations"
+            }
+          </h2>
+          
+          {paginatedObservations.length > 0 ? (
+            <div className="space-y-4">
+              {paginatedObservations.map((obs) => (
+                <div
+                  key={obs.id}
+                  onClick={() => setSelectedObservation(obs)}
+                  className={`bg-zinc-800 p-6 rounded cursor-pointer hover:bg-zinc-700 transition-all ${
+                    selectedObservation?.id === obs.id ? "ring-2 ring-[#d8cc97]" : ""
+                  }`}
+                  style={{ background: '#181818' }}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex flex-col">
+                      <div className="text-base font-bold text-[#d8cc97]">{obs.playerName}</div>
+                      <div className="text-xs text-zinc-400">{new Date(obs.date).toLocaleDateString()}</div>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <UniversalButton.Secondary size="sm">
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </UniversalButton.Secondary>
-                      <UniversalButton.Secondary size="sm">
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </UniversalButton.Secondary>
-                      <UniversalButton.Danger size="sm">
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </UniversalButton.Danger>
+                    <div className="flex gap-3">
+                      <button className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent" style={{ background: 'transparent' }}>Edit</button>
+                      <button className="text-xs text-red-400 font-semibold hover:underline bg-transparent" style={{ background: 'transparent' }}>Delete</button>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      {getRatingStars(observation.rating)}
-                    </div>
-                    <span className="text-xs text-zinc-500">
-                      {new Date(observation.date).toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  {observation.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {observation.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-zinc-400 bg-zinc-800"
-                        >
-                          <Tag className="h-3 w-3 mr-1" />
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <p className="text-sm text-zinc-300 line-clamp-3">{obs.description}</p>
                 </div>
-              </UniversalCard.Default>
-            ))}
+              ))}
+              
+              {/* Show More/Less Buttons */}
+              {hasMore && (
+                <button
+                  className="flex items-center justify-center w-full py-4 text-[#d8cc97] hover:text-[#b3a14e] transition-colors bg-black"
+                  onClick={() => setPage(page + 1)}
+                  style={{ background: 'black' }}
+                >
+                  Show More <ChevronDown className="ml-2 w-4 h-4" />
+                </button>
+              )}
+              {page > 1 && (
+                <button
+                  className="flex items-center justify-center w-full py-4 text-[#d8cc97] hover:text-[#b3a14e] transition-colors bg-black"
+                  onClick={() => setPage(page - 1)}
+                  style={{ background: 'black' }}
+                >
+                  Show Less <ChevronUp className="ml-2 w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 text-center py-8">
+              {selectedPlayerId ? "No observations found for this player." : "No observations found."}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT PANE: Insights */}
+        <div className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Insights</h2>
+          
+          {/* Teaser Feature Block */}
+          <div className="bg-zinc-800 p-6 rounded">
+            <div className="p-4 bg-zinc-900 rounded border border-dashed border-[#d8cc97]">
+              <p className="text-sm text-[#d8cc97] font-semibold mb-3">
+                🚀 Coming Soon to This Panel:
+              </p>
+              <ul className="text-sm text-gray-400 list-disc list-inside space-y-2">
+                <li>AI-powered constraint suggestions</li>
+                <li>Tag trend visualizations</li>
+                <li>Drill recommendations based on this observation</li>
+              </ul>
+            </div>
           </div>
-        )}
-
-        {/* Selected Observation Details */}
-        {selectedObservation && (
-          <UniversalCard.Default title="Observation Details">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Player</h4>
-                  <p className="text-white">{selectedObservation.playerName}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Coach</h4>
-                  <p className="text-white">{selectedObservation.coachName}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Type</h4>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTypeBadge(selectedObservation.type)}`}>
-                    {selectedObservation.type.charAt(0).toUpperCase() + selectedObservation.type.slice(1)}
-                  </span>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Category</h4>
-                  <p className="text-white">{selectedObservation.category}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Date</h4>
-                  <p className="text-white">{new Date(selectedObservation.date).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Rating</h4>
-                  <div className="flex items-center space-x-1">
-                    {getRatingStars(selectedObservation.rating)}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-zinc-400 mb-2">Description</h4>
-                <p className="text-white">{selectedObservation.description}</p>
-              </div>
-
-              {selectedObservation.notes && (
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Notes</h4>
-                  <p className="text-white">{selectedObservation.notes}</p>
-                </div>
-              )}
-
-              {selectedObservation.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-zinc-400 mb-2">Tags</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedObservation.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-zinc-400 bg-zinc-800"
-                      >
-                        <Tag className="h-3 w-3 mr-1" />
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </UniversalCard.Default>
-        )}
+        </div>
       </div>
-    </DashboardLayout>
-  )
+    </div>
+  );
 }

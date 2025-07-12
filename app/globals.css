@@ -273,3 +273,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+html, body {
+  background: #000 !important;
+}

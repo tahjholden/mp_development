@@ -21,7 +21,8 @@ export async function GET() {
       .select({
         id: mpbc_observations.id,
         playerId: mpCorePerson.id,
-        playerName: mpCorePerson.firstName,
+        playerFirstName: mpCorePerson.firstName,
+        playerLastName: mpCorePerson.lastName,
         title: mpbc_observations.context,
         description: mpbc_observations.observation_text,
         rating: mpbc_observations.performance_rating,
@@ -39,7 +40,9 @@ export async function GET() {
       ...obs,
       tags: obs.tags ? obs.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
       rating: typeof obs.rating === 'number' ? obs.rating : 0,
-      playerName: obs.playerName || '',
+      playerName: obs.playerFirstName && obs.playerLastName 
+        ? `${obs.playerFirstName} ${obs.playerLastName}`.trim()
+        : obs.playerFirstName || obs.playerLastName || 'Unknown Player',
       title: obs.title || '',
       description: obs.description || '',
     }));

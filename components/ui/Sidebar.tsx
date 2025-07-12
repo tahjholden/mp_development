@@ -176,32 +176,6 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
           </Link>
         </div>
 
-        {/* User Profile */}
-        {user && (
-          <div className="p-4 border-b border-zinc-800">
-            <div className="flex items-center gap-3">
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-10 h-10 rounded-full border border-zinc-700"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gold-500/20 border border-gold-500/50 flex items-center justify-center text-gold-500 font-medium">
-                  {user.name?.charAt(0).toUpperCase() || 'U'}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                <p className="text-xs text-zinc-400 truncate">{user.email}</p>
-                <span className="inline-block px-2 py-0.5 mt-1 text-xs font-medium rounded-full bg-gold-500/20 text-gold-500">
-                  {user.role}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Navigation */}
         <nav className="px-3 py-4 overflow-y-auto h-[calc(100vh-16rem)]">
           <ul className="space-y-1">
