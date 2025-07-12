@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, CheckCircle, Circle, Clock, Search, Filter, Target,
 import { Sidebar } from '@/components/ui/Sidebar'
 import UniversalCard from '@/components/ui/UniversalCard'
 import { UniversalButton } from '@/components/ui/UniversalButton'
+import { createClient } from '@/lib/supabase/server';
 
 // Types for development plans
 interface DevelopmentPlan {
@@ -62,6 +63,8 @@ interface DrillSuggestion {
 export default function DevelopmentPlansPage() {
   const [plans, setPlans] = useState<DevelopmentPlan[]>([])
   const [players, setPlayers] = useState<Player[]>([])
+  const [playerSkillTags, setPlayerSkillTags] = useState<Record<string, string[]>>({});
+  const [allSkillTags, setAllSkillTags] = useState<string[]>([]); // For sample skills dropdowns, etc.
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -122,8 +125,9 @@ export default function DevelopmentPlansPage() {
         
         // Fetch players (today's attendance)
         const playersResponse = await fetch('/api/dashboard/players')
+        let playersData: any[] = [];
         if (playersResponse.ok) {
-          const playersData = await playersResponse.json()
+          playersData = await playersResponse.json()
           const transformedPlayers = playersData.map((player: any) => ({
             id: player.id,
             name: player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown Player',
@@ -131,17 +135,68 @@ export default function DevelopmentPlansPage() {
             status: player.status || 'active',
             attendance: 'present' as const, // In real app, this would come from attendance API
             pdpStatus: 'active' as const, // In real app, this would be calculated
-            topTags: ['Shooting', 'Ball Handling'], // In real app, this would come from PDP
+            topTags: [], // Will be filled in below
             readiness: 'medium' as const // In real app, this would be calculated
           }))
           setPlayers(transformedPlayers)
         }
-        
+
+        // Fetch all skill tags for dropdowns, etc.
+        const supabase = createClient();
+        const { data: skillTags, error: skillTagError } = await supabase
+          .from('mpbc_skill_tag')
+          .select('name')
+          .order('name');
+        if (skillTagError) {
+          throw new Error('Failed to fetch all skill tags');
+        }
+        setAllSkillTags((skillTags || []).map((tag: any) => tag.name));
+
+        // Fetch skill tags for each player (using development_plan_id)
+        const playerIds = playersData.map((p: any) => p.id);
+        if (playerIds.length > 0) {
+          // Get all skill challenges for these players
+          const { data: skillChallenges, error: skillChallengeError } = await supabase
+            .from('mpbc_player_skill_challenge')
+            .select('player_id, skill_tag_id, development_plan_id')
+            .in('player_id', playerIds);
+
+          if (skillChallengeError) {
+            throw new Error('Failed to fetch player skill challenges');
+          }
+
+          // Get all unique skill_tag_ids
+          const skillTagIds = Array.from(new Set((skillChallenges || []).map((sc: any) => sc.skill_tag_id)));
+          let skillTagMap: Record<string, string> = {};
+          if (skillTagIds.length > 0) {
+            const { data: skillTags, error: skillTagError } = await supabase
+              .from('mpbc_skill_tag')
+              .select('id, name')
+              .in('id', skillTagIds);
+            if (skillTagError) {
+              throw new Error('Failed to fetch skill tag names');
+            }
+            skillTagMap = (skillTags || []).reduce((acc: Record<string, string>, tag: any) => {
+              acc[tag.id] = tag.name;
+              return acc;
+            }, {});
+          }
+
+          // Map player_id to array of skill tag names
+          const playerSkillTagsMap: Record<string, string[]> = {};
+          (skillChallenges || []).forEach((sc: any) => {
+            if (!playerSkillTagsMap[sc.player_id]) playerSkillTagsMap[sc.player_id] = [];
+            if (skillTagMap[sc.skill_tag_id]) playerSkillTagsMap[sc.player_id].push(skillTagMap[sc.skill_tag_id]);
+          });
+          setPlayerSkillTags(playerSkillTagsMap);
+        }
       } catch (err) {
         console.error('Error fetching data:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch data')
         setPlans([])
         setPlayers([])
+        setPlayerSkillTags({})
+        setAllSkillTags([])
       } finally {
         setLoading(false)
       }
@@ -403,7 +458,7 @@ export default function DevelopmentPlansPage() {
                       
                       {/* Top skill tags */}
                       <div className="flex flex-wrap gap-1">
-                        {player.topTags.slice(0, 2).map((tag, index) => (
+                        {(playerSkillTags[player.id] || []).slice(0, 2).map((tag, index) => (
                           <span
                             key={index}
                             className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-zinc-700 text-zinc-300"
