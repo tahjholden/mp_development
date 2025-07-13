@@ -139,7 +139,13 @@ const PlayerListCard = ({
         )}
       </div>
       
-      <div className="overflow-y-auto px-4 pb-4 space-y-2" style={{ maxHeight }}>
+      <div
+        className={cn(
+          className ? className : 'overflow-y-auto px-4 pb-4 space-y-2',
+          !className && 'overflow-y-auto px-4 pb-4',
+        )}
+        style={{ maxHeight }}
+      >
         {filteredPlayers.length > 0 ? (
           filteredPlayers.map((player, index) => (
             <UniversalCard.PlayerStatus

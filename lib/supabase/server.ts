@@ -9,9 +9,9 @@ import { cache } from 'react';
  */
 export const createClient = cache(() => {
   const cookieStore = cookies();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_CORE!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_CORE!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY_CORE;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase URL and Anon Key must be provided');
@@ -49,8 +49,8 @@ export const createClient = cache(() => {
  * and never exposed to the client
  */
 export const createAdminClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_CORE!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY_CORE;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Supabase URL and Service Role Key must be provided');

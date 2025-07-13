@@ -104,7 +104,7 @@ const cardFooterVariants = cva(
 
 // Props interface for the Card component
 export interface CardProps
-  extends HTMLAttributes<HTMLDivElement>,
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'color'>, // Remove color from HTMLAttributes
     VariantProps<typeof cardVariants> {
   children: ReactNode;
   title?: string;
@@ -198,7 +198,6 @@ const EmptyStateCard = forwardRef<HTMLDivElement, EmptyStateCardProps>(
     {
       className,
       variant = "default",
-      color = "default",
       size = "lg",
       icon,
       title,
@@ -221,8 +220,6 @@ const EmptyStateCard = forwardRef<HTMLDivElement, EmptyStateCardProps>(
     return (
       <Card
         variant={variant}
-        color={color}
-        size={size}
         className={cn("flex flex-col items-center justify-center py-8", className)}
         ref={ref}
         {...props}
@@ -246,6 +243,7 @@ EmptyStateCard.displayName = "EmptyStateCard";
 export interface PlayerStatusCardProps extends Omit<CardProps, "color"> {
   status?: "active" | "archived" | "inactive";
   selected?: boolean;
+  rosterStyle?: boolean; // NEW: for roster-specific styling
 }
 
 // PlayerStatusCard component
@@ -257,17 +255,20 @@ const PlayerStatusCard = forwardRef<HTMLDivElement, PlayerStatusCardProps>(
       status = "active",
       selected = false,
       hover = "border",
+      rosterStyle = false, // NEW
       ...props
     },
     ref
   ) => {
-    // Map status to border colors
+    // Map status to border/text colors
     const statusClasses = {
-      active: "border-gold-500",
-      archived: "border-danger-500",
-      inactive: "border-zinc-700",
+      active: rosterStyle ? "border-2 border-gold-500 text-gold-500" : "border-gold-500",
+      archived: rosterStyle ? "border-2 border-danger-500 text-danger-500" : "border-danger-500",
+      inactive: rosterStyle ? "border-2 border-zinc-700 text-zinc-400" : "border-zinc-700",
     };
-
+    const baseRoster = rosterStyle
+      ? "bg-transparent font-semibold text-lg px-4 py-2 flex items-center justify-center rounded-md whitespace-nowrap overflow-hidden text-ellipsis"
+      : "";
     return (
       <Card
         variant={variant}
@@ -275,6 +276,7 @@ const PlayerStatusCard = forwardRef<HTMLDivElement, PlayerStatusCardProps>(
           "border-l-4",
           statusClasses[status],
           selected && "bg-zinc-800",
+          baseRoster,
           className
         )}
         hover={hover}

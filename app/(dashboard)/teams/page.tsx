@@ -7,6 +7,9 @@ import { Sidebar } from '@/components/ui/Sidebar';
 import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
 import { cn } from '@/lib/utils';
+import PlayerListCard from '@/components/basketball/PlayerListCard';
+import Header from '@/components/ui/Header';
+import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
 
 interface Team {
   id: string;
@@ -19,6 +22,8 @@ interface Player {
   id: string;
   displayName: string;
   teamId: string;
+  personType?: string;
+  position?: string;
 }
 
 export default function TeamsPage() {
@@ -117,36 +122,25 @@ export default function TeamsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen h-full bg-black text-white" style={{ background: 'black' }}>
-        {/* Header - exact replica with coach info */}
-        <header className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between" style={{ boxShadow: 'none' }}>
-          <span className="text-2xl font-bold tracking-wide text-[#d8cc97]" style={{ letterSpacing: '0.04em' }}>
-            MP Player Development
-          </span>
-          <div className="flex flex-col items-end">
-            <span className="text-base font-semibold text-white leading-tight">Coach</span>
-            <span className="text-xs text-[#d8cc97] leading-tight">coach@example.com</span>
-            <span className="text-xs text-white leading-tight">Coach</span>
-          </div>
-        </header>
-        
-        {/* Sidebar */}
-        <Sidebar 
-          user={{
-            name: "Coach",
-            email: "coach@example.com", 
-            role: "Coach"
-          }}
-        />
-        
-        {/* Main Content */}
-        <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
+      <div className="flex min-h-screen h-full bg-black text-white">
+        <Sidebar user={{ name: "Coach", email: "coach@example.com", role: "Coach" }} />
+        <div className="flex-1 flex flex-col min-h-screen">
+          <header className="w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between" style={{ boxShadow: 'none' }}>
+            <span className="text-2xl font-bold tracking-wide text-[#d8cc97]" style={{ letterSpacing: '0.04em' }}>
+              MP Player Development
+            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-base font-semibold text-white leading-tight">Coach</span>
+              <span className="text-xs text-[#d8cc97] leading-tight">coach@example.com</span>
+              <span className="text-xs text-white leading-tight">Coach</span>
+            </div>
+          </header>
           <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
-            <p className="text-zinc-400">Loading teams...</p>
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
+              <p className="text-zinc-400">Loading teams...</p>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     );
@@ -154,43 +148,28 @@ export default function TeamsPage() {
 
   return (
     <div className="flex min-h-screen h-full bg-black text-white" style={{ background: 'black' }}>
-      {/* Header - exact replica with coach info */}
       <header className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between" style={{ boxShadow: 'none' }}>
         <span className="text-2xl font-bold tracking-wide text-[#d8cc97]" style={{ letterSpacing: '0.04em' }}>
           MP Player Development
         </span>
         <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">Coach</span>
-          <span className="text-xs text-[#d8cc97] leading-tight">coach@example.com</span>
-          <span className="text-xs text-white leading-tight">Coach</span>
+          <span className="text-base font-semibold text-white leading-tight">{currentUser?.displayName || 'Coach'}</span>
+          <span className="text-xs text-[#d8cc97] leading-tight">{currentUser?.email || 'coach@example.com'}</span>
+          <span className="text-xs text-white leading-tight">{currentUser?.role || 'Coach'}</span>
         </div>
       </header>
-      
-      {/* Sidebar */}
-      <Sidebar 
-        user={{
-          name: "Coach",
-          email: "coach@example.com", 
-          role: "Coach"
-        }}
-      />
-      
-      {/* Main Content */}
+      <Sidebar user={currentUser ? {
+        name: currentUser.displayName || currentUser.name || 'Coach',
+        email: currentUser.email || 'coach@example.com',
+        role: currentUser.role || 'Coach',
+      } : undefined} />
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
-        {/* LEFT PANE: Team List */}
+        {/* LEFT COLUMN: Team Selector */}
         <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
-        <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Teams</h2>
-          <UniversalButton.Primary
-              size="sm"
-            onClick={handleAddTeam}
-            leftIcon={<Users size={16} />}
-          >
-            Add Team
-          </UniversalButton.Primary>
-        </div>
-        
-          {/* Search Input */}
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Teams</h2>
+          <div className="flex justify-between items-center mb-6">
+            <UniversalButton.Primary size="sm" onClick={handleAddTeam} leftIcon={<Users size={16} />}>Add Team</UniversalButton.Primary>
+          </div>
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
             <input
@@ -201,8 +180,6 @@ export default function TeamsPage() {
               className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
             />
           </div>
-
-          {/* Team List */}
           <div className="flex-1 overflow-y-auto space-y-2">
             {!hasTeams ? (
               <div className="text-center py-8">
@@ -213,157 +190,80 @@ export default function TeamsPage() {
             ) : (
               filteredTeams.map((team) => (
                 <div
-                      key={team.id}
-                      onClick={() => handleTeamSelect(team)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all ${
-                    selectedTeam?.id === team.id
-                      ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
-                      : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
-                  }`}
-                    >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-white">{team.name}</p>
-                      <p className="text-sm text-zinc-400">
-                        {team.coachName || currentUser?.displayName || 'Not assigned'}
-                        </p>
-                      </div>
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                  key={team.id}
+                  onClick={() => handleTeamSelect(team)}
+                  className={`p-3 rounded-lg cursor-pointer transition-all flex items-center justify-between border ${selectedTeam?.id === team.id ? 'bg-[#d8cc97]/20 border-[#d8cc97]' : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'}`}
+                >
+                  <div>
+                    <p className="font-medium text-white">{team.name}</p>
+                    <p className="text-sm text-zinc-400">{team.coachName || currentUser?.displayName || 'Not assigned'}</p>
                   </div>
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
                 </div>
               ))
             )}
           </div>
         </div>
-
-        {/* MIDDLE PANE: Team Profile */}
-        <div className="flex-1 p-6 bg-black">
-          {selectedTeam ? (
-            <div className="space-y-6">
-              {/* Team Profile Section */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-[#d8cc97]">Team Profile</h3>
-                  <div className="flex gap-2">
-                    <UniversalButton.Secondary size="sm">
-                      Edit Team
-                    </UniversalButton.Secondary>
-                    <UniversalButton.Danger size="sm">
-                      Delete Team
-                    </UniversalButton.Danger>
-                  </div>
+        {/* CENTER COLUMN: Team Profile + Roster */}
+        <div className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">{selectedTeam ? selectedTeam.name : 'Team Profile'}</h2>
+          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md mb-8">
+            {selectedTeam ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-zinc-400">Name</p>
+                  <p className="text-white">{selectedTeam.name}</p>
                 </div>
-                
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-zinc-400">Name</p>
-                        <p className="text-white">{selectedTeam.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-zinc-400">Coach</p>
-                        <p className="text-white">{selectedTeam.coachName || currentUser?.displayName || 'Not assigned'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-zinc-400">Players</p>
-                        <p className="text-white">{teamPlayers.length} players</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-zinc-400">Created</p>
-                        <p className="text-white">{new Date(selectedTeam.createdAt).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}</p>
-                      </div>
-                    </div>
-                  </div>
-              </div>
-              
-              {/* Roster Section */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-[#d8cc97]">Roster</h3>
-                    <UniversalButton.Primary size="sm">
-                      Add Player to Team
-                    </UniversalButton.Primary>
+                <div>
+                  <p className="text-sm text-zinc-400">Coach</p>
+                  <p className="text-white">{selectedTeam.coachName || currentUser?.displayName || 'Not assigned'}</p>
                 </div>
-                
-                  {teamPlayers.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      {teamPlayers.map((player) => (
-                      <div
-                          key={player.id}
-                        className="bg-zinc-800/50 border border-gold-500/50 hover:border-gold-500 transition-colors rounded-lg p-3 cursor-pointer"
-                          onClick={() => router.push(`/players?id=${player.id}`)}
-                        >
-                        <div className="text-center">
-                          <p className="text-sm text-white">{player.displayName}</p>
-                        </div>
-                          </div>
-                      ))}
-                    </div>
-                  ) : (
-                  <div className="text-center py-8">
-                    <Users className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
-                    <p className="text-zinc-400 mb-2">No players in this team yet</p>
-                    <p className="text-sm text-zinc-500">Add players to build your roster</p>
-                    </div>
-                  )}
+                <div>
+                  <p className="text-sm text-zinc-400">Players</p>
+                  <p className="text-white">{teamPlayers.length} players</p>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-400">Created</p>
+                  <p className="text-white">{new Date(selectedTeam.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                </div>
               </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-12">
+                <Shield className="text-zinc-700 w-20 h-20 mb-5" />
+                <h3 className="text-lg font-medium text-white mb-2">Select a Team to View Details</h3>
+                <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">Select a team from the list to view their profile and roster.</p>
+              </div>
+            )}
+          </div>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Roster</h2>
+          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <UniversalButton.Primary size="sm">Add Player to Team</UniversalButton.Primary>
             </div>
-              ) : (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center h-full">
-              <Shield className="text-zinc-700 w-20 h-20 mb-5" />
-              <h3 className="text-lg font-medium text-white mb-2">Select a Team to View Details</h3>
-              <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">Select a team from the list to view their profile and roster.</p>
+            <div className="grid grid-cols-2 gap-4">
+              {teamPlayers
+                .map((p: any) => ({
+                  id: p.id,
+                  name: p.displayName || p.name || 'Unknown Player',
+                  status: p.status || 'active',
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((player) => (
+                  <button
+                    key={player.id}
+                    className={`w-full text-sm font-medium py-2 px-3 border rounded-md bg-neutral-800 hover:bg-neutral-700 transition-all whitespace-nowrap overflow-hidden text-ellipsis
+                      ${player.status === 'active' ? 'border-yellow-500 text-yellow-200' : player.status === 'archived' ? 'border-red-500 text-red-400' : 'border-neutral-700 text-white'}`}
+                    title={player.name}
+                  >
+                    {player.name}
+                  </button>
+                ))}
             </div>
-              )}
+          </div>
         </div>
-
-        {/* RIGHT PANE: Team Stats */}
-        <div className="w-1/3 border-l border-zinc-800 p-6 bg-black flex flex-col min-h-screen" style={{ background: 'black' }}>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97]">Team Statistics</h2>
-          
-          {selectedTeam ? (
-            <div className="space-y-6">
-              {/* Basic Stats */}
-              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                <h4 className="font-medium text-white mb-3">Overview</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-zinc-400">Total Players</span>
-                    <span className="text-white">{teamPlayers.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-zinc-400">Active Players</span>
-                    <span className="text-white">{teamPlayers.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-zinc-400">Team Age</span>
-                    <span className="text-white">New</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Recent Activity */}
-              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                <h4 className="font-medium text-white mb-3">Recent Activity</h4>
-                <div className="text-center py-4">
-                  <Calendar className="text-zinc-700 w-8 h-8 mx-auto mb-2" />
-                  <p className="text-zinc-400 text-sm">No recent activity</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
-              <p className="text-zinc-400 text-sm">Select a team to view statistics</p>
-            </div>
-          )}
+        {/* RIGHT COLUMN: (Optional future content) */}
+        <div className="w-1/4 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
+          {/* You can add insights, activity, or leave empty for now */}
         </div>
       </div>
     </div>
