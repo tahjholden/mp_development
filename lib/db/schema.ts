@@ -104,6 +104,20 @@ export const mpbc_observations = pgTable('mpbc_observations', {
   updated_by: uuid('updated_by'),
 });
 
+export const mpbc_development_plan = pgTable('mpbc_development_plan', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  player_id: uuid('player_id'),
+  group_id: uuid('group_id'),
+  season_id: uuid('season_id'),
+  title: text('title'),
+  objective: text('objective'),
+  status: text('status'),
+  start_date: timestamp('start_date'),
+  end_date: timestamp('end_date'),
+  created_at: timestamp('created_at'),
+  updated_at: timestamp('updated_at'),
+});
+
 // Relations are simplified since groups and organizations are embedded in current_participants
 export const peopleRelations = relations(mpCorePerson, ({ many }) => ({
   invitationsSent: many(invitations),
@@ -143,3 +157,159 @@ export enum ActivityType {
   INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
   ACCEPT_INVITATION = 'ACCEPT_INVITATION',
 }
+
+// --- AUTO-GENERATED TABLES FROM USER LIST ---
+
+export const infrastructure_dashboard_config = pgTable('infrastructure_dashboard_config', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  person_id: uuid('person_id'),
+  dashboard_type: text('dashboard_type'),
+  widget_config: jsonb('widget_config'),
+  is_default: boolean('is_default'),
+  created_at: timestamp('created_at'),
+  updated_at: timestamp('updated_at'),
+  organization_id: uuid('organization_id'),
+});
+
+export const infrastructure_file_storage = pgTable('infrastructure_file_storage', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  file_name: text('file_name'),
+  original_name: text('original_name'),
+  file_path: text('file_path'),
+  file_type: text('file_type'),
+  file_size: integer('file_size'),
+  bucket_name: text('bucket_name'),
+  entity_type: text('entity_type'),
+  entity_id: uuid('entity_id'),
+  uploaded_by: uuid('uploaded_by'),
+  description: text('description'),
+  tags: text('tags'),
+  public_access: boolean('public_access'),
+  thumbnail_path: text('thumbnail_path'),
+  processing_status: text('processing_status'),
+  metadata: jsonb('metadata'),
+  created_at: timestamp('created_at'),
+  organization_id: uuid('organization_id'),
+});
+
+export const infrastructure_invitations = pgTable('infrastructure_invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  team_id: uuid('team_id'),
+  email: text('email'),
+  role: text('role'),
+  invited_by: uuid('invited_by'),
+  invited_at: timestamp('invited_at'),
+  status: text('status'),
+});
+
+export const infrastructure_invites = pgTable('infrastructure_invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email'),
+  organization_id: uuid('organization_id'),
+  role: text('role'),
+  status: text('status'),
+  created_at: timestamp('created_at'),
+});
+
+export const infrastructure_memberships = pgTable('infrastructure_memberships', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  user_id: uuid('user_id'),
+  organization_id: uuid('organization_id'),
+  role: text('role'),
+  created_at: timestamp('created_at'),
+});
+
+export const infrastructure_notification_queue = pgTable('infrastructure_notification_queue', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  recipient_id: uuid('recipient_id'),
+  notification_type: text('notification_type'),
+  subject: text('subject'),
+  message: text('message'),
+  data: jsonb('data'),
+  priority: text('priority'),
+  status: text('status'),
+  scheduled_for: timestamp('scheduled_for'),
+  sent_at: timestamp('sent_at'),
+  error_message: text('error_message'),
+  retry_count: integer('retry_count'),
+  created_at: timestamp('created_at'),
+  organization_id: uuid('organization_id'),
+});
+
+export const infrastructure_participation_log = pgTable('infrastructure_participation_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  session_id: uuid('session_id'),
+  person_id: uuid('person_id'),
+  status: text('status'),
+  arrival_time: timestamp('arrival_time'),
+  departure_time: timestamp('departure_time'),
+  participation_level: text('participation_level'),
+  energy_level: integer('energy_level'),
+  focus_level: integer('focus_level'),
+  notes: text('notes'),
+  absence_reason: text('absence_reason'),
+  advance_notice: boolean('advance_notice'),
+  makeup_required: boolean('makeup_required'),
+  metadata: jsonb('metadata'),
+  recorded_at: timestamp('recorded_at'),
+  recorded_by: uuid('recorded_by'),
+  organization_id: uuid('organization_id'),
+});
+
+export const infrastructure_program_cycle = pgTable('infrastructure_program_cycle', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organization_id: uuid('organization_id'),
+  name: text('name'),
+  year: integer('year'),
+  term: text('term'),
+  start_date: timestamp('start_date'),
+  end_date: timestamp('end_date'),
+  description: text('description'),
+  objectives: text('objectives'),
+  active: boolean('active'),
+  created_at: timestamp('created_at'),
+  created_by: uuid('created_by'),
+});
+
+export const infrastructure_sessions = pgTable('infrastructure_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  group_id: uuid('group_id'),
+  cycle_id: uuid('cycle_id'),
+  session_number: integer('session_number'),
+  session_type: text('session_type'),
+  date: timestamp('date'),
+  start_time: timestamp('start_time'),
+  end_time: timestamp('end_time'),
+  location: text('location'),
+  session_objective: text('session_objective'),
+  pre_session_notes: text('pre_session_notes'),
+  post_session_notes: text('post_session_notes'),
+  facilitator_reflection: text('facilitator_reflection'),
+  intensity_level: text('intensity_level'),
+  status: text('status'),
+  expected_attendance: integer('expected_attendance'),
+  actual_attendance: integer('actual_attendance'),
+  conditions: text('conditions'),
+  equipment_issues: text('equipment_issues'),
+  metadata: jsonb('metadata'),
+  created_at: timestamp('created_at'),
+  updated_at: timestamp('updated_at'),
+  created_by: uuid('created_by'),
+  updated_by: uuid('updated_by'),
+  organization_id: uuid('organization_id'),
+});
+
+export const infrastructure_system_settings = pgTable('infrastructure_system_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organization_id: uuid('organization_id'),
+  category: text('category'),
+  setting_key: text('setting_key'),
+  setting_value: text('setting_value'),
+  description: text('description'),
+  data_type: text('data_type'),
+  is_public: boolean('is_public'),
+  requires_restart: boolean('requires_restart'),
+  last_changed_by: uuid('last_changed_by'),
+  created_at: timestamp('created_at'),
+  updated_at: timestamp('updated_at'),
+});

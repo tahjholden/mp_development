@@ -20,7 +20,6 @@ interface Observation {
   coachName: string;
   title: string;
   description: string;
-  type: 'practice' | 'game' | 'skill_development' | 'physical' | 'mental' | 'other';
   category: string;
   rating: number;
   date: string;
@@ -174,19 +173,6 @@ export default function PlayersPage() {
     ));
   };
 
-  // Helper to get type badge
-  const getTypeBadge = (type: string) => {
-    const typeColors: Record<string, string> = {
-      practice: 'text-blue-500 bg-blue-500/20',
-      game: 'text-green-500 bg-green-500/20',
-      skill_development: 'text-purple-500 bg-purple-500/20',
-      physical: 'text-orange-500 bg-orange-500/20',
-      mental: 'text-pink-500 bg-pink-500/20',
-      other: 'text-gray-500 bg-gray-500/20',
-    };
-    return typeColors[type] || typeColors.other;
-  };
-
   // Filter observations for the selected player
   const playerObservations = selectedPlayer
     ? observations.filter(obs => obs.playerId === selectedPlayer.id)
@@ -219,7 +205,7 @@ export default function PlayersPage() {
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
         {/* LEFT PANE: Player List */}
         <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
-          <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
             <UniversalButton.Primary
               size="sm"
@@ -323,47 +309,47 @@ export default function PlayersPage() {
               <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-bold text-[#d8cc97]">Player Profile</h3>
-                  <div className="flex gap-2">
-                    <UniversalButton.Secondary
-                      size="sm"
-                      onClick={() => {/* Edit player logic */}}
-                    >
-                      Edit Player
-                    </UniversalButton.Secondary>
-                    
-                    <UniversalButton.Danger
-                      size="sm"
-                      onClick={handleDeletePlayer}
-                    >
-                      Delete Player
-                    </UniversalButton.Danger>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-zinc-400">Name</p>
-                      <p className="text-white">{selectedPlayer.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-400">Team</p>
+            <div className="flex gap-2">
+              <UniversalButton.Secondary
+                size="sm"
+                onClick={() => {/* Edit player logic */}}
+              >
+                Edit Player
+              </UniversalButton.Secondary>
+              
+              <UniversalButton.Danger
+                size="sm"
+                onClick={handleDeletePlayer}
+              >
+                Delete Player
+              </UniversalButton.Danger>
+            </div>
+        </div>
+        
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-zinc-400">Name</p>
+                        <p className="text-white">{selectedPlayer.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-zinc-400">Team</p>
                       <p className="text-white">{selectedPlayer.team}</p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-zinc-400">Status</p>
-                    <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                      selectedPlayer.status === 'active' 
-                        ? 'bg-gold-500/20 text-gold-500' 
-                        : 'bg-danger-500/20 text-danger-500'
-                    }`}>
-                      {selectedPlayer.status === 'active' ? 'Active' : 'Archived'}
+                    
+                    <div>
+                      <p className="text-sm text-zinc-400">Status</p>
+                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                        selectedPlayer.status === 'active' 
+                          ? 'bg-gold-500/20 text-gold-500' 
+                          : 'bg-danger-500/20 text-danger-500'
+                      }`}>
+                        {selectedPlayer.status === 'active' ? 'Active' : 'Archived'}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               
               {/* Development Plan Section */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
@@ -374,70 +360,67 @@ export default function PlayersPage() {
                       Create Plan
                     </UniversalButton.Primary>
                     <UniversalButton.Secondary size="sm" onClick={handleArchivePlan}>
-                      Archive Plan
-                    </UniversalButton.Secondary>
-                  </div>
-                </div>
-                
+                        Archive Plan
+                      </UniversalButton.Secondary>
+                    </div>
+                    </div>
+                    
                 <div className="text-center py-8">
                   <Shield className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
                   <p className="text-zinc-400 mb-2">No development plan created yet</p>
                   <p className="text-sm text-zinc-500">Create a development plan to track this player's progress</p>
-                </div>
-              </div>
-            </div>
-          ) : (
+                    </div>
+                    </div>
+                  </div>
+              ) : (
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center h-full">
-              <Shield className="text-zinc-700 w-20 h-20 mb-5" />
-              <h3 className="text-lg font-medium text-white mb-2">Select a Player to View Their Profile</h3>
+                  <Shield className="text-zinc-700 w-20 h-20 mb-5" />
+                  <h3 className="text-lg font-medium text-white mb-2">Select a Player to View Their Profile</h3>
               <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">Select a player from the list to view their profile details and development plan.</p>
-            </div>
-          )}
+                </div>
+              )}
         </div>
 
         {/* RIGHT PANE: Recent Observations */}
         <div className="w-1/3 border-l border-zinc-800 p-6 bg-black flex flex-col min-h-screen" style={{ background: 'black' }}>
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97]">Recent Observations</h2>
           
-          {selectedPlayer ? (
+              {selectedPlayer ? (
             <div className="flex-1 overflow-y-auto space-y-4">
               {playerObservations.length === 0 ? (
                 <div className="text-center py-8">
                   <Eye className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
                   <p className="text-zinc-400 text-sm">No observations yet</p>
                   <p className="text-xs text-zinc-500 mt-1">Observations will appear here</p>
-                </div>
-              ) : (
+                    </div>
+                  ) : (
                 playerObservations.slice(0, 5).map((observation) => (
                   <div key={observation.id} className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="font-medium text-white text-sm">{observation.title}</h4>
                       <div className="flex items-center gap-1">
-                        {getRatingStars(observation.rating)}
-                      </div>
-                    </div>
+                                {getRatingStars(observation.rating)}
+                              </div>
+                            </div>
                     <p className="text-zinc-400 text-xs mb-2 line-clamp-2">{observation.description}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-zinc-500">
-                        {new Date(observation.date).toLocaleDateString()}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded ${getTypeBadge(observation.type)}`}>
-                        {observation.type.replace('_', ' ')}
-                      </span>
-                    </div>
+                            <span className="text-xs text-zinc-500">
+                              {new Date(observation.date).toLocaleDateString()}
+                            </span>
+                      </div>
                   </div>
                 ))
-              )}
+                  )}
             </div>
-          ) : (
+              ) : (
             <div className="text-center py-8">
               <Eye className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
               <p className="text-zinc-400 text-sm">Select a player to view their observations</p>
-            </div>
-          )}
+                </div>
+              )}
         </div>
-      </div>
-
+                </div>
+        
       {/* Modals */}
       {showAddPlayerModal && (
         <AddPlayerModal
@@ -447,7 +430,7 @@ export default function PlayersPage() {
           teams={teams}
         />
       )}
-      
+        
       {showDeletePlayerModal && (
         <UniversalModal.Confirm
           open={showDeletePlayerModal}
@@ -460,7 +443,7 @@ export default function PlayersPage() {
           variant="danger"
         />
       )}
-      
+        
       {showArchivePlanModal && (
         <ArchivePlanModal
           isOpen={showArchivePlanModal}
@@ -468,6 +451,6 @@ export default function PlayersPage() {
           onConfirm={handleArchivePlanConfirm}
         />
       )}
-    </div>
+      </div>
   );
 }

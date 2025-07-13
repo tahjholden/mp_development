@@ -142,11 +142,11 @@ export default function TeamsPage() {
         {/* Main Content */}
         <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
           <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
-              <p className="text-zinc-400">Loading teams...</p>
-            </div>
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
+            <p className="text-zinc-400">Loading teams...</p>
           </div>
+        </div>
         </div>
       </div>
     );
@@ -179,17 +179,17 @@ export default function TeamsPage() {
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
         {/* LEFT PANE: Team List */}
         <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
-          <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Teams</h2>
-            <UniversalButton.Primary
+          <UniversalButton.Primary
               size="sm"
-              onClick={handleAddTeam}
-              leftIcon={<Users size={16} />}
-            >
-              Add Team
-            </UniversalButton.Primary>
-          </div>
-          
+            onClick={handleAddTeam}
+            leftIcon={<Users size={16} />}
+          >
+            Add Team
+          </UniversalButton.Primary>
+        </div>
+        
           {/* Search Input */}
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
@@ -213,21 +213,21 @@ export default function TeamsPage() {
             ) : (
               filteredTeams.map((team) => (
                 <div
-                  key={team.id}
-                  onClick={() => handleTeamSelect(team)}
+                      key={team.id}
+                      onClick={() => handleTeamSelect(team)}
                   className={`p-3 rounded-lg cursor-pointer transition-all ${
                     selectedTeam?.id === team.id
                       ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
                       : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
                   }`}
-                >
+                    >
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-white">{team.name}</p>
                       <p className="text-sm text-zinc-400">
                         {team.coachName || currentUser?.displayName || 'Not assigned'}
-                      </p>
-                    </div>
+                        </p>
+                      </div>
                     <div className="w-2 h-2 rounded-full bg-green-500" />
                   </div>
                 </div>
@@ -254,74 +254,74 @@ export default function TeamsPage() {
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-zinc-400">Name</p>
-                      <p className="text-white">{selectedTeam.name}</p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-zinc-400">Name</p>
+                        <p className="text-white">{selectedTeam.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-zinc-400">Coach</p>
+                        <p className="text-white">{selectedTeam.coachName || currentUser?.displayName || 'Not assigned'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-zinc-400">Coach</p>
-                      <p className="text-white">{selectedTeam.coachName || currentUser?.displayName || 'Not assigned'}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-zinc-400">Players</p>
+                        <p className="text-white">{teamPlayers.length} players</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-zinc-400">Created</p>
+                        <p className="text-white">{new Date(selectedTeam.createdAt).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}</p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-zinc-400">Players</p>
-                      <p className="text-white">{teamPlayers.length} players</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-400">Created</p>
-                      <p className="text-white">{new Date(selectedTeam.createdAt).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}</p>
-                    </div>
-                  </div>
-                </div>
               </div>
               
               {/* Roster Section */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-bold text-[#d8cc97]">Roster</h3>
-                  <UniversalButton.Primary size="sm">
-                    Add Player to Team
-                  </UniversalButton.Primary>
+                    <UniversalButton.Primary size="sm">
+                      Add Player to Team
+                    </UniversalButton.Primary>
                 </div>
                 
-                {teamPlayers.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {teamPlayers.map((player) => (
+                  {teamPlayers.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {teamPlayers.map((player) => (
                       <div
-                        key={player.id}
+                          key={player.id}
                         className="bg-zinc-800/50 border border-gold-500/50 hover:border-gold-500 transition-colors rounded-lg p-3 cursor-pointer"
-                        onClick={() => router.push(`/players?id=${player.id}`)}
-                      >
+                          onClick={() => router.push(`/players?id=${player.id}`)}
+                        >
                         <div className="text-center">
                           <p className="text-sm text-white">{player.displayName}</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
+                          </div>
+                      ))}
+                    </div>
+                  ) : (
                   <div className="text-center py-8">
                     <Users className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
                     <p className="text-zinc-400 mb-2">No players in this team yet</p>
                     <p className="text-sm text-zinc-500">Add players to build your roster</p>
-                  </div>
-                )}
+                    </div>
+                  )}
               </div>
             </div>
-          ) : (
+              ) : (
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center h-full">
               <Shield className="text-zinc-700 w-20 h-20 mb-5" />
               <h3 className="text-lg font-medium text-white mb-2">Select a Team to View Details</h3>
               <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">Select a team from the list to view their profile and roster.</p>
             </div>
-          )}
+              )}
         </div>
 
         {/* RIGHT PANE: Team Stats */}

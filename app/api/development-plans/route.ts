@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson } from '@/lib/db/schema';
+import { mpCorePerson, mpbc_development_plan } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET() {
@@ -15,36 +15,44 @@ export async function GET() {
       return Response.json({ error: 'Database not available' }, { status: 500 });
     }
 
-    // For now, return empty array since we don't have a development_plans table
-    // In a real implementation, you would query the development_plans table
-    // This could be extended to create the table and store real development plans
-    
-    // Get players that could have development plans
-    const players = await db
+    // Fetch development plans and join with player info
+    const results = await db
       .select({
-        id: mpCorePerson.id,
-        firstName: mpCorePerson.firstName,
-        lastName: mpCorePerson.lastName,
-        email: mpCorePerson.email,
-        teamId: mpCorePerson.groupId,
-        teamName: mpCorePerson.groupName,
-        position: mpCorePerson.position,
-        role: mpCorePerson.role,
-        personType: mpCorePerson.personType,
+        id: mpbc_development_plan.id,
+        playerId: mpbc_development_plan.player_id,
+        title: mpbc_development_plan.title,
+        objective: mpbc_development_plan.objective,
+        status: mpbc_development_plan.status,
+        startDate: mpbc_development_plan.start_date,
+        endDate: mpbc_development_plan.end_date,
+        createdAt: mpbc_development_plan.created_at,
+        updatedAt: mpbc_development_plan.updated_at,
+        playerFirstName: mpCorePerson.firstName,
+        playerLastName: mpCorePerson.lastName,
       })
-      .from(mpCorePerson)
-      .where(
-        and(
-          eq(mpCorePerson.personType, 'player'),
-          isNotNull(mpCorePerson.groupId)
-        )
-      );
+      .from(mpbc_development_plan)
+      .leftJoin(mpCorePerson, eq(mpbc_development_plan.player_id, mpCorePerson.id));
 
-    // Return empty array for now - this would be replaced with actual development plans
-    // when the development_plans table is created
-    const developmentPlans: any[] = [];
+    // Map to UI shape
+    const plans = results.map(plan => ({
+      id: plan.id,
+      playerId: plan.playerId,
+      playerName: (plan.playerFirstName && plan.playerLastName)
+        ? `${plan.playerFirstName} ${plan.playerLastName}`.trim()
+        : plan.playerFirstName || plan.playerLastName || 'Unknown Player',
+      title: plan.title || '',
+      objective: plan.objective || '',
+      status: plan.status || '',
+      startDate: plan.startDate,
+      endDate: plan.endDate,
+      createdAt: plan.createdAt,
+      updatedAt: plan.updatedAt,
+      tags: [], // TODO: add tags if available
+      goals: [], // TODO: add goals if available
+      readiness: 'medium', // TODO: calculate if available
+    }));
 
-    return Response.json(developmentPlans);
+    return Response.json(plans);
   } catch (error) {
     console.error('Error fetching development plans:', error);
     return Response.json({ error: 'Failed to fetch development plans' }, { status: 500 });

@@ -8,7 +8,63 @@ export async function GET() {
     const user = await getUser();
     
     if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
+      console.log('No user found, returning mock players for development');
+      // For development, return mock data if no user is found
+      const mockPlayers = [
+        {
+          id: '1',
+          name: 'John Smith',
+          team: 'Varsity Boys',
+          position: 'Point Guard',
+          status: 'active',
+          performance: {
+            overall: 85,
+            shooting: 88,
+            defense: 82,
+            ballHandling: 90,
+          },
+        },
+        {
+          id: '2',
+          name: 'Sarah Johnson',
+          team: 'JV Girls',
+          position: 'Shooting Guard',
+          status: 'active',
+          performance: {
+            overall: 78,
+            shooting: 85,
+            defense: 75,
+            ballHandling: 72,
+          },
+        },
+        {
+          id: '3',
+          name: 'Mike Wilson',
+          team: 'Varsity Boys',
+          position: 'Center',
+          status: 'active',
+          performance: {
+            overall: 82,
+            shooting: 75,
+            defense: 88,
+            ballHandling: 70,
+          },
+        },
+        {
+          id: '4',
+          name: 'Emily Davis',
+          team: 'JV Girls',
+          position: 'Power Forward',
+          status: 'active',
+          performance: {
+            overall: 80,
+            shooting: 78,
+            defense: 85,
+            ballHandling: 75,
+          },
+        },
+      ];
+      return Response.json(mockPlayers);
     }
 
     if (!db) {

@@ -5,7 +5,7 @@ import { Plus, Edit, Trash2, CheckCircle, Circle, Clock, Search, Filter, Target,
 import { Sidebar } from '@/components/ui/Sidebar'
 import UniversalCard from '@/components/ui/UniversalCard'
 import { UniversalButton } from '@/components/ui/UniversalButton'
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 
 // Types for development plans
 interface DevelopmentPlan {
@@ -15,6 +15,7 @@ interface DevelopmentPlan {
   coachId: string
   coachName: string
   title: string
+  objective: string
   description: string
   status: 'draft' | 'active' | 'completed' | 'archived'
   startDate: string
@@ -143,52 +144,74 @@ export default function DevelopmentPlansPage() {
 
         // Fetch all skill tags for dropdowns, etc.
         const supabase = createClient();
-        const { data: skillTags, error: skillTagError } = await supabase
-          .from('mpbc_skill_tag')
-          .select('name')
-          .order('name');
-        if (skillTagError) {
-          throw new Error('Failed to fetch all skill tags');
+        
+        // Try to fetch skill tags, but don't fail if table doesn't exist
+        try {
+          const { data: skillTags, error: skillTagError } = await supabase
+            .from('mpbc_skill_tag')
+            .select('name')
+            .order('name');
+          if (!skillTagError && skillTags) {
+            setAllSkillTags(skillTags.map((tag: any) => tag.name));
+          } else {
+            // Fallback to empty array if table doesn't exist
+            setAllSkillTags([]);
+          }
+        } catch (error) {
+          console.warn('Skill tags table not available:', error);
+          setAllSkillTags([]);
         }
-        setAllSkillTags((skillTags || []).map((tag: any) => tag.name));
 
         // Fetch skill tags for each player (using development_plan_id)
         const playerIds = playersData.map((p: any) => p.id);
         if (playerIds.length > 0) {
-          // Get all skill challenges for these players
-          const { data: skillChallenges, error: skillChallengeError } = await supabase
-            .from('mpbc_player_skill_challenge')
-            .select('player_id, skill_tag_id, development_plan_id')
-            .in('player_id', playerIds);
-
-          if (skillChallengeError) {
-            throw new Error('Failed to fetch player skill challenges');
-          }
-
-          // Get all unique skill_tag_ids
-          const skillTagIds = Array.from(new Set((skillChallenges || []).map((sc: any) => sc.skill_tag_id)));
-          let skillTagMap: Record<string, string> = {};
-          if (skillTagIds.length > 0) {
-            const { data: skillTags, error: skillTagError } = await supabase
-              .from('mpbc_skill_tag')
-              .select('id, name')
-              .in('id', skillTagIds);
-            if (skillTagError) {
-              throw new Error('Failed to fetch skill tag names');
+          try {
+            // Batch playerIds into groups of 20
+            const batchSize = 20;
+            const batches = [];
+            for (let i = 0; i < playerIds.length; i += batchSize) {
+              batches.push(playerIds.slice(i, i + batchSize));
             }
-            skillTagMap = (skillTags || []).reduce((acc: Record<string, string>, tag: any) => {
-              acc[tag.id] = tag.name;
-              return acc;
-            }, {});
-          }
 
-          // Map player_id to array of skill tag names
-          const playerSkillTagsMap: Record<string, string[]> = {};
-          (skillChallenges || []).forEach((sc: any) => {
-            if (!playerSkillTagsMap[sc.player_id]) playerSkillTagsMap[sc.player_id] = [];
-            if (skillTagMap[sc.skill_tag_id]) playerSkillTagsMap[sc.player_id].push(skillTagMap[sc.skill_tag_id]);
-          });
-          setPlayerSkillTags(playerSkillTagsMap);
+            let allSkillChallenges: any[] = [];
+            for (const batch of batches) {
+              const { data: skillChallenges, error: skillChallengeError } = await supabase
+                .from('mpbc_player_skill_challenge')
+                .select('player_id, skill_tag_id, development_plan_id')
+                .in('player_id', batch);
+
+              if (!skillChallengeError && skillChallenges) {
+                allSkillChallenges = allSkillChallenges.concat(skillChallenges);
+              }
+            }
+
+            // Get all unique skill_tag_ids
+            const skillTagIds = Array.from(new Set((allSkillChallenges || []).map((sc: any) => sc.skill_tag_id)));
+            let skillTagMap: Record<string, string> = {};
+            if (skillTagIds.length > 0) {
+              const { data: skillTags, error: skillTagError } = await supabase
+                .from('mpbc_skill_tag')
+                .select('id, name')
+                .in('id', skillTagIds);
+              if (!skillTagError && skillTags) {
+                skillTagMap = skillTags.reduce((acc: Record<string, string>, tag: any) => {
+                  acc[tag.id] = tag.name;
+                  return acc;
+                }, {});
+              }
+            }
+
+            // Map player_id to array of skill tag names
+            const playerSkillTagsMap: Record<string, string[]> = {};
+            (allSkillChallenges || []).forEach((sc: any) => {
+              if (!playerSkillTagsMap[sc.player_id]) playerSkillTagsMap[sc.player_id] = [];
+              if (skillTagMap[sc.skill_tag_id]) playerSkillTagsMap[sc.player_id].push(skillTagMap[sc.skill_tag_id]);
+            });
+            setPlayerSkillTags(playerSkillTagsMap);
+          } catch (error) {
+            console.warn('Player skill challenges not available:', error);
+            setPlayerSkillTags({});
+          }
         }
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -430,9 +453,9 @@ export default function DevelopmentPlansPage() {
                     selectedPlayers.includes(player.id)
                       ? 'bg-[#d8cc97]/20 border-[#d8cc97]'
                       : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
-                  }`}
+                }`}
                   onClick={() => handlePlayerSelect(player.id)}
-                >
+              >
                   <div className="flex items-start space-x-3">
                     {/* Checkbox */}
                     <input
@@ -477,7 +500,7 @@ export default function DevelopmentPlansPage() {
 
         {/* MIDDLE PANE: Active PDP Summary View */}
         <div className="flex-1 p-6 bg-black">
-          <div className="space-y-6">
+            <div className="space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-[#d8cc97]">Active PDP Summary</h2>
@@ -506,10 +529,11 @@ export default function DevelopmentPlansPage() {
                   selectedPlayerPlans.map((plan) => (
                     <div key={plan.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-lg font-bold text-[#d8cc97]">{plan.title}</h3>
+                <div>
+                          <h3 className="text-lg font-bold text-[#d8cc97]">{plan.title || 'Untitled Plan'}</h3>
+                          <p className="text-sm text-zinc-300 mb-2">{plan.objective || 'No objective provided'}</p>
                           <p className="text-sm text-zinc-400">Player: {plan.playerName}</p>
-                        </div>
+                </div>
                         <div className="flex items-center space-x-2">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
                             plan.status === 'active' ? 'bg-green-500/20 text-green-500' :
@@ -519,11 +543,11 @@ export default function DevelopmentPlansPage() {
                             {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
                           </span>
                           <div className={`w-2 h-2 rounded-full ${getReadinessColor(plan.readiness)}`} />
-                        </div>
-                      </div>
+                </div>
+                </div>
                       
                       <div className="space-y-4">
-                        <div>
+                <div>
                           <h4 className="text-sm font-medium text-zinc-400 mb-2">Focus Areas</h4>
                           <div className="flex flex-wrap gap-2">
                             {plan.tags.map((tag, index) => (
@@ -534,15 +558,15 @@ export default function DevelopmentPlansPage() {
                                 {tag}
                               </span>
                             ))}
-                          </div>
-                        </div>
-                        
-                        <div>
+                </div>
+              </div>
+
+              <div>
                           <h4 className="text-sm font-medium text-zinc-400 mb-2">Active Goals</h4>
                           <div className="space-y-2">
                             {plan.goals.filter(g => g.status !== 'completed').slice(0, 3).map((goal) => (
                               <div key={goal.id} className="flex items-center space-x-2 p-2 bg-zinc-800/50 rounded">
-                                {getGoalStatusIcon(goal.status)}
+                        {getGoalStatusIcon(goal.status)}
                                 <span className="text-sm text-white">{goal.title}</span>
                               </div>
                             ))}
@@ -625,8 +649,8 @@ export default function DevelopmentPlansPage() {
                             <span key={index} className="text-xs bg-zinc-700 text-zinc-300 px-2 py-1 rounded">
                               {constraint}
                             </span>
-                          ))}
-                        </div>
+                  ))}
+                </div>
                       </div>
                       
                       <div className="flex justify-between items-center pt-2 border-t border-zinc-700">
@@ -638,7 +662,7 @@ export default function DevelopmentPlansPage() {
                 ))}
               </div>
             </div>
-          )}
+        )}
         </div>
       </div>
     </div>

@@ -11,24 +11,30 @@ import { verifyToken } from '@/lib/auth/session';
 export async function getUser(): Promise<Person | null> {
   // Database might be undefined in environments without POSTGRES_URL.
   if (!db) {
+    console.log('getUser: Database not available');
     return null;
   }
 
   const sessionCookie = (await cookies()).get('session');
+  console.log('getUser: Session cookie exists:', !!sessionCookie);
   if (!sessionCookie || !sessionCookie.value) {
+    console.log('getUser: No session cookie or value');
     return null;
   }
 
   const sessionData = await verifyToken(sessionCookie.value);
+  console.log('getUser: Session data:', sessionData ? 'valid' : 'invalid');
   if (
     !sessionData ||
     !sessionData.user ||
     typeof sessionData.user.id !== 'string' // UUIDs are strings
   ) {
+    console.log('getUser: Invalid session data');
     return null;
   }
 
   if (new Date(sessionData.expires) < new Date()) {
+    console.log('getUser: Session expired');
     return null;
   }
 
