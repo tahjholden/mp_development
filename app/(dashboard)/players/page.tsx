@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Plus, Eye, Search, Filter } from 'lucide-react';
+import { Shield, Eye, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import UniversalButton from '@/components/ui/UniversalButton';
 import UniversalModal from '@/components/ui/UniversalModal';
@@ -24,6 +24,36 @@ interface Observation {
   tags: string[];
   createdAt: string;
   updatedAt: string | null;
+}
+
+// Types for development plans
+interface DevelopmentPlan {
+  id: string;
+  playerId: string;
+  playerName: string;
+  coachName?: string;
+  initialObservation?: string;
+  objective: string;
+  description?: string;
+  status?: 'draft' | 'active' | 'completed' | 'archived';
+  startDate?: string;
+  endDate?: string | null;
+  goals?: DevelopmentGoal[];
+  tags?: string[];
+  readiness?: 'high' | 'medium' | 'low';
+  lastUpdated?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  title?: string; // for UI compatibility
+}
+
+interface DevelopmentGoal {
+  id: string;
+  title: string;
+  description: string;
+  status: 'not_started' | 'in_progress' | 'completed';
+  targetDate: string;
+  completedDate?: string;
 }
 
 interface Team {
@@ -57,10 +87,6 @@ const TeamsArraySchema = z.array(TeamSchema);
 
 export default function PlayersPage() {
   // Normalized state pattern - industry standard
-  const [playersById, setPlayersById] = useState<
-    Record<string, SharedPlayer & { team: string }>
-  >({});
-  const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<
     (SharedPlayer & { team: string }) | null
@@ -69,22 +95,98 @@ export default function PlayersPage() {
   const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
   const [showArchivePlanModal, setShowArchivePlanModal] = useState(false);
   const [observations, setObservations] = useState<Observation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const [developmentPlan, setDevelopmentPlan] =
+    useState<DevelopmentPlan | null>(null);
+  const [loadingDevelopmentPlan, setLoadingDevelopmentPlan] = useState(false);
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
 
-  // Handler for adding a new player
-  const handleAddPlayer = () => {
-    setShowAddPlayerModal(true);
-  };
+  // State for infinite scroll (All Teams)
+  const [allPlayersById, setAllPlayersById] = useState<
+    Record<string, SharedPlayer & { team: string }>
+  >({});
+  const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
+  const [allOffset, setAllOffset] = useState(0);
+  const [allHasMore, setAllHasMore] = useState(true);
+  const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
+
+  // State for specific team (no infinite scroll)
+  const [teamPlayersById, setTeamPlayersById] = useState<
+    Record<string, SharedPlayer & { team: string }>
+  >({});
+  const [teamPlayerIds, setTeamPlayerIds] = useState<string[]>([]);
+  const [loadingTeamPlayers, setLoadingTeamPlayers] = useState(false);
 
   // Handler for selecting a player
   const handlePlayerSelect = (player: SharedPlayer & { team: string }) => {
     setSelectedPlayer(player);
+    // Fetch development plan for the selected player
+    fetchDevelopmentPlan(player.id);
+  };
+
+  // Clear development plan when no player is selected
+  useEffect(() => {
+    if (!selectedPlayer) {
+      setDevelopmentPlan(null);
+    }
+  }, [selectedPlayer]);
+
+  // Fetch development plan for a specific player
+  const fetchDevelopmentPlan = async (playerId: string) => {
+    setLoadingDevelopmentPlan(true);
+    try {
+      const response = await fetch('/api/development-plans');
+      if (response.ok) {
+        const plans = await response.json();
+
+        // Find the plan for the selected player
+        const playerPlan = plans.find(
+          (plan: { playerId: string }) => plan.playerId === playerId
+        );
+
+        if (playerPlan) {
+          // Transform the API data to match our interface
+          const transformedPlan: DevelopmentPlan = {
+            id: playerPlan.id || '',
+            playerId: playerPlan.playerId || '',
+            playerName: playerPlan.playerName || 'Unknown Player',
+            coachName: 'Unknown Coach', // Not provided by API
+            initialObservation: '', // Not provided by API
+            objective: playerPlan.objective || '',
+            description: playerPlan.objective || '', // Use objective as description
+            status: (playerPlan.status || 'draft') as
+              | 'draft'
+              | 'active'
+              | 'completed'
+              | 'archived',
+            startDate: playerPlan.startDate || new Date().toISOString(),
+            endDate: playerPlan.endDate || null,
+            goals: playerPlan.goals || [],
+            tags: playerPlan.tags || [],
+            readiness: (playerPlan.readiness || 'medium') as
+              | 'high'
+              | 'medium'
+              | 'low',
+            lastUpdated: playerPlan.updatedAt || new Date().toISOString(),
+            createdAt: playerPlan.createdAt || new Date().toISOString(),
+            updatedAt: playerPlan.updatedAt || new Date().toISOString(),
+            title: playerPlan.objective || '',
+          };
+          setDevelopmentPlan(transformedPlan);
+        } else {
+          setDevelopmentPlan(null);
+        }
+      } else {
+        setDevelopmentPlan(null);
+      }
+    } catch {
+      setDevelopmentPlan(null);
+    } finally {
+      setLoadingDevelopmentPlan(false);
+    }
   };
 
   // Handler for deleting a player
@@ -133,23 +235,30 @@ export default function PlayersPage() {
     setShowArchivePlanModal(false);
   };
 
-  // Fetch players with pagination
-  const fetchPlayers = useCallback(
+  // Infinite scroll fetch for All Teams
+  const fetchAllPlayers = useCallback(
     async (currentOffset: number = 0, reset: boolean = false) => {
-      setLoading(true);
+      setAllLoadingPlayers(true);
       try {
         const response = await fetch(
-          `/api/dashboard/players?offset=${currentOffset}&limit=10`
+          `/api/dashboard/players?offset=${currentOffset}&limit=20`
         );
         const data = await response.json();
 
         if (data.players) {
-          const transformedPlayers = data.players.map((player: any) => ({
-            id: player.id,
-            name: player.name || 'Unknown Player',
-            team: player.team || 'No Team',
-            status: player.status || 'active',
-          })) as (SharedPlayer & { team: string })[];
+          const transformedPlayers = data.players.map(
+            (player: {
+              id: string;
+              name?: string;
+              team?: string;
+              status?: string;
+            }) => ({
+              id: player.id,
+              name: player.name || 'Unknown Player',
+              team: player.team || 'No Team',
+              status: player.status || 'active',
+            })
+          ) as (SharedPlayer & { team: string })[];
 
           if (reset) {
             // Reset the list with normalized state
@@ -166,12 +275,12 @@ export default function PlayersPage() {
               }
             );
 
-            setPlayersById(playersMap);
-            setPlayerIds(ids);
-            setOffset(10);
+            setAllPlayersById(playersMap);
+            setAllPlayerIds(ids);
+            setAllOffset(20);
           } else {
             // Append to existing list with normalized state
-            setPlayersById(prevPlayersById => {
+            setAllPlayersById(prevPlayersById => {
               const newPlayersById = { ...prevPlayersById };
               const newIds: string[] = [];
 
@@ -184,37 +293,97 @@ export default function PlayersPage() {
                 }
               );
 
-              setPlayerIds(prevIds => [...prevIds, ...newIds]);
+              setAllPlayerIds(prevIds => [...prevIds, ...newIds]);
               return newPlayersById;
             });
-            setOffset(prev => prev + 10);
+            setAllOffset(prev => prev + 20);
           }
 
-          // setHasMore(data.players.length === 10); // This line was removed by the linter
+          setAllHasMore(data.players.length === 20);
         }
       } catch {
-        // console.error('Error fetching players:', error);
+        // Error fetching all players
       } finally {
-        setLoading(false);
+        setAllLoadingPlayers(false);
       }
     },
     []
   );
 
-  // Load more players when scrolling
+  // Fetch all players for a specific team
+  const fetchPlayersForTeam = useCallback(async (teamName: string) => {
+    setLoadingTeamPlayers(true);
+    try {
+      // Fetch all players (no offset/limit) and filter by team on the frontend
+      const response = await fetch(`/api/dashboard/players?limit=1000`); // Large limit to get all
+      const data = await response.json();
+      if (data.players) {
+        const filtered = data.players
+          .filter((player: { team?: string }) => player.team === teamName)
+          .map(
+            (player: {
+              id: string;
+              name?: string;
+              team?: string;
+              status?: string;
+            }) => ({
+              id: player.id,
+              name: player.name || 'Unknown Player',
+              team: player.team || 'No Team',
+              status: player.status || 'active',
+            })
+          ) as (SharedPlayer & { team: string })[];
+
+        // Sort alphabetically
+        const sortedPlayers = filtered.sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+
+        const playersMap: Record<string, SharedPlayer & { team: string }> = {};
+        const ids: string[] = [];
+
+        sortedPlayers.forEach((player: SharedPlayer & { team: string }) => {
+          playersMap[player.id] = player;
+          ids.push(player.id);
+        });
+
+        setTeamPlayersById(playersMap);
+        setTeamPlayerIds(ids);
+      }
+    } catch {
+      // Error fetching team players
+    } finally {
+      setLoadingTeamPlayers(false);
+    }
+  }, []);
+
+  // Load more players when scrolling (All Teams only)
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
-      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-      if (scrollHeight - scrollTop <= clientHeight * 1.5 && !loading) {
-        fetchPlayers(offset);
+      if (teamFilter === 'all') {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        if (
+          scrollHeight - scrollTop <= clientHeight * 1.5 &&
+          !allLoadingPlayers &&
+          allHasMore
+        ) {
+          fetchAllPlayers(allOffset);
+        }
       }
     },
-    [fetchPlayers, loading, offset]
+    [fetchAllPlayers, allLoadingPlayers, allHasMore, allOffset, teamFilter]
   );
 
+  // Determine which player list to use
+  const playersToShow = teamFilter === 'all' ? allPlayerIds : teamPlayerIds;
+  const playersByIdToUse =
+    teamFilter === 'all' ? allPlayersById : teamPlayersById;
+  const loadingPlayersToShow =
+    teamFilter === 'all' ? allLoadingPlayers : loadingTeamPlayers;
+
   // Filter players based on search and team filter
-  const filteredPlayers = playerIds
-    .map(id => playersById[id])
+  const filteredPlayers = playersToShow
+    .map(id => playersByIdToUse[id])
     .filter(
       (
         player: (SharedPlayer & { team: string }) | undefined
@@ -224,14 +393,11 @@ export default function PlayersPage() {
       const matchesSearch = player.name
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
-      return matchesSearch && matchesTeam;
+      return matchesSearch; // Team filter is already applied by the data source
     });
-  // Deduplicate by player.id before sorting and rendering
-  const dedupedPlayers = Array.from(
-    new Map(filteredPlayers.map(p => [p.id, p])).values()
-  );
-  const sortedPlayers = [...dedupedPlayers].sort((a, b) =>
+
+  // Sort players alphabetically
+  const sortedPlayers = [...filteredPlayers].sort((a, b) =>
     a.name.localeCompare(b.name)
   );
   // Debug: log duplicate IDs or undefined/null
@@ -284,62 +450,15 @@ export default function PlayersPage() {
         setTeams([]);
       });
 
-    // Fetch initial players
-    setLoading(true);
-    fetch('/api/dashboard/players?offset=0&limit=10')
-      .then(res => {
-        if (!res.ok) {
-          // console.log('Players API returned error status:', res.status);
-          return null;
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (!data) return; // Skip if no data (error case)
-
-        if (data.players) {
-          const transformedPlayers = data.players.map((player: any) => ({
-            id: player.id,
-            name: player.name || 'Unknown Player',
-            team: player.team || 'No Team',
-            status: player.status || 'active',
-          })) as (SharedPlayer & { team: string })[];
-
-          // Reset the list with normalized state
-          const playersMap: Record<string, SharedPlayer & { team: string }> =
-            {};
-          const ids: string[] = [];
-
-          transformedPlayers.forEach(
-            (player: SharedPlayer & { team: string }) => {
-              if (!playersMap[player.id]) {
-                playersMap[player.id] = player;
-                ids.push(player.id);
-              }
-            }
-          );
-
-          setPlayersById(playersMap);
-          setPlayerIds(ids);
-          setOffset(10);
-        }
-      })
-      .catch(() => {
-        // console.error('Error fetching players:', error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    // Fetch initial players for All Teams
+    fetchAllPlayers(0, true);
 
     // Fetch observations
-    setLoading(true); // This line was removed by the linter
-    // setErrorObservations(null); // This line was removed by the linter
     fetch('/api/observations')
       .then(res => {
         if (!res.ok) {
           // console.log('Observations API returned error status:', res.status);
           setObservations([]);
-          // setErrorObservations('Failed to fetch observations'); // This line was removed by the linter
           return null;
         }
         return res.json();
@@ -353,39 +472,36 @@ export default function PlayersPage() {
           if (result.success) {
             setObservations(result.data);
           } else {
-            // console.error(
-            //   'Zod validation error for observations:',
-            //   result.error
-            // );
+            // console.error('Zod validation error for observations:', result.error);
             setObservations([]);
-            // setErrorObservations( // This line was removed by the linter
-            //   'Invalid observations data received from API.'
-            // );
           }
         } else {
-          // console.error(
-          //   'Invalid API response structure for observations:',
-          //   data
-          // );
+          // console.error('Invalid API response structure for observations:', data);
           setObservations([]);
-          // setErrorObservations( // This line was removed by the linter
-          //   'Invalid observations data structure received from API.'
-          // );
         }
       })
       .catch(() => {
         // console.error('Error fetching observations:', err);
-        // setErrorObservations('Failed to fetch observations'); // This line was removed by the linter
-      })
-      .finally(() => setLoading(false)); // This line was removed by the linter
-  }, []);
+      });
+  }, [fetchAllPlayers]);
 
-  // Reset pagination when search or filter changes
+  // Handle team filter changes
   useEffect(() => {
-    setOffset(0);
+    if (teamFilter === 'all') {
+      // Reset and fetch all players with infinite scroll
+      setAllOffset(0);
+      setAllHasMore(true);
+      fetchAllPlayers(0, true);
+    } else {
+      // Fetch all players for specific team
+      fetchPlayersForTeam(teamFilter);
+    }
+  }, [teamFilter, fetchAllPlayers, fetchPlayersForTeam]);
 
-    fetchPlayers(0, true);
-  }, [searchTerm, teamFilter]);
+  // Reset search when team filter changes
+  useEffect(() => {
+    setSearchTerm('');
+  }, [teamFilter]);
 
   // Helper to get rating stars
   const getRatingStars = (rating: number | undefined): React.ReactElement[] => {
@@ -396,6 +512,33 @@ export default function PlayersPage() {
         className={`h-4 w-4 ${i < safeRating ? 'text-yellow-500 fill-current' : 'text-zinc-600'}`}
       />
     ));
+  };
+
+  // Helper functions for development plan display
+  const getReadinessColor = (readiness: string) => {
+    switch (readiness) {
+      case 'high':
+        return 'bg-green-500';
+      case 'medium':
+        return 'bg-yellow-500';
+      case 'low':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const getGoalStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Shield className="h-4 w-4 text-green-500" />;
+      case 'in_progress':
+        return <Shield className="h-4 w-4 text-yellow-500" />;
+      case 'not_started':
+        return <Shield className="h-4 w-4 text-gray-500" />;
+      default:
+        return <Shield className="h-4 w-4 text-gray-500" />;
+    }
   };
 
   // Defensive: always check Array.isArray before .filter
@@ -458,13 +601,6 @@ export default function PlayersPage() {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
-            <UniversalButton.Primary
-              size="sm"
-              onClick={handleAddPlayer}
-              leftIcon={<Plus size={16} />}
-            >
-              Add Player
-            </UniversalButton.Primary>
           </div>
           {/* Search Input */}
           <div className="relative mb-6">
@@ -521,37 +657,57 @@ export default function PlayersPage() {
             style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
             onScroll={handleScroll}
           >
-            {sortedPlayers.length === 0 ? (
+            {loadingPlayersToShow && sortedPlayers.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
+                <p className="text-zinc-400 text-sm">Loading players...</p>
+              </div>
+            ) : sortedPlayers.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
                 <p className="text-zinc-400 text-sm">No players found</p>
               </div>
             ) : (
-              sortedPlayers.map((player: SharedPlayer & { team: string }) => (
-                <div
-                  key={player.id}
-                  onClick={() => handlePlayerSelect(player)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all ${
-                    selectedPlayer?.id === player.id
-                      ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
-                      : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-white">{player.name}</p>
-                      <p className="text-sm text-zinc-400">{player.team}</p>
-                    </div>
+              <>
+                {sortedPlayers.map(
+                  (player: SharedPlayer & { team: string }) => (
                     <div
-                      className={`w-2 h-2 rounded-full ${
-                        player.status === 'active'
-                          ? 'bg-green-500'
-                          : 'bg-zinc-500'
+                      key={player.id}
+                      onClick={() => handlePlayerSelect(player)}
+                      className={`p-3 rounded-lg cursor-pointer transition-all ${
+                        selectedPlayer?.id === player.id
+                          ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
+                          : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
                       }`}
-                    />
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-white">
+                            {player.name}
+                          </p>
+                          <p className="text-sm text-zinc-400">{player.team}</p>
+                        </div>
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            player.status === 'active'
+                              ? 'bg-green-500'
+                              : 'bg-zinc-500'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  )
+                )}
+                {/* Loading indicator for infinite scroll */}
+                {teamFilter === 'all' && allLoadingPlayers && allHasMore && (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#d8cc97] mx-auto"></div>
+                    <p className="text-zinc-400 text-xs mt-2">
+                      Loading more...
+                    </p>
                   </div>
-                </div>
-              ))
+                )}
+              </>
             )}
           </div>
         </div>
@@ -633,15 +789,123 @@ export default function PlayersPage() {
                   </div>
                 </div>
 
-                <div className="text-center py-8">
-                  <Shield className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
-                  <p className="text-zinc-400 mb-2">
-                    No development plan created yet
-                  </p>
-                  <p className="text-sm text-zinc-500">
-                    Create a development plan to track this player's progress
-                  </p>
-                </div>
+                {loadingDevelopmentPlan ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
+                    <p className="text-zinc-400 text-sm">
+                      Loading development plan...
+                    </p>
+                  </div>
+                ) : developmentPlan ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="text-lg font-bold text-[#d8cc97]">
+                          {developmentPlan.title
+                            ? developmentPlan.title
+                            : 'Untitled Plan'}
+                        </h4>
+                        <p className="text-sm text-zinc-300 mb-2">
+                          {developmentPlan.objective
+                            ? developmentPlan.objective
+                            : 'No objective provided'}
+                        </p>
+                        <p className="text-sm text-zinc-400">
+                          Player: {developmentPlan.playerName}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={
+                            developmentPlan.status === 'active'
+                              ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-500'
+                              : developmentPlan.status === 'completed'
+                                ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-500'
+                                : 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-500'
+                          }
+                        >
+                          {(developmentPlan.status || 'draft')
+                            .charAt(0)
+                            .toUpperCase() +
+                            (developmentPlan.status || 'draft').slice(1)}
+                        </span>
+                        <div
+                          className={`w-2 h-2 rounded-full ${getReadinessColor(developmentPlan.readiness || 'medium')}`}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h5 className="text-sm font-medium text-zinc-400 mb-2">
+                          Focus Areas
+                        </h5>
+                        <div className="flex flex-wrap gap-2">
+                          {(developmentPlan.tags || []).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-zinc-800 text-zinc-300"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {(developmentPlan.tags || []).length === 0 && (
+                            <span className="text-xs text-zinc-500">
+                              No focus areas defined
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-medium text-zinc-400 mb-2">
+                          Active Goals
+                        </h5>
+                        <div className="space-y-2">
+                          {(developmentPlan.goals || [])
+                            .filter(g => g.status !== 'completed')
+                            .slice(0, 3)
+                            .map(goal => (
+                              <div
+                                key={goal.id}
+                                className="flex items-center space-x-2 p-2 bg-zinc-800/50 rounded"
+                              >
+                                {getGoalStatusIcon(goal.status)}
+                                <span className="text-sm text-white">
+                                  {goal.title}
+                                </span>
+                              </div>
+                            ))}
+                          {(developmentPlan.goals || []).filter(
+                            g => g.status !== 'completed'
+                          ).length === 0 && (
+                            <span className="text-xs text-zinc-500">
+                              No active goals
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {developmentPlan.description && (
+                        <div>
+                          <h5 className="text-sm font-medium text-zinc-400 mb-2">
+                            Description
+                          </h5>
+                          <p className="text-sm text-zinc-300">
+                            {developmentPlan.description}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Shield className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
+                    <p className="text-zinc-400 mb-2">
+                      No development plan created yet
+                    </p>
+                    <p className="text-sm text-zinc-500">
+                      Create a development plan to track this player's progress
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
