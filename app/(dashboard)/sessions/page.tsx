@@ -118,9 +118,6 @@ export default function SessionsPage() {
     ? sessions.filter(session => session.id === selectedSessionId)
     : sessions;
 
-  const paginatedSessions = filteredSessions.slice(0, page * pageSize);
-  const hasMore = filteredSessions.length > paginatedSessions.length;
-
   const filteredSessionsList = sessions.filter(session => {
     const matchesSearch = session.title
       .toLowerCase()

@@ -105,8 +105,6 @@ export default function ObservationsPage() {
       ? 1
       : Math.ceil(filteredByDate.length / (pageSize as number));
 
-  const hasMore = filteredObservations.length > paginatedObservations.length;
-
   // Handler for selecting a player
   const handlePlayerSelect = (player: SharedPlayer) => {
     setSelectedPlayer(player);

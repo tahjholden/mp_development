@@ -54,21 +54,13 @@ export async function GET(
     // Transform the data to match the expected format
     const formattedPlayers = players.map(player => ({
       id: player.id,
-      name:
+      displayName:
         player.firstName && player.lastName
           ? `${player.firstName} ${player.lastName}`.trim()
           : player.firstName || player.lastName || 'Unknown Player',
       teamId: player.teamId,
-      teamName: player.teamName,
-      position: player.position || 'Unknown',
-      role: player.role || 'player',
       personType: player.personType || 'player',
-      email: player.email,
-      identifier: player.identifier,
-      cycleName: player.cycleName,
-      status: 'active', // Since we don't have status in the current schema
-      createdAt: new Date().toISOString(), // Since we don't have this in the current schema
-      updatedAt: new Date().toISOString(), // Since we don't have this in the current schema
+      position: player.position || 'Unknown',
     }));
 
     return Response.json(formattedPlayers);

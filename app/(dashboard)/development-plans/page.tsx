@@ -6,8 +6,6 @@ import {
   CheckCircle,
   Circle,
   Clock,
-  Search,
-  Filter,
   Target,
   Zap,
   Lightbulb,
@@ -117,15 +115,6 @@ export default function DevelopmentPlansPage() {
     team: string;
     status: string;
   } | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [teamFilter, setTeamFilter] = useState('all');
-  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
-
-  // Infinite scroll state for players
-  const [playersLoading, setPlayersLoading] = useState(false);
-  const [playersHasMore, setPlayersHasMore] = useState(true);
-  const [playersOffset, setPlayersOffset] = useState(0);
-
   // Handler for selecting a player
   const handlePlayerSelect = (player: {
     id: string;

@@ -90,9 +90,6 @@ export default function CoachesPage() {
     ? coaches.filter(coach => coach.id === selectedCoachId)
     : coaches;
 
-  const paginatedCoaches = filteredCoaches.slice(0, page * pageSize);
-  const hasMore = filteredCoaches.length > paginatedCoaches.length;
-
   const filteredCoachesList = coaches.filter(coach => {
     const matchesSearch = coach.name
       .toLowerCase()

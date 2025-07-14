@@ -99,9 +99,6 @@ export default function AnalyticsPage() {
     ? metrics.filter(metric => metric.id === selectedMetricId)
     : metrics;
 
-  const paginatedMetrics = filteredMetrics.slice(0, page * pageSize);
-  const hasMore = filteredMetrics.length > paginatedMetrics.length;
-
   const filteredMetricsList = metrics.filter(metric => {
     const matchesSearch = metric.name
       .toLowerCase()

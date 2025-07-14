@@ -3,18 +3,11 @@
 import { useState, useEffect } from 'react';
 import {
   Edit,
-  Eye,
-  Trash2,
-  Star,
-  Tag,
   ChevronDown,
   ChevronUp,
   Search,
   Filter,
   Target,
-  Clock,
-  Users,
-  Zap,
 } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { z } from 'zod';
@@ -123,9 +116,6 @@ export default function DrillsPage() {
   const filteredDrills = selectedDrillId
     ? drills.filter(drill => drill.id === selectedDrillId)
     : drills;
-
-  const paginatedDrills = filteredDrills.slice(0, page * pageSize);
-  const hasMore = filteredDrills.length > paginatedDrills.length;
 
   const filteredDrillsList = drills.filter(drill => {
     const matchesSearch = drill.name
