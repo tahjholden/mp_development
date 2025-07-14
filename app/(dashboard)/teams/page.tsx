@@ -1,287 +1,435 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Calendar, User, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
-import UniversalCard from '@/components/ui/UniversalCard';
+import {
+  Shield,
+  Users,
+  Loader2,
+  Search,
+} from 'lucide-react';
+import { Sidebar } from '@/components/ui/Sidebar';
 import UniversalButton from '@/components/ui/UniversalButton';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { cn } from '@/lib/utils';
-import { db } from '@/lib/db/drizzle';
-import { 
-  mpCoreGroup, 
-  mpCorePerson, 
-  mpCorePersonGroup, 
-  Group, 
-  Person 
-} from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { UserResponseSchema } from '@/lib/utils';
+import { z } from 'zod';
+
+// Zod schemas for validation
+const TeamSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  coachName: z.string().optional(),
+  createdAt: z.string(),
+});
+const TeamsArraySchema = z.array(TeamSchema);
+
+const PlayerSchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  teamId: z.string(),
+  personType: z.string().optional(),
+  position: z.string().optional(),
+});
+const PlayersArraySchema = z.array(PlayerSchema);
+
+interface Team {
+  id: string;
+  name: string;
+  coachName?: string | undefined;
+  createdAt: string;
+}
+
+interface Player {
+  id: string;
+  displayName: string;
+  teamId: string;
+  personType?: string;
+  position?: string;
+}
 
 export default function TeamsPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [teams, setTeams] = useState<any[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<any>(null);
-  const [teamPlayers, setTeamPlayers] = useState<any[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [teamPlayers, setTeamPlayers] = useState<Player[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [showAddTeamModal, setShowAddTeamModal] = useState(false);
-  
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Fetch current user and their teams
   useEffect(() => {
     const fetchUserAndTeams = async () => {
       try {
         setIsLoading(true);
-        
-        // Fetch current user
+
+        // Fetch current user with validation
         const response = await fetch('/api/user');
         if (!response.ok) throw new Error('Failed to fetch user');
         const userData = await response.json();
-        setCurrentUser(userData);
-        
+
+        // Validate user data
+        const validatedUser = UserResponseSchema.safeParse(userData);
+        if (!validatedUser.success) {
+          console.error('Invalid user data:', validatedUser.error);
+          throw new Error('Invalid user data received');
+        }
+
+        if (!validatedUser.data.user) {
+          console.error('No user data available');
+          throw new Error('No user data available');
+        }
+
+        setCurrentUser(validatedUser.data.user);
+
         // Fetch teams - either all teams for superadmin or only teams user is part of
-        let teamsData: any[] = [];
-        
-        if (userData.isSuperadmin) {
+        let teamsData: Team[] = [];
+
+        if (validatedUser.data.user.isSuperadmin) {
           // Superadmin sees all teams
           const teamsResponse = await fetch('/api/teams');
           if (!teamsResponse.ok) throw new Error('Failed to fetch teams');
-          teamsData = await teamsResponse.json();
+          const rawTeamsData = await teamsResponse.json();
+
+          // Validate teams data
+          const validatedTeams = TeamsArraySchema.safeParse(rawTeamsData);
+          if (!validatedTeams.success) {
+            console.error('Invalid teams data:', validatedTeams.error);
+            throw new Error('Invalid teams data received');
+          }
+          teamsData = validatedTeams.data;
         } else {
           // Regular user only sees their teams
           const userTeamsResponse = await fetch(`/api/user/teams`);
-          if (!userTeamsResponse.ok) throw new Error('Failed to fetch user teams');
-          teamsData = await userTeamsResponse.json();
+          if (!userTeamsResponse.ok)
+            throw new Error('Failed to fetch user teams');
+          const rawUserTeamsData = await userTeamsResponse.json();
+
+          // Validate user teams data
+          const validatedUserTeams =
+            TeamsArraySchema.safeParse(rawUserTeamsData);
+          if (!validatedUserTeams.success) {
+            console.error('Invalid user teams data:', validatedUserTeams.error);
+            throw new Error('Invalid user teams data received');
+          }
+          teamsData = validatedUserTeams.data;
         }
-        
-        setTeams(teamsData);
-        
+
+        // Filter out any invalid teams and deduplicate by id
+        const validTeams = teamsData.filter(
+          (team): team is Team =>
+            team &&
+            typeof team === 'object' &&
+            typeof team.id === 'string' &&
+            typeof team.name === 'string' &&
+            team.id.trim() !== '' &&
+            team.name.trim() !== ''
+        );
+
+        const uniqueTeams = Array.from(
+          new Map(validTeams.map(team => [team.id, team])).values()
+        );
+        uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
+        setTeams(uniqueTeams);
+
         // Select the first team by default if available
-        if (teamsData.length > 0) {
-          setSelectedTeam(teamsData[0]);
-          fetchTeamPlayers(teamsData[0].id);
+        if (uniqueTeams.length > 0 && uniqueTeams[0]) {
+          setSelectedTeam(uniqueTeams[0]);
+          fetchTeamPlayers(uniqueTeams[0].id);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setTeams([]);
+        setCurrentUser(null);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchUserAndTeams();
   }, []);
-  
-  // Fetch players for a selected team
+
+  // Fetch team players with validation
   const fetchTeamPlayers = async (teamId: string) => {
     try {
       const response = await fetch(`/api/teams/${teamId}/players`);
       if (!response.ok) throw new Error('Failed to fetch team players');
-      const playersData = await response.json();
-      setTeamPlayers(playersData);
+      const rawPlayersData = await response.json();
+
+      // Validate players data
+      const validatedPlayers = PlayersArraySchema.safeParse(rawPlayersData);
+      if (!validatedPlayers.success) {
+        console.error('Invalid players data:', validatedPlayers.error);
+        throw new Error('Invalid players data received');
+      }
+
+      // Filter out any invalid players
+      const validPlayers = validatedPlayers.data.filter(
+        (player): player is Player =>
+          player &&
+          typeof player === 'object' &&
+          typeof player.id === 'string' &&
+          typeof player.displayName === 'string' &&
+          typeof player.teamId === 'string' &&
+          player.id.trim() !== '' &&
+          player.displayName.trim() !== '' &&
+          player.teamId.trim() !== ''
+      );
+
+      // Deduplicate players by id
+      const uniquePlayers = Array.from(
+        new Map(validPlayers.map(player => [player.id, player])).values()
+      );
+      setTeamPlayers(uniquePlayers);
     } catch (error) {
       console.error('Error fetching team players:', error);
       setTeamPlayers([]);
     }
   };
-  
+
   // Handler for selecting a team
-  const handleTeamSelect = (team: any) => {
+  const handleTeamSelect = (team: Team) => {
     setSelectedTeam(team);
     fetchTeamPlayers(team.id);
   };
-  
+
   // Handler for adding a new team
   const handleAddTeam = () => {
-    setShowAddTeamModal(true);
+    // This functionality is not yet implemented, so this handler is kept for now
+    // but the modal is removed.
+    console.log('Add Team clicked');
   };
 
+  // Filter teams based on search
+  const filteredTeams = teams.filter(team => {
+    return team.name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
   // Check if there are any teams
-  const hasTeams = teams.length > 0;
+  const hasTeams = filteredTeams.length > 0;
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="container mx-auto px-4 py-6 flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
-            <p className="text-zinc-400">Loading teams...</p>
+      <div className="flex min-h-screen h-full bg-black text-white">
+        <Sidebar
+          user={{ name: 'Coach', email: 'coach@example.com', role: 'Coach' }}
+        />
+        <div className="flex-1 flex flex-col min-h-screen">
+          <header
+            className="w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+            style={{ boxShadow: 'none' }}
+          >
+            <span
+              className="text-2xl font-bold tracking-wide text-[#d8cc97]"
+              style={{ letterSpacing: '0.04em' }}
+            >
+              MP Player Development
+            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-base font-semibold text-white leading-tight">
+                Coach
+              </span>
+              <span className="text-xs text-[#d8cc97] leading-tight">
+                coach@example.com
+              </span>
+              <span className="text-xs text-white leading-tight">Coach</span>
+            </div>
+          </header>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
+              <p className="text-zinc-400">Loading teams...</p>
+            </div>
           </div>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-white">Teams</h1>
-          
-          <UniversalButton.Primary
-            onClick={handleAddTeam}
-            leftIcon={<Users size={16} />}
-          >
-            Add Team
-          </UniversalButton.Primary>
+    <div
+      className="flex min-h-screen h-full bg-black text-white"
+      style={{ background: 'black' }}
+    >
+      <header
+        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+        style={{ boxShadow: 'none' }}
+      >
+        <span
+          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
+          style={{ letterSpacing: '0.04em' }}
+        >
+          MP Player Development
+        </span>
+        <div className="flex flex-col items-end">
+          <span className="text-base font-semibold text-white leading-tight">
+            {currentUser?.displayName || 'Coach'}
+          </span>
+          <span className="text-xs text-[#d8cc97] leading-tight">
+            {currentUser?.email || 'coach@example.com'}
+          </span>
+          <span className="text-xs text-white leading-tight">
+            {currentUser?.role || 'Coach'}
+          </span>
         </div>
-        
-        <ThreeColumnLayout
-          leftColumnWidth="1fr"
-          middleColumnWidth="1.5fr"
-          rightColumnWidth="1fr"
-          gapSize="lg"
-          
-          leftColumn={
-            hasTeams ? (
-              <UniversalCard.Default title="Teams">
-                <div className="space-y-2 py-2">
-                  {teams.map((team) => (
-                    <UniversalCard.PlayerStatus
-                      key={team.id}
-                      status={team.id === selectedTeam?.id ? 'active' : 'inactive'}
-                      selected={team.id === selectedTeam?.id}
-                      hover="border"
-                      className="cursor-pointer transition-all"
-                      onClick={() => handleTeamSelect(team)}
-                      size="sm"
-                    >
-                      <div className="py-1.5 px-2">
-                        <p className="font-medium text-sm">
-                          {team.name}
-                        </p>
-                      </div>
-                    </UniversalCard.PlayerStatus>
-                  ))}
-                </div>
-              </UniversalCard.Default>
-            ) : (
-              <UniversalCard.NoDataState
-                icon={<Shield className="text-zinc-700" />}
-                title="No Data Available"
-                message="There are no teams in your organization yet. Add your first team to get started."
-                action={
-                  <UniversalButton.Primary 
-                    onClick={handleAddTeam}
-                    className="mt-4"
-                  >
-                    Add Team
-                  </UniversalButton.Primary>
-                }
-              />
-            )
-          }
-          
-          middleColumn={
-            <>
-              {/* Team Profile Section */}
-              {selectedTeam ? (
-                <UniversalCard.Default
-                  title="Team Profile"
-                  className="mb-6"
-                >
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-zinc-400">Name</p>
-                        <p className="text-white">{selectedTeam.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-zinc-400">Coach</p>
-                        <p className="text-white">{selectedTeam.coachName || currentUser?.displayName || 'Not assigned'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-zinc-400">Players</p>
-                        <p className="text-white">{teamPlayers.length} players</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-zinc-400">Created</p>
-                        <p className="text-white">{new Date(selectedTeam.createdAt).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}</p>
-                      </div>
-                    </div>
-                  </div>
-                </UniversalCard.Default>
-              ) : (
-                <UniversalCard.SelectTeamState
-                  icon={<Shield className="text-zinc-700" />}
-                  message="Select a team from the list to view their profile details."
-                />
-              )}
-              
-              {/* Roster Section */}
-              {selectedTeam ? (
-                <UniversalCard.Default 
-                  title="Roster"
-                  footer={
-                    <UniversalButton.Primary size="sm">
-                      Add Player to Team
-                    </UniversalButton.Primary>
-                  }
-                >
-                  {teamPlayers.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      {teamPlayers.map((player) => (
-                        <UniversalCard.Default
-                          key={player.id}
-                          className="border border-gold-500/50 hover:border-gold-500 transition-colors"
-                          size="sm"
-                          onClick={() => router.push(`/players?id=${player.id}`)}
-                        >
-                          <div className="py-1 px-2 text-center">
-                            <p className="text-sm">{player.displayName}</p>
-                          </div>
-                        </UniversalCard.Default>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-6 text-center">
-                      <p className="text-zinc-400 text-sm mb-4">No players in this team yet</p>
-                    </div>
-                  )}
-                </UniversalCard.Default>
-              ) : (
-                <UniversalCard.SelectTeamState
-                  icon={<Shield className="text-zinc-700" />}
-                  message="Select a team to view their roster."
-                />
-              )}
-            </>
-          }
-          
-          rightColumn={
-            <UniversalCard.Default title="Planned Features">
-              <div className="py-2">
-                <ul className="space-y-3">
-                  <li className="flex items-start">
-                    <span className="text-gold-500 mr-2">•</span>
-                    <span className="text-sm text-gold-500">Practice & game schedule</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-gold-500 mr-2">•</span>
-                    <span className="text-sm text-gold-500">Team attendance & participation heatmap</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-gold-500 mr-2">•</span>
-                    <span className="text-sm text-gold-500">Announcements & team messaging</span>
-                  </li>
-                </ul>
-                
-                <p className="text-xs text-zinc-400 italic mt-6">
-                  These features are on our roadmap and will be launching soon for all teams!
+      </header>
+      <Sidebar
+        user={
+          currentUser
+            ? {
+                name: currentUser.displayName || currentUser.name || 'Coach',
+                email: currentUser.email || 'coach@example.com',
+                role: currentUser.role || 'Coach',
+              }
+            : {
+                name: 'Coach',
+                email: 'coach@example.com',
+                role: 'Coach',
+              }
+        }
+      />
+      <div
+        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
+        style={{ background: 'black', minHeight: '100vh' }}
+      >
+        {/* LEFT COLUMN: Team Selector */}
+        <div
+          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
+          style={{ background: 'black' }}
+        >
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Teams</h2>
+          <div className="flex justify-between items-center mb-6">
+            <UniversalButton.Primary
+              size="sm"
+              onClick={handleAddTeam}
+              leftIcon={<Users size={16} />}
+            >
+              Add Team
+            </UniversalButton.Primary>
+          </div>
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search teams..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {!hasTeams ? (
+              <div className="text-center py-8">
+                <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
+                <p className="text-zinc-400 text-sm">No teams found</p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Add your first team to get started
                 </p>
               </div>
-            </UniversalCard.Default>
-          }
-        />
-        
-        {/* Add Team Modal would be implemented separately */}
+            ) : (
+              filteredTeams.map(team => (
+                <div
+                  key={team.id}
+                  onClick={() => handleTeamSelect(team)}
+                  className={`p-3 rounded-lg cursor-pointer transition-all flex items-center justify-between border ${selectedTeam?.id === team.id ? 'bg-[#d8cc97]/20 border-[#d8cc97]' : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'}`}
+                >
+                  <div>
+                    <p className="font-medium text-white">{team.name}</p>
+                    <p className="text-sm text-zinc-400">
+                      {team.coachName ||
+                        currentUser?.displayName ||
+                        'Not assigned'}
+                    </p>
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        {/* CENTER COLUMN: Team Profile + Roster */}
+        <div
+          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
+          style={{ background: 'black' }}
+        >
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
+            {selectedTeam ? selectedTeam.name : 'Team Profile'}
+          </h2>
+          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md mb-8">
+            {selectedTeam ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-zinc-400">Name</p>
+                  <p className="text-white">{selectedTeam.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-400">Coach</p>
+                  <p className="text-white">
+                    {selectedTeam.coachName ||
+                      currentUser?.displayName ||
+                      'Not assigned'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-400">Players</p>
+                  <p className="text-white">{teamPlayers.length} players</p>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-400">Created</p>
+                  <p className="text-white">
+                    {new Date(selectedTeam.createdAt).toLocaleDateString(
+                      'en-US',
+                      { month: 'long', day: 'numeric', year: 'numeric' }
+                    )}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-12">
+                <Shield className="text-zinc-700 w-20 h-20 mb-5" />
+                <h3 className="text-lg font-medium text-white mb-2">
+                  Select a Team to View Details
+                </h3>
+                <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">
+                  Select a team from the list to view their profile and roster.
+                </p>
+              </div>
+            )}
+          </div>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Roster</h2>
+          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <UniversalButton.Primary size="sm">
+                Add Player to Team
+              </UniversalButton.Primary>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {teamPlayers
+                .map((p: any) => ({
+                  id: p.id,
+                  name: p.displayName || p.name || 'Unknown Player',
+                  status: p.status || 'active',
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(player => (
+                  <button
+                    key={player.id}
+                    className={`w-full text-sm font-medium py-2 px-3 border rounded-md bg-neutral-800 hover:bg-neutral-700 transition-all whitespace-nowrap overflow-hidden text-ellipsis
+                      ${player.status === 'active' ? 'border-yellow-500 text-yellow-200' : player.status === 'archived' ? 'border-red-500 text-red-400' : 'border-neutral-700 text-white'}`}
+                    title={player.name}
+                  >
+                    {player.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+        {/* RIGHT COLUMN: (Optional future content) */}
+        <div
+          className="w-1/4 p-6 bg-black flex flex-col justify-start min-h-screen"
+          style={{ background: 'black' }}
+        >
+          {/* You can add insights, activity, or leave empty for now */}
+        </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

@@ -2,85 +2,122 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/ui/Sidebar';
-import Header from '@/components/ui/Header';
-import { cn } from '@/lib/utils';
+import { Sidebar } from '@/components/ui/Sidebar';
 
 interface DashboardLayoutProps {
-  children: React.ReactNode;
+  /**
+   * Content for the leftmost column (e.g., player list, navigation, etc.)
+   */
+  left?: React.ReactNode;
+  /**
+   * Content for the main/center column (primary content)
+   */
+  center: React.ReactNode;
+  /**
+   * Content for the right column (e.g., insights, activity, etc.)
+   */
+  right?: React.ReactNode;
+  /**
+   * Content for an optional far-right column (e.g., extra panel)
+   */
+  extraRight?: React.ReactNode;
+  /**
+   * Number of columns to display (2, 3, or 4)
+   */
+  columns?: 2 | 3 | 4;
+  /**
+   * Optional: override user info for sidebar/header
+   */
   user?: {
     name: string;
     email: string;
     role: string;
-    avatar?: string;
   };
-  title?: string;
-  showSearch?: boolean;
-  showQuickActions?: boolean;
-  showNotifications?: boolean;
-  showBreadcrumbs?: boolean;
-  onSearch?: (query: string) => void;
-  className?: string;
 }
 
-export function DashboardLayout({
-  children,
-  user,
-  title,
-  showSearch = true,
-  showQuickActions = true,
-  showNotifications = true,
-  showBreadcrumbs = true,
-  onSearch,
-  className,
-}: DashboardLayoutProps) {
-  const router = useRouter();
-
-  const handleSignOut = async () => {
-    // This would typically call your sign-out function
-    // For now, just redirect to sign-in page
-    router.push('/sign-in');
-  };
-
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+  left,
+  center,
+  right,
+  extraRight,
+  columns = 3,
+  user = { name: 'Coach', email: 'coach@example.com', role: 'Coach' },
+}) => {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div
+      className="flex min-h-screen h-full bg-black text-white"
+      style={{ background: 'black' }}
+    >
+      {/* Header */}
+      <header
+        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+        style={{ boxShadow: 'none' }}
+      >
+        <span
+          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
+          style={{ letterSpacing: '0.04em' }}
+        >
+          MP Player Development
+        </span>
+        <div className="flex flex-col items-end">
+          <span className="text-base font-semibold text-white leading-tight">
+            {user.name}
+          </span>
+          <span className="text-xs text-[#d8cc97] leading-tight">
+            {user.email}
+          </span>
+          <span className="text-xs text-white leading-tight">{user.role}</span>
+        </div>
+      </header>
       {/* Sidebar */}
-      <Sidebar user={user} onSignOut={handleSignOut} />
-
-      {/* Main Content Area */}
-      <div className="md:pl-64">
-        {/* Header */}
-        <Header
-          title={title}
-          showSearch={showSearch}
-          showQuickActions={showQuickActions}
-          showNotifications={showNotifications}
-          showBreadcrumbs={showBreadcrumbs}
-          onSearch={onSearch}
-        />
-
-        {/* Page Content */}
-        <main className={cn("p-4 sm:p-6 lg:p-8", className)}>
-          {children}
-        </main>
+      <Sidebar user={user} />
+      {/* Main Content */}
+      <div
+        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
+        style={{ background: 'black', minHeight: '100vh' }}
+      >
+        {/* Columns */}
+        <div className="flex w-full min-h-screen">
+          {/* Left column (always rendered for 2+ columns) */}
+          {columns >= 2 && (
+            <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen">
+              {left || null}
+            </div>
+          )}
+          {/* Center column (always present) */}
+          <div
+            className={
+              columns === 2
+                ? 'w-1/2 p-8 bg-black flex flex-col justify-start min-h-screen'
+                : columns === 3
+                  ? 'w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen'
+                  : 'w-1/4 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen'
+            }
+          >
+            {center}
+          </div>
+          {/* Right column (always rendered for 3+ columns) */}
+          {columns >= 3 && (
+            <div
+              className={
+                columns === 3
+                  ? 'w-1/4 p-6 bg-black flex flex-col justify-start min-h-screen'
+                  : 'w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen'
+              }
+            >
+              {right || null}
+            </div>
+          )}
+          {/* Extra right column (always rendered for 4 columns) */}
+          {columns === 4 && (
+            <div className="w-1/4 p-6 bg-black flex flex-col justify-start min-h-screen">
+              {extraRight || null}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-}
-
-// Higher-order component to wrap pages with the dashboard layout
-export function withDashboardLayout(
-  Component: React.ComponentType<any>,
-  layoutProps?: Omit<DashboardLayoutProps, 'children'>
-) {
-  return function WrappedComponent(props: any) {
-    return (
-      <DashboardLayout {...layoutProps}>
-        <Component {...props} />
-      </DashboardLayout>
-    );
-  };
-}
+};
 
 export default DashboardLayout;

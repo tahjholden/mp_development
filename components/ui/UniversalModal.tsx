@@ -1,7 +1,7 @@
-import React, { ReactNode } from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React, { ReactNode } from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -9,92 +9,89 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./dialog";
-import { UniversalButton } from "./UniversalButton";
+} from './dialog';
+import { UniversalButton } from './UniversalButton';
 
 // Modal variants using class-variance-authority
 const modalVariants = cva(
-  "fixed z-50 gap-4 bg-zinc-900 p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-top-[2%] data-[state=open]:slide-in-from-top-[2%] sm:rounded-lg",
+  'fixed z-50 gap-4 bg-zinc-900 p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-top-[2%] data-[state=open]:slide-in-from-top-[2%] sm:rounded-lg',
   {
     variants: {
       variant: {
-        default: "border-2 border-gold-500/50",
-        danger: "border-2 border-danger-500/50",
-        success: "border-2 border-success-500/50",
-        warning: "border-2 border-warning-500/50",
-        archive: "border-2 border-archive-500/50",
-        gray: "border-2 border-gray-500/50",
+        default: 'border-2 border-gold-500/50',
+        danger: 'border-2 border-danger-500/50',
+        success: 'border-2 border-success-500/50',
+        warning: 'border-2 border-warning-500/50',
+        archive: 'border-2 border-archive-500/50',
+        gray: 'border-2 border-gray-500/50',
       },
       size: {
-        sm: "sm:max-w-sm",
-        md: "sm:max-w-md",
-        lg: "sm:max-w-lg",
-        xl: "sm:max-w-xl",
+        sm: 'sm:max-w-sm',
+        md: 'sm:max-w-md',
+        lg: 'sm:max-w-lg',
+        xl: 'sm:max-w-xl',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "md",
+      variant: 'default',
+      size: 'md',
     },
   }
 );
 
 // Header variants
-const modalHeaderVariants = cva(
-  "flex flex-col space-y-1.5 text-left",
-  {
-    variants: {
-      variant: {
-        default: "border-b border-gold-500/30 pb-4 mb-4",
-        danger: "border-b border-danger-500/30 pb-4 mb-4",
-        success: "border-b border-success-500/30 pb-4 mb-4",
-        warning: "border-b border-warning-500/30 pb-4 mb-4",
-        archive: "border-b border-archive-500/30 pb-4 mb-4",
-        gray: "border-b border-gray-500/30 pb-4 mb-4",
-      },
+const modalHeaderVariants = cva('flex flex-col space-y-1.5 text-left', {
+  variants: {
+    variant: {
+      default: 'border-b border-gold-500/30 pb-4 mb-4',
+      danger: 'border-b border-danger-500/30 pb-4 mb-4',
+      success: 'border-b border-success-500/30 pb-4 mb-4',
+      warning: 'border-b border-warning-500/30 pb-4 mb-4',
+      archive: 'border-b border-archive-500/30 pb-4 mb-4',
+      gray: 'border-b border-gray-500/30 pb-4 mb-4',
     },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
+  },
+  defaultVariants: {
+    variant: 'default',
+  },
+});
 
 // Title variants
 const modalTitleVariants = cva(
-  "text-lg font-semibold leading-none tracking-tight",
+  'text-lg font-semibold leading-none tracking-tight',
   {
     variants: {
       variant: {
-        default: "text-gold-500",
-        danger: "text-danger-500",
-        success: "text-success-500",
-        warning: "text-warning-500",
-        archive: "text-archive-500",
-        gray: "text-gray-500",
+        default: 'text-gold-500',
+        danger: 'text-danger-500',
+        success: 'text-success-500',
+        warning: 'text-warning-500',
+        archive: 'text-archive-500',
+        gray: 'text-gray-500',
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: 'default',
     },
   }
 );
 
 // Footer variants
 const modalFooterVariants = cva(
-  "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4 pt-4",
+  'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4 pt-4',
   {
     variants: {
       variant: {
-        default: "border-t border-gold-500/30",
-        danger: "border-t border-danger-500/30",
-        success: "border-t border-success-500/30",
-        warning: "border-t border-warning-500/30",
-        archive: "border-t border-archive-500/30",
-        gray: "border-t border-gray-500/30",
+        default: 'border-t border-gold-500/30',
+        danger: 'border-t border-danger-500/30',
+        success: 'border-t border-success-500/30',
+        warning: 'border-t border-warning-500/30',
+        archive: 'border-t border-archive-500/30',
+        gray: 'border-t border-gray-500/30',
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: 'default',
     },
   }
 );
@@ -106,8 +103,8 @@ interface BaseModalProps {
   title: string;
   description?: string;
   children?: ReactNode;
-  variant?: "default" | "danger" | "success" | "warning" | "archive" | "gray";
-  size?: "sm" | "md" | "lg" | "xl";
+  variant?: 'default' | 'danger' | 'success' | 'warning' | 'archive' | 'gray';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showCloseButton?: boolean;
 }
@@ -138,8 +135,8 @@ const GoldModal = ({
   title,
   description,
   children,
-  variant = "default",
-  size = "md",
+  variant = 'default',
+  size = 'md',
   className,
   showCloseButton = true,
 }: BaseModalProps) => {
@@ -147,7 +144,7 @@ const GoldModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(modalVariants({ variant, size }), className)}
-        onInteractOutside={(e) => e.preventDefault()}
+        onInteractOutside={e => e.preventDefault()}
       >
         <DialogHeader className={modalHeaderVariants({ variant })}>
           <DialogTitle className={modalTitleVariants({ variant })}>
@@ -182,31 +179,31 @@ const ConfirmationModal = ({
   description,
   onConfirm,
   onCancel,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
-  variant = "default",
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  variant = 'default',
   loading = false,
   children,
   ...props
 }: ConfirmationModalProps & { children?: ReactNode }) => {
   // Map variant to button variant
   const buttonVariantMap = {
-    default: "primary",
-    danger: "danger",
-    success: "success",
-    warning: "warning",
-    archive: "archive",
-    gray: "gray",
+    default: 'primary',
+    danger: 'danger',
+    success: 'success',
+    warning: 'warning',
+    archive: 'archive',
+    gray: 'gray',
   } as const;
 
-  const buttonVariant = buttonVariantMap[variant] || "primary";
+  const buttonVariant = buttonVariantMap[variant] || 'primary';
 
   return (
     <GoldModal
       open={open}
       onOpenChange={onOpenChange}
       title={title}
-      description={description}
+      {...(description ? { description } : {})}
       variant={variant}
       showCloseButton={false}
       {...props}
@@ -249,37 +246,37 @@ const FormModal = ({
   children,
   onSubmit,
   onCancel,
-  submitText = "Submit",
-  cancelText = "Cancel",
-  variant = "default",
+  submitText = 'Submit',
+  cancelText = 'Cancel',
+  variant = 'default',
   loading = false,
   disabled = false,
   ...props
 }: FormModalProps) => {
   // Map variant to button variant
   const buttonVariantMap = {
-    default: "primary",
-    danger: "danger",
-    success: "success",
-    warning: "warning",
-    archive: "archive",
-    gray: "gray",
+    default: 'primary',
+    danger: 'danger',
+    success: 'success',
+    warning: 'warning',
+    archive: 'archive',
+    gray: 'gray',
   } as const;
 
-  const buttonVariant = buttonVariantMap[variant] || "primary";
+  const buttonVariant = buttonVariantMap[variant] || 'primary';
 
   return (
     <GoldModal
       open={open}
       onOpenChange={onOpenChange}
       title={title}
-      description={description}
+      {...(description ? { description } : {})}
       variant={variant}
       showCloseButton={false}
       {...props}
     >
       <form
-        onSubmit={(e) => {
+        onSubmit={e => {
           e.preventDefault();
           onSubmit();
           onOpenChange(false);
@@ -327,35 +324,25 @@ export const UniversalModal = {
 
   // Unified API for all modal types
   Dialog: ({
-    type = "basic",
-    variant = "default",
+    type = 'basic',
+    variant = 'default',
     ...props
   }: BaseModalProps & {
-    type?: "basic" | "confirmation" | "form";
+    type?: 'basic' | 'confirmation' | 'form';
   } & Partial<ConfirmationModalProps> &
     Partial<FormModalProps>) => {
     switch (type) {
-      case "confirmation":
+      case 'confirmation':
         return (
           <ConfirmationModal
             variant={variant}
             {...(props as ConfirmationModalProps)}
           />
         );
-      case "form":
-        return (
-          <FormModal
-            variant={variant}
-            {...(props as FormModalProps)}
-          />
-        );
+      case 'form':
+        return <FormModal variant={variant} {...(props as FormModalProps)} />;
       default:
-        return (
-          <GoldModal
-            variant={variant}
-            {...(props as BaseModalProps)}
-          />
-        );
+        return <GoldModal variant={variant} {...(props as BaseModalProps)} />;
     }
   },
 };
@@ -366,12 +353,12 @@ export const Modal = {
   Delete: ({
     open,
     onOpenChange,
-    title = "Confirm Deletion",
+    title = 'Confirm Deletion',
     description,
     onConfirm,
     onCancel,
-    confirmText = "Delete",
-    cancelText = "Cancel",
+    confirmText = 'Delete',
+    cancelText = 'Cancel',
     loading = false,
     children,
     ...props
@@ -381,9 +368,12 @@ export const Modal = {
         open={open}
         onOpenChange={onOpenChange}
         title={title}
-        description={description || "Are you sure you want to delete this item? This action cannot be undone."}
+        description={
+          description ||
+          'Are you sure you want to delete this item? This action cannot be undone.'
+        }
         onConfirm={onConfirm}
-        onCancel={onCancel}
+        {...(onCancel ? { onCancel } : {})}
         confirmText={confirmText}
         cancelText={cancelText}
         variant="danger"
@@ -399,12 +389,12 @@ export const Modal = {
   Archive: ({
     open,
     onOpenChange,
-    title = "Archive Item",
+    title = 'Archive Item',
     description,
     onConfirm,
     onCancel,
-    confirmText = "Archive",
-    cancelText = "Cancel",
+    confirmText = 'Archive',
+    cancelText = 'Cancel',
     loading = false,
     children,
     ...props
@@ -414,9 +404,12 @@ export const Modal = {
         open={open}
         onOpenChange={onOpenChange}
         title={title}
-        description={description || "Are you sure you want to archive this item? You can restore it later."}
+        description={
+          description ||
+          'Are you sure you want to archive this item? You can restore it later.'
+        }
         onConfirm={onConfirm}
-        onCancel={onCancel}
+        {...(onCancel ? { onCancel } : {})}
         confirmText={confirmText}
         cancelText={cancelText}
         variant="archive"
@@ -432,12 +425,12 @@ export const Modal = {
   Success: ({
     open,
     onOpenChange,
-    title = "Success",
+    title = 'Success',
     description,
     onConfirm,
     onCancel,
-    confirmText = "Continue",
-    cancelText = "Close",
+    confirmText = 'Continue',
+    cancelText = 'Close',
     loading = false,
     children,
     ...props
@@ -447,9 +440,9 @@ export const Modal = {
         open={open}
         onOpenChange={onOpenChange}
         title={title}
-        description={description || "The operation completed successfully."}
+        description={description || 'The operation completed successfully.'}
         onConfirm={onConfirm}
-        onCancel={onCancel}
+        {...(onCancel ? { onCancel } : {})}
         confirmText={confirmText}
         cancelText={cancelText}
         variant="success"
@@ -465,12 +458,12 @@ export const Modal = {
   Warning: ({
     open,
     onOpenChange,
-    title = "Warning",
+    title = 'Warning',
     description,
     onConfirm,
     onCancel,
-    confirmText = "Proceed",
-    cancelText = "Cancel",
+    confirmText = 'Proceed',
+    cancelText = 'Cancel',
     loading = false,
     children,
     ...props
@@ -480,9 +473,12 @@ export const Modal = {
         open={open}
         onOpenChange={onOpenChange}
         title={title}
-        description={description || "This action may have unintended consequences. Are you sure you want to proceed?"}
+        description={
+          description ||
+          'This action may have unintended consequences. Are you sure you want to proceed?'
+        }
         onConfirm={onConfirm}
-        onCancel={onCancel}
+        {...(onCancel ? { onCancel } : {})}
         confirmText={confirmText}
         cancelText={cancelText}
         variant="warning"
@@ -503,8 +499,8 @@ export const Modal = {
     children,
     onSubmit,
     onCancel,
-    submitText = "Add",
-    cancelText = "Cancel",
+    submitText = 'Add',
+    cancelText = 'Cancel',
     loading = false,
     disabled = false,
     ...props
@@ -514,9 +510,9 @@ export const Modal = {
         open={open}
         onOpenChange={onOpenChange}
         title={title}
-        description={description}
+        {...(description ? { description } : {})}
         onSubmit={onSubmit}
-        onCancel={onCancel}
+        {...(onCancel ? { onCancel } : {})}
         submitText={submitText}
         cancelText={cancelText}
         variant="default"
@@ -538,8 +534,8 @@ export const Modal = {
     children,
     onSubmit,
     onCancel,
-    submitText = "Save Changes",
-    cancelText = "Cancel",
+    submitText = 'Save Changes',
+    cancelText = 'Cancel',
     loading = false,
     disabled = false,
     ...props
@@ -549,9 +545,9 @@ export const Modal = {
         open={open}
         onOpenChange={onOpenChange}
         title={title}
-        description={description}
+        {...(description ? { description } : {})}
         onSubmit={onSubmit}
-        onCancel={onCancel}
+        {...(onCancel ? { onCancel } : {})}
         submitText={submitText}
         cancelText={cancelText}
         variant="default"
@@ -571,8 +567,8 @@ export const Modal = {
     title,
     description,
     children,
-    variant = "default",
-    size = "md",
+    variant = 'default',
+    size = 'md',
     ...props
   }: BaseModalProps) => {
     return (
@@ -580,7 +576,7 @@ export const Modal = {
         open={open}
         onOpenChange={onOpenChange}
         title={title}
-        description={description}
+        {...(description ? { description } : {})}
         variant={variant}
         size={size}
         {...props}

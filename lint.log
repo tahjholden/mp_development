@@ -1,0 +1,461 @@
+
+> lint
+> eslint . --ext .js,.jsx,.ts,.tsx
+
+(node:87876) ESLintIgnoreWarning: The ".eslintignore" file is no longer supported. Switch to using the "ignores" property in "eslint.config.js": https://eslint.org/docs/latest/use/configure/migration-guide#ignoring-files
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/Users/tahjholden/mp_development/app/(dashboard)/development-plans/page.tsx
+  119:64  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  163:9   warning  Unexpected console statement                                                                                     no-console
+  214:5   warning  Unexpected console statement                                                                                     no-console
+  222:9   warning  Unexpected console statement                                                                                     no-console
+  225:11  warning  Unexpected console statement                                                                                     no-console
+  230:62  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  260:22  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  273:13  warning  Unexpected console statement                                                                                     no-console
+  274:13  warning  Unexpected console statement                                                                                     no-console
+  280:13  warning  Unexpected console statement                                                                                     no-console
+  283:13  warning  Unexpected console statement                                                                                     no-console
+  301:13  warning  Unexpected console statement                                                                                     no-console
+  324:21  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  325:9   warning  Unexpected console statement                                                                                     no-console
+  330:9   warning  Unexpected console statement                                                                                     no-console
+  343:11  warning  Unexpected console statement                                                                                     no-console
+  367:11  warning  Unexpected console statement                                                                                     no-console
+  372:9   warning  Unexpected console statement                                                                                     no-console
+  381:11  warning  Unexpected console statement                                                                                     no-console
+  390:64  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  415:9   warning  Unexpected console statement                                                                                     no-console
+  427:6   warning  React Hook useEffect has a missing dependency: 'fetchPlayers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/tahjholden/mp_development/app/(dashboard)/drills/page.tsx
+    4:9   error    Replace `⏎··ChevronDown,⏎··ChevronUp,⏎··Search,⏎··Filter,⏎··Target,⏎` with `·ChevronDown,·ChevronUp,·Search,·Filter,·Target·`  prettier/prettier
+  197:11  warning  Unexpected console statement                                                                                                   no-console
+  242:24  warning  Unexpected any. Specify a different type                                                                                       @typescript-eslint/no-explicit-any
+  255:15  warning  Unexpected console statement                                                                                                   no-console
+  262:13  warning  Unexpected console statement                                                                                                   no-console
+  278:13  warning  Unexpected console statement                                                                                                   no-console
+  290:9   warning  Unexpected console statement                                                                                                   no-console
+
+/Users/tahjholden/mp_development/app/(dashboard)/observations/page.tsx
+    4:9   error    Replace `⏎··Shield,⏎··Plus,⏎` with `·Shield,·Plus·`                                                                                                                                                                                                 prettier/prettier
+   17:14  error    Replace `⏎··Player·as·SharedPlayer,⏎` with `·Player·as·SharedPlayer·`                                                                                                                                                                               prettier/prettier
+   56:50  error    Replace `Record<string,·SharedPlayer·&·{·team:·string·}>` with `⏎····Record<string,·SharedPlayer·&·{·team:·string·}>⏎··`                                                                                                                            prettier/prettier
+   58:38  warning  Unexpected any. Specify a different type                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   59:56  error    Replace `(SharedPlayer·&·{·team:·string·})·|·null` with `⏎····(SharedPlayer·&·{·team:·string·})·|·null⏎··`                                                                                                                                          prettier/prettier
+  104:64  warning  Unexpected any. Specify a different type                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  113:80  error    Insert `⏎·············`                                                                                                                                                                                                                             prettier/prettier
+  116:40  error    Insert `⏎··············`                                                                                                                                                                                                                            prettier/prettier
+  117:1   error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  118:17  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  119:1   error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  120:15  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  121:13  error    Replace `}` with `··}⏎············`                                                                                                                                                                                                                 prettier/prettier
+  126:11  error    Delete `············`                                                                                                                                                                                                                               prettier/prettier
+  127:1   error    Delete `··`                                                                                                                                                                                                                                         prettier/prettier
+  128:1   error    Replace `··············` with `············`                                                                                                                                                                                                        prettier/prettier
+  129:1   error    Delete `··`                                                                                                                                                                                                                                         prettier/prettier
+  130:1   error    Replace `················` with `··············`                                                                                                                                                                                                    prettier/prettier
+  132:15  error    Replace `··transformedPlayers.forEach(` with `transformedPlayers.forEach(⏎················`                                                                                                                                                         prettier/prettier
+  133:17  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  134:1   error    Replace `··················` with `····················`                                                                                                                                                                                            prettier/prettier
+  135:19  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  136:1   error    Replace `················` with `··················`                                                                                                                                                                                                prettier/prettier
+  137:15  error    Replace `}` with `··}⏎··············`                                                                                                                                                                                                               prettier/prettier
+  148:9   warning  Unexpected console statement                                                                                                                                                                                                                        no-console
+  175:8   error    Replace `player:·(SharedPlayer·&·{·team:·string·})·|·undefined):·player·is·SharedPlayer·&·{·team:·string·}·=>⏎·······` with `⏎········player:·(SharedPlayer·&·{·team:·string·})·|·undefined⏎······):·player·is·SharedPlayer·&·{·team:·string·}·=>`  prettier/prettier
+  237:1   error    Delete `⏎`                                                                                                                                                                                                                                          prettier/prettier
+  239:9   warning  Unexpected console statement                                                                                                                                                                                                                        no-console
+  256:11  warning  Unexpected console statement                                                                                                                                                                                                                        no-console
+  269:25  error    Replace `.array(z.object({·id:·z.string(),·name:·z.string()·}))` with `⏎··········.array(z.object({·id:·z.string(),·name:·z.string()·}))⏎··········`                                                                                                prettier/prettier
+  278:11  warning  Unexpected console statement                                                                                                                                                                                                                        no-console
+  283:9   warning  Unexpected console statement                                                                                                                                                                                                                        no-console
+  292:11  warning  Unexpected console statement                                                                                                                                                                                                                        no-console
+  301:64  warning  Unexpected any. Specify a different type                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  309:78  error    Insert `⏎···········`                                                                                                                                                                                                                               prettier/prettier
+  312:38  error    Insert `⏎············`                                                                                                                                                                                                                              prettier/prettier
+  313:13  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  314:1   error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  315:15  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  316:13  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  317:1   error    Replace `··········}` with `············}⏎··········`                                                                                                                                                                                               prettier/prettier
+  326:9   warning  Unexpected console statement                                                                                                                                                                                                                        no-console
+  338:6   warning  React Hook useEffect has a missing dependency: 'fetchPlayers'. Either include it or remove the dependency array                                                                                                                                     react-hooks/exhaustive-deps
+  507:60  error    Replace `{String(player.team)}` with `⏎························{String(player.team)}⏎······················`                                                                                                                                        prettier/prettier
+
+/Users/tahjholden/mp_development/app/(dashboard)/page.tsx
+  11:3  error  'BarChart3' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/app/(dashboard)/players/page.tsx
+    4:9   error    Replace `⏎··Shield,⏎··Plus,⏎··Eye,⏎··Search,⏎··Filter,⏎` with `·Shield,·Plus,·Eye,·Search,·Filter·`                                                                                                                                                 prettier/prettier
+   66:50  error    Replace `Record<string,·SharedPlayer·&·{·team:·string·}>>(` with `⏎····Record<string,·SharedPlayer·&·{·team:·string·}>`                                                                                                                             prettier/prettier
+   67:3   error    Replace `··{}⏎··` with `>({}`                                                                                                                                                                                                                       prettier/prettier
+   71:56  error    Replace `(SharedPlayer·&·{·team:·string·})·|·null>(` with `⏎····(SharedPlayer·&·{·team:·string·})·|·null`                                                                                                                                           prettier/prettier
+   72:3   error    Replace `··null⏎··` with `>(null`                                                                                                                                                                                                                   prettier/prettier
+  153:64  warning  Unexpected any. Specify a different type                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  162:80  error    Insert `⏎·············`                                                                                                                                                                                                                             prettier/prettier
+  165:40  error    Insert `⏎··············`                                                                                                                                                                                                                            prettier/prettier
+  166:15  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  167:1   error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  168:17  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  169:15  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  170:13  error    Replace `}` with `··}⏎············`                                                                                                                                                                                                                 prettier/prettier
+  175:1   error    Delete `············`                                                                                                                                                                                                                               prettier/prettier
+  176:13  error    Delete `··`                                                                                                                                                                                                                                         prettier/prettier
+  177:13  error    Delete `··`                                                                                                                                                                                                                                         prettier/prettier
+  178:1   error    Delete `··`                                                                                                                                                                                                                                         prettier/prettier
+  179:15  error    Delete `··`                                                                                                                                                                                                                                         prettier/prettier
+  181:15  error    Replace `··transformedPlayers.forEach(` with `transformedPlayers.forEach(⏎················`                                                                                                                                                         prettier/prettier
+  182:1   error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  183:19  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  184:1   error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  185:17  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  186:1   error    Replace `··············}` with `················}⏎··············`                                                                                                                                                                                   prettier/prettier
+  196:16  error    'error' is defined but never used                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  209:11  error    Replace `⏎········scrollHeight·-·scrollTop·<=·clientHeight·*·1.5·&&⏎········!loading⏎······` with `scrollHeight·-·scrollTop·<=·clientHeight·*·1.5·&&·!loading`                                                                                      prettier/prettier
+  223:8   error    Replace `player:·(SharedPlayer·&·{·team:·string·})·|·undefined):·player·is·SharedPlayer·&·{·team:·string·}·=>⏎·······` with `⏎········player:·(SharedPlayer·&·{·team:·string·})·|·undefined⏎······):·player·is·SharedPlayer·&·{·team:·string·}·=>`  prettier/prettier
+  304:64  warning  Unexpected any. Specify a different type                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  312:78  error    Insert `⏎···········`                                                                                                                                                                                                                               prettier/prettier
+  315:38  error    Insert `⏎············`                                                                                                                                                                                                                              prettier/prettier
+  316:13  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  317:1   error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  318:15  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  319:13  error    Insert `··`                                                                                                                                                                                                                                         prettier/prettier
+  320:1   error    Replace `··········}` with `············}⏎··········`                                                                                                                                                                                               prettier/prettier
+  388:6   warning  React Hook useEffect has a missing dependency: 'fetchPlayers'. Either include it or remove the dependency array                                                                                                                                     react-hooks/exhaustive-deps
+
+/Users/tahjholden/mp_development/app/(dashboard)/sessions/page.tsx
+    4:9   error    Replace `⏎··ChevronDown,⏎··ChevronUp,⏎··Search,⏎··Filter,⏎` with `·ChevronDown,·ChevronUp,·Search,·Filter·`  prettier/prettier
+  137:23  warning  Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  161:13  warning  Unexpected console statement                                                                                 no-console
+  201:24  warning  Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  214:15  warning  Unexpected console statement                                                                                 no-console
+  237:13  warning  Unexpected console statement                                                                                 no-console
+  253:13  warning  Unexpected console statement                                                                                 no-console
+  282:9   warning  Unexpected console statement                                                                                 no-console
+
+/Users/tahjholden/mp_development/app/(dashboard)/teams/page.tsx
+    4:9   error    Replace `⏎··Shield,⏎··Users,⏎··Loader2,⏎··Search,⏎` with `·Shield,·Users,·Loader2,·Search·`  prettier/prettier
+   53:50  warning  Unexpected any. Specify a different type                                                     @typescript-eslint/no-explicit-any
+   72:11  warning  Unexpected console statement                                                                 no-console
+   77:11  warning  Unexpected console statement                                                                 no-console
+   95:13  warning  Unexpected console statement                                                                 no-console
+  110:13  warning  Unexpected console statement                                                                 no-console
+  139:9   warning  Unexpected console statement                                                                 no-console
+  160:9   warning  Unexpected console statement                                                                 no-console
+  183:7   warning  Unexpected console statement                                                                 no-console
+  198:5   warning  Unexpected console statement                                                                 no-console
+  406:26  warning  Unexpected any. Specify a different type                                                     @typescript-eslint/no-explicit-any
+
+/Users/tahjholden/mp_development/app/(dashboard)/terminal.tsx
+  26:6  warning  React Hook useEffect has a missing dependency: 'terminalSteps.length'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/tahjholden/mp_development/app/(login)/actions.ts
+    4:19  error  'sql' is defined but never used                    @typescript-eslint/no-unused-vars
+  118:11  error  'priceId' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  134:40  error  'inviteId' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  191:11  error  'priceId' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  217:10  error  'data' is defined but never used                   @typescript-eslint/no-unused-vars
+  217:16  error  'formData' is defined but never used               @typescript-eslint/no-unused-vars
+  217:26  error  'user' is defined but never used                   @typescript-eslint/no-unused-vars
+  342:11  error  'userWithTeam' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/app/api/auth/signin/route.ts
+  13:7  warning  Unexpected console statement  no-console
+  29:7  warning  Unexpected console statement  no-console
+  34:7  warning  Unexpected console statement  no-console
+  43:7  warning  Unexpected console statement  no-console
+  70:7  warning  Unexpected console statement  no-console
+  89:7  warning  Unexpected console statement  no-console
+  98:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/auth/signup/route.ts
+  95:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/auth/simple-signin/route.ts
+  54:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/dashboard/activities/route.ts
+   8:7  warning  Unexpected console statement  no-console
+  92:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/dashboard/players/route.ts
+  163:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/dashboard/sessions/route.ts
+    8:7  warning  Unexpected console statement  no-console
+  102:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/development-plans/route.ts
+    9:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   10:1   error    Delete `····`                                                                                                                                                                                                                                                                                                                                            prettier/prettier
+   12:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   12:17  error    Replace `'GET·/api/development-plans:·User·fetched:',·user·?·'User·found'·:·'No·user'` with `⏎······'GET·/api/development-plans:·User·fetched:',⏎······user·?·'User·found'·:·'No·user'⏎····`                                                                                                                                                             prettier/prettier
+   15:7   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   24:7   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   29:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   30:1   error    Delete `····`                                                                                                                                                                                                                                                                                                                                            prettier/prettier
+   37:7   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   37:19  error    Replace `'GET·/api/development-plans:·Development·plans·table·accessible,·count:',·testQuery.length` with `⏎········'GET·/api/development-plans:·Development·plans·table·accessible,·count:',⏎········testQuery.length⏎······`                                                                                                                           prettier/prettier
+   39:7   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   39:21  error    Replace `'GET·/api/development-plans:·Error·accessing·development·plans·table:',·tableError` with `⏎········'GET·/api/development-plans:·Error·accessing·development·plans·table:',⏎········tableError⏎······`                                                                                                                                           prettier/prettier
+   41:10  error    Replace `·error:·'Development·plans·table·not·accessible',·details:·tableError·instanceof·Error·?·tableError.message·:·String(tableError)` with `⏎··········error:·'Development·plans·table·not·accessible',⏎··········details:⏎············tableError·instanceof·Error⏎··············?·tableError.message⏎··············:·String(tableError),⏎·······`  prettier/prettier
+   46:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   47:1   error    Delete `····`                                                                                                                                                                                                                                                                                                                                            prettier/prettier
+   65:17  error    Replace `⏎········mpbcPerson,⏎········eq(mpbcDevelopmentPlan.playerId,·mpbcPerson.id)⏎······` with `mpbcPerson,·eq(mpbcDevelopmentPlan.playerId,·mpbcPerson.id)`                                                                                                                                                                                         prettier/prettier
+   70:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   70:17  error    Replace `'GET·/api/development-plans:·Database·query·completed,·results·count:',·results.length` with `⏎······'GET·/api/development-plans:·Database·query·completed,·results·count:',⏎······results.length⏎····`                                                                                                                                         prettier/prettier
+   92:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   92:17  error    Replace `'GET·/api/development-plans:·Successfully·returning·plans,·count:',·plans.length` with `⏎······'GET·/api/development-plans:·Successfully·returning·plans,·count:',⏎······plans.length⏎····`                                                                                                                                                     prettier/prettier
+   95:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+   97:8   error    Replace `·error:·'Failed·to·fetch·development·plans',·details:·error·instanceof·Error·?·error.message·:·String(error)` with `⏎········error:·'Failed·to·fetch·development·plans',⏎········details:·error·instanceof·Error·?·error.message·:·String(error),⏎·····`                                                                                        prettier/prettier
+  105:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+  106:1   error    Delete `····`                                                                                                                                                                                                                                                                                                                                            prettier/prettier
+  108:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+  108:17  error    Replace `'POST·/api/development-plans:·User·fetched:',·user·?·'User·found'·:·'No·user'` with `⏎······'POST·/api/development-plans:·User·fetched:',⏎······user·?·'User·found'·:·'No·user'⏎····`                                                                                                                                                           prettier/prettier
+  111:7   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+  117:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+  117:17  error    Replace `'POST·/api/development-plans:·Successfully·created·development·plan'` with `⏎······'POST·/api/development-plans:·Successfully·created·development·plan'⏎····`                                                                                                                                                                                   prettier/prettier
+  123:5   warning  Unexpected console statement                                                                                                                                                                                                                                                                                                                             no-console
+  126:19  error    Insert `,`                                                                                                                                                                                                                                                                                                                                               prettier/prettier
+
+/Users/tahjholden/mp_development/app/api/observations/route.ts
+    5:14  error    'and' is defined but never used            @typescript-eslint/no-unused-vars
+    5:19  error    'isNotNull' is defined but never used      @typescript-eslint/no-unused-vars
+   20:7   warning  Unexpected console statement               no-console
+   79:5   warning  Unexpected console statement               no-console
+   93:11  error    'body' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  101:5   warning  Unexpected console statement               no-console
+
+/Users/tahjholden/mp_development/app/api/stripe/webhook/route.ts
+  7:28  error  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/app/api/teams/[id]/players/route.ts
+   4:19  error    'isNotNull' is defined but never used  @typescript-eslint/no-unused-vars
+  68:5   warning  Unexpected console statement           no-console
+
+/Users/tahjholden/mp_development/app/api/teams/route.ts
+  68:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/test-users/route.ts
+  38:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/api/user/teams/route.ts
+   9:5  warning  Unexpected console statement  no-console
+  45:5  warning  Unexpected console statement  no-console
+  65:5  warning  Unexpected console statement  no-console
+  69:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/app/components-showcase/page.tsx
+  12:8  error  'UniversalModal' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/app/layout.tsx
+   8:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  13:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/tahjholden/mp_development/app/test-dashboard/page.tsx
+  116:5  warning  Unexpected console statement  no-console
+  192:5  warning  Unexpected console statement  no-console
+  246:5  warning  Unexpected console statement  no-console
+  328:5  warning  Unexpected console statement  no-console
+  382:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/components/basketball/ArchivePlanModal.tsx
+  5:8  error  'UniversalButton' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/components/layouts/DashboardLayout.tsx
+  1:1  error  Definition for rule 'react/jsx-no-useless-fragment' was not found  react/jsx-no-useless-fragment
+
+/Users/tahjholden/mp_development/components/ui/UniversalButton.tsx
+  170:25  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  174:27  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/tahjholden/mp_development/components/ui/UniversalCard.tsx
+  475:23  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  560:3   warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  561:3   warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  562:3   warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/tahjholden/mp_development/components/ui/UniversalModal.tsx
+    2:20  error    'VariantProps' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+  315:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  351:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/tahjholden/mp_development/components/ui/button.tsx
+  59:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/tahjholden/mp_development/drizzle.config.ts
+  8:10  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/Users/tahjholden/mp_development/fix-lint-patterns.js
+  68:5  warning  Unexpected console statement  no-console
+  84:5  warning  Unexpected console statement  no-console
+  86:5  warning  Unexpected console statement  no-console
+  93:1  warning  Unexpected console statement  no-console
+  94:1  warning  Unexpected console statement  no-console
+  95:1  warning  Unexpected console statement  no-console
+  96:1  warning  Unexpected console statement  no-console
+  97:1  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/lib/auth/middleware.ts
+  10:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  32:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  32:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:9   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/tahjholden/mp_development/lib/db/migrations/relations.ts
+  118:5  error  Duplicate key 'mpCorePersonRoles_personId'         no-dupe-keys
+  124:5  error  Duplicate key 'mpCoreIntentions_personId'          no-dupe-keys
+  136:5  error  Duplicate key 'mpCorePersonGroups_payerId'         no-dupe-keys
+  139:5  error  Duplicate key 'mpCorePersonGroups_payerId'         no-dupe-keys
+  142:5  error  Duplicate key 'mpCorePersonGroups_personId'        no-dupe-keys
+  148:5  error  Duplicate key 'mpCoreActions_personId'             no-dupe-keys
+  154:5  error  Duplicate key 'mpCoreReflections_personId'         no-dupe-keys
+  163:5  error  Duplicate key 'mpbcPersonRoles_personId'           no-dupe-keys
+  222:5  error  Duplicate key 'mpCorePersonRoles_organizationId'   no-dupe-keys
+  230:5  error  Duplicate key 'mpCorePersonGroups_organizationId'  no-dupe-keys
+  237:5  error  Duplicate key 'mpbcPersonRoles_organizationId'     no-dupe-keys
+  288:5  error  Duplicate key 'mpCorePerson_personId'              no-dupe-keys
+  293:5  error  Duplicate key 'mpCoreOrganization_organizationId'  no-dupe-keys
+  314:5  error  Duplicate key 'mpCorePerson_personId'              no-dupe-keys
+  319:5  error  Duplicate key 'mpCoreGroup_groupId'                no-dupe-keys
+  327:5  error  Duplicate key 'mpCoreActions_intentionId'          no-dupe-keys
+  333:5  error  Duplicate key 'mpCoreReflections_intentionId'      no-dupe-keys
+  343:3  error  Duplicate key 'mpCoreIntentions_groupId'           no-dupe-keys
+  350:3  error  Duplicate key 'mpCorePersonGroups_groupId'         no-dupe-keys
+  356:3  error  Duplicate key 'mpCoreActions_groupId'              no-dupe-keys
+  362:3  error  Duplicate key 'mpCoreReflections_groupId'          no-dupe-keys
+  461:5  error  Duplicate key 'mpCoreGroup_groupId'                no-dupe-keys
+  466:5  error  Duplicate key 'mpCorePerson_payerId'               no-dupe-keys
+  471:5  error  Duplicate key 'mpCorePerson_payerId'               no-dupe-keys
+  476:5  error  Duplicate key 'mpCorePerson_personId'              no-dupe-keys
+  485:5  error  Duplicate key 'mpCoreOrganization_organizationId'  no-dupe-keys
+  511:5  error  Duplicate key 'mpCoreIntention_intentionId'        no-dupe-keys
+  516:5  error  Duplicate key 'mpCorePerson_personId'              no-dupe-keys
+  521:5  error  Duplicate key 'mpCoreGroup_groupId'                no-dupe-keys
+  529:5  error  Duplicate key 'mpCoreReflections_actionId'         no-dupe-keys
+  558:5  error  Duplicate key 'mpCoreAction_actionId'              no-dupe-keys
+  563:5  error  Duplicate key 'mpCoreIntention_intentionId'        no-dupe-keys
+  568:5  error  Duplicate key 'mpCorePerson_personId'              no-dupe-keys
+  573:5  error  Duplicate key 'mpCoreGroup_groupId'                no-dupe-keys
+  592:3  error  Duplicate key 'mpCoreOrganization_organizationId'  no-dupe-keys
+  602:3  error  Duplicate key 'mpCorePerson_personId'              no-dupe-keys
+
+/Users/tahjholden/mp_development/lib/db/migrations/schema.ts
+  2861:3  error  'table' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/lib/db/packs.ts
+   10:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   12:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   65:7   warning  Unexpected console statement              no-console
+   71:5   warning  Unexpected console statement              no-console
+   97:7   warning  Unexpected console statement              no-console
+  111:5   warning  Unexpected console statement              no-console
+  153:5   warning  Unexpected console statement              no-console
+  193:5   warning  Unexpected console statement              no-console
+  244:5   warning  Unexpected console statement              no-console
+  267:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  271:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  340:5   warning  Unexpected console statement              no-console
+
+/Users/tahjholden/mp_development/lib/db/role-logic.ts
+  419:3   error    '_entityType' is defined but never used       @typescript-eslint/no-unused-vars
+  518:7   error    Unexpected lexical declaration in case block  no-case-declarations
+  528:7   error    Unexpected lexical declaration in case block  no-case-declarations
+  608:27  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  627:34  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+/Users/tahjholden/mp_development/lib/db/schema.ts
+  2861:3  error  'table' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/lib/db/seed.ts
+   7:5  warning  Unexpected console statement  no-console
+  27:5  warning  Unexpected console statement  no-console
+  29:5  warning  Unexpected console statement  no-console
+  38:5  warning  Unexpected console statement  no-console
+  42:5  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/lib/db/setup.ts
+  213:3   warning  Unexpected console statement  no-console
+  216:14  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/lib/db/user-service.ts
+  137:7   warning  Unexpected console statement                          no-console
+  142:42  error    'basketballError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  230:5   warning  Unexpected console statement                          no-console
+  252:7   warning  Unexpected console statement                          no-console
+  257:42  error    'basketballError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  313:5   warning  Unexpected console statement                          no-console
+  383:5   warning  Unexpected console statement                          no-console
+  473:5   warning  Unexpected console statement                          no-console
+  498:5   warning  Unexpected console statement                          no-console
+  510:5   warning  Unexpected console statement                          no-console
+  578:12  warning  Forbidden non-null assertion                          @typescript-eslint/no-non-null-assertion
+  611:5   warning  Unexpected console statement                          no-console
+  724:9   warning  Unexpected console statement                          no-console
+  771:5   warning  Unexpected console statement                          no-console
+  779:62  warning  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  838:5   warning  Unexpected console statement                          no-console
+  869:5   warning  Unexpected console statement                          no-console
+  931:5   warning  Unexpected console statement                          no-console
+  973:5   warning  Unexpected console statement                          no-console
+
+/Users/tahjholden/mp_development/lib/payments/actions.ts
+   7:57  error  'team' is defined but never used              @typescript-eslint/no-unused-vars
+   8:9   error  'priceId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  13:53  error  '_' is defined but never used                 @typescript-eslint/no-unused-vars
+  13:56  error  'team' is defined but never used              @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/lib/payments/stripe.ts
+   9:3   error    'getUser' is defined but never used  @typescript-eslint/no-unused-vars
+  19:3   error    'user' is defined but never used     @typescript-eslint/no-unused-vars
+  20:3   error    'priceId' is defined but never used  @typescript-eslint/no-unused-vars
+  29:3   warning  Unexpected console statement         no-console
+  63:51  error    'user' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/lib/supabase/client.ts
+   14:23  warning  Forbidden non-null assertion               @typescript-eslint/no-non-null-assertion
+   15:27  warning  Forbidden non-null assertion               @typescript-eslint/no-non-null-assertion
+   40:11  error    'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  128:5   warning  Unexpected console statement               no-console
+  149:11  error    'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  166:11  error    'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/tahjholden/mp_development/lib/supabase/middleware.ts
+  21:5  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  22:5  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+/Users/tahjholden/mp_development/lib/supabase/server.ts
+    3:15  error    'SupabaseClient' is defined but never used  @typescript-eslint/no-unused-vars
+   12:23  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+   13:27  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+   34:11  error    'name' is defined but never used            @typescript-eslint/no-unused-vars
+   34:25  error    'value' is defined but never used           @typescript-eslint/no-unused-vars
+   34:40  error    'options' is defined but never used         @typescript-eslint/no-unused-vars
+   34:49  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   38:14  error    'name' is defined but never used            @typescript-eslint/no-unused-vars
+   38:28  error    'options' is defined but never used         @typescript-eslint/no-unused-vars
+   38:37  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   52:23  warning  Forbidden non-null assertion                @typescript-eslint/no-non-null-assertion
+   91:29  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  116:11  error    'data' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  151:28  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+/Users/tahjholden/mp_development/middleware.ts
+  54:7  warning  Unexpected console statement  no-console
+
+/Users/tahjholden/mp_development/vitest.setup.ts
+  28:20  warning  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  29:5   error    Definition for rule '@next/next/no-img-element' was not found  @next/next/no-img-element
+
+✖ 353 problems (164 errors, 189 warnings)
+  83 errors and 0 warnings potentially fixable with the `--fix` option.
+

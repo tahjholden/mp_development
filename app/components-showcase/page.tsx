@@ -2,7 +2,13 @@
 
 import React, { useState } from 'react';
 import UniversalButton from '@/components/ui/UniversalButton';
-import UniversalCard, { CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from '@/components/ui/UniversalCard';
+import UniversalCard, {
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/UniversalCard';
 import UniversalModal, { Modal } from '@/components/ui/UniversalModal';
 
 export default function ComponentsShowcase() {
@@ -48,12 +54,16 @@ export default function ComponentsShowcase() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
-      <h1 className="text-3xl font-bold mb-8 text-gold-500">Universal Components Showcase</h1>
-      
+      <h1 className="text-3xl font-bold mb-8 text-gold-500">
+        Universal Components Showcase
+      </h1>
+
       {/* Buttons Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-semibold mb-6 border-b border-zinc-800 pb-2">Universal Buttons</h2>
-        
+        <h2 className="text-2xl font-semibold mb-6 border-b border-zinc-800 pb-2">
+          Universal Buttons
+        </h2>
+
         <div className="space-y-8">
           {/* Primary Buttons */}
           <div>
@@ -73,11 +83,21 @@ export default function ComponentsShowcase() {
             <h3 className="text-xl font-medium mb-4">Outline Buttons</h3>
             <div className="flex flex-wrap gap-4">
               <UniversalButton.Secondary>Secondary</UniversalButton.Secondary>
-              <UniversalButton.DangerOutline>Danger Outline</UniversalButton.DangerOutline>
-              <UniversalButton.SuccessOutline>Success Outline</UniversalButton.SuccessOutline>
-              <UniversalButton.WarningOutline>Warning Outline</UniversalButton.WarningOutline>
-              <UniversalButton.ArchiveOutline>Archive Outline</UniversalButton.ArchiveOutline>
-              <UniversalButton.GrayOutline>Gray Outline</UniversalButton.GrayOutline>
+              <UniversalButton.DangerOutline>
+                Danger Outline
+              </UniversalButton.DangerOutline>
+              <UniversalButton.SuccessOutline>
+                Success Outline
+              </UniversalButton.SuccessOutline>
+              <UniversalButton.WarningOutline>
+                Warning Outline
+              </UniversalButton.WarningOutline>
+              <UniversalButton.ArchiveOutline>
+                Archive Outline
+              </UniversalButton.ArchiveOutline>
+              <UniversalButton.GrayOutline>
+                Gray Outline
+              </UniversalButton.GrayOutline>
             </div>
           </div>
 
@@ -94,11 +114,17 @@ export default function ComponentsShowcase() {
           <div>
             <h3 className="text-xl font-medium mb-4">Button Sizes</h3>
             <div className="flex flex-wrap items-center gap-4">
-              <UniversalButton.Primary size="xs">Extra Small</UniversalButton.Primary>
+              <UniversalButton.Primary size="xs">
+                Extra Small
+              </UniversalButton.Primary>
               <UniversalButton.Primary size="sm">Small</UniversalButton.Primary>
-              <UniversalButton.Primary size="md">Medium</UniversalButton.Primary>
+              <UniversalButton.Primary size="md">
+                Medium
+              </UniversalButton.Primary>
               <UniversalButton.Primary size="lg">Large</UniversalButton.Primary>
-              <UniversalButton.Primary size="xl">Extra Large</UniversalButton.Primary>
+              <UniversalButton.Primary size="xl">
+                Extra Large
+              </UniversalButton.Primary>
             </div>
           </div>
 
@@ -107,8 +133,12 @@ export default function ComponentsShowcase() {
             <h3 className="text-xl font-medium mb-4">Loading State</h3>
             <div className="flex flex-wrap gap-4">
               <UniversalButton.Primary loading>Loading</UniversalButton.Primary>
-              <UniversalButton.Danger loading>Deleting...</UniversalButton.Danger>
-              <UniversalButton.Success loading>Saving...</UniversalButton.Success>
+              <UniversalButton.Danger loading>
+                Deleting...
+              </UniversalButton.Danger>
+              <UniversalButton.Success loading>
+                Saving...
+              </UniversalButton.Success>
             </div>
           </div>
         </div>
@@ -116,8 +146,10 @@ export default function ComponentsShowcase() {
 
       {/* Cards Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-semibold mb-6 border-b border-zinc-800 pb-2">Universal Cards</h2>
-        
+        <h2 className="text-2xl font-semibold mb-6 border-b border-zinc-800 pb-2">
+          Universal Cards
+        </h2>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Default Card */}
           <UniversalCard.Default
@@ -144,10 +176,7 @@ export default function ComponentsShowcase() {
           </UniversalCard.Elevated>
 
           {/* Color Variants */}
-          <UniversalCard.Gold
-            title="Gold Card"
-            subtitle="Brand primary color"
-          >
+          <UniversalCard.Gold title="Gold Card" subtitle="Brand primary color">
             <p>Card with gold accent color.</p>
           </UniversalCard.Gold>
 
@@ -187,7 +216,9 @@ export default function ComponentsShowcase() {
             footer={
               <div className="flex justify-between w-full">
                 <UniversalButton.Ghost size="sm">Cancel</UniversalButton.Ghost>
-                <UniversalButton.Primary size="sm">Save</UniversalButton.Primary>
+                <UniversalButton.Primary size="sm">
+                  Save
+                </UniversalButton.Primary>
               </div>
             }
           >
@@ -225,8 +256,12 @@ export default function ComponentsShowcase() {
           <UniversalCard.EmptyState>
             <div className="text-center">
               <h3 className="text-lg font-medium">No Data Available</h3>
-              <p className="text-zinc-400 mt-2">This is an empty state card example.</p>
-              <UniversalButton.Primary size="sm" className="mt-4">Add Data</UniversalButton.Primary>
+              <p className="text-zinc-400 mt-2">
+                This is an empty state card example.
+              </p>
+              <UniversalButton.Primary size="sm" className="mt-4">
+                Add Data
+              </UniversalButton.Primary>
             </div>
           </UniversalCard.EmptyState>
         </div>
@@ -234,8 +269,10 @@ export default function ComponentsShowcase() {
 
       {/* Modals Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-semibold mb-6 border-b border-zinc-800 pb-2">Universal Modals</h2>
-        
+        <h2 className="text-2xl font-semibold mb-6 border-b border-zinc-800 pb-2">
+          Universal Modals
+        </h2>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Basic Modal */}
           <UniversalCard.Default>
@@ -279,7 +316,9 @@ export default function ComponentsShowcase() {
               <p>A modal for confirming archive actions.</p>
             </CardContent>
             <CardFooter>
-              <UniversalButton.Archive onClick={() => setArchiveModalOpen(true)}>
+              <UniversalButton.Archive
+                onClick={() => setArchiveModalOpen(true)}
+              >
                 Open Archive Modal
               </UniversalButton.Archive>
             </CardFooter>
@@ -295,7 +334,9 @@ export default function ComponentsShowcase() {
               <p>A modal for displaying success messages.</p>
             </CardContent>
             <CardFooter>
-              <UniversalButton.Success onClick={() => setSuccessModalOpen(true)}>
+              <UniversalButton.Success
+                onClick={() => setSuccessModalOpen(true)}
+              >
                 Open Success Modal
               </UniversalButton.Success>
             </CardFooter>
@@ -311,7 +352,9 @@ export default function ComponentsShowcase() {
               <p>A modal for displaying warning messages.</p>
             </CardContent>
             <CardFooter>
-              <UniversalButton.Warning onClick={() => setWarningModalOpen(true)}>
+              <UniversalButton.Warning
+                onClick={() => setWarningModalOpen(true)}
+              >
                 Open Warning Modal
               </UniversalButton.Warning>
             </CardFooter>
@@ -359,8 +402,14 @@ export default function ComponentsShowcase() {
         description="This is a basic information modal for displaying content."
       >
         <div className="py-4">
-          <p>This modal can be used to display any content or information to the user.</p>
-          <p className="mt-4">It's perfect for showing details, instructions, or any other content that doesn't require user actions.</p>
+          <p>
+            This modal can be used to display any content or information to the
+            user.
+          </p>
+          <p className="mt-4">
+            It's perfect for showing details, instructions, or any other content
+            that doesn't require user actions.
+          </p>
         </div>
       </Modal.Info>
 
@@ -408,17 +457,21 @@ export default function ComponentsShowcase() {
       >
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">Name</label>
+            <label htmlFor="name" className="text-sm font-medium">
+              Name
+            </label>
             <input
               id="name"
               className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"
               value={formName}
-              onChange={(e) => setFormName(e.target.value)}
+              onChange={e => setFormName(e.target.value)}
               placeholder="Enter name"
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-medium">Description</label>
+            <label htmlFor="description" className="text-sm font-medium">
+              Description
+            </label>
             <textarea
               id="description"
               className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"
@@ -439,7 +492,9 @@ export default function ComponentsShowcase() {
       >
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label htmlFor="edit-name" className="text-sm font-medium">Name</label>
+            <label htmlFor="edit-name" className="text-sm font-medium">
+              Name
+            </label>
             <input
               id="edit-name"
               className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"
@@ -448,7 +503,9 @@ export default function ComponentsShowcase() {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="edit-description" className="text-sm font-medium">Description</label>
+            <label htmlFor="edit-description" className="text-sm font-medium">
+              Description
+            </label>
             <textarea
               id="edit-description"
               className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"

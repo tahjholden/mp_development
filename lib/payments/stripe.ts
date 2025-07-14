@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+// import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
 // NOTE:
 // Stripe metadata (customer / subscription / product) is now stored on the
@@ -11,13 +11,13 @@ import {
   // updateTeamSubscription
 } from '@/lib/db/queries';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil'
-});
+// export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+//   apiVersion: '2025-04-30.basil'
+// });
 
 export async function createCheckoutSession({
   user,
-  priceId
+  priceId,
 }: {
   user: Person | null;
   priceId: string;
@@ -170,36 +170,48 @@ export async function handleSubscriptionChange(
 */
 
 export async function getStripePrices() {
-  const prices = await stripe.prices.list({
-    expand: ['data.product'],
-    active: true,
-    type: 'recurring'
-  });
-
-  return prices.data.map((price) => ({
-    id: price.id,
-    productId:
-      typeof price.product === 'string' ? price.product : price.product.id,
-    unitAmount: price.unit_amount,
-    currency: price.currency,
-    interval: price.recurring?.interval,
-    trialPeriodDays: price.recurring?.trial_period_days
-  }));
+  // Stripe integration is on the backburner.
+  // Return mock data for now to keep the pricing page functional.
+  return [
+    {
+      id: 'price_base',
+      productId: 'prod_base',
+      unitAmount: 800,
+      currency: 'usd',
+      interval: 'month',
+      trialPeriodDays: 7,
+    },
+    {
+      id: 'price_plus',
+      productId: 'prod_plus',
+      unitAmount: 1200,
+      currency: 'usd',
+      interval: 'month',
+      trialPeriodDays: 7,
+    },
+  ];
 }
 
 export async function getStripeProducts() {
-  const products = await stripe.products.list({
-    active: true,
-    expand: ['data.default_price']
-  });
-
-  return products.data.map((product) => ({
-    id: product.id,
-    name: product.name,
-    description: product.description,
-    defaultPriceId:
-      typeof product.default_price === 'string'
-        ? product.default_price
-        : product.default_price?.id
-  }));
+  // Stripe integration is on the backburner.
+  // Return mock data for now to keep the pricing page functional.
+  return [
+    {
+      id: 'prod_base',
+      name: 'Base',
+      description: 'Basic plan for small teams',
+      defaultPriceId: 'price_base',
+    },
+    {
+      id: 'prod_plus',
+      name: 'Plus',
+      description: 'Advanced plan for growing teams',
+      defaultPriceId: 'price_plus',
+    },
+  ];
 }
+//       typeof product.default_price === 'string'
+//         ? product.default_price
+//         : product.default_price?.id
+//   }));
+// }

@@ -9,9 +9,9 @@ import { cache } from 'react';
  */
 export const createClient = cache(() => {
   const cookieStore = cookies();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_CORE!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_CORE!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY_CORE;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase URL and Anon Key must be provided');
@@ -49,8 +49,8 @@ export const createClient = cache(() => {
  * and never exposed to the client
  */
 export const createAdminClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_CORE!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY_CORE;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Supabase URL and Service Role Key must be provided');
@@ -71,13 +71,13 @@ export const createAdminClient = () => {
  */
 export const verifyAuthToken = async (token: string) => {
   const supabase = createClient();
-  
+
   const { data, error } = await supabase.auth.getUser(token);
-  
+
   if (error) {
     return { error: error.message };
   }
-  
+
   return { user: data.user };
 };
 
@@ -85,20 +85,24 @@ export const verifyAuthToken = async (token: string) => {
  * Create a new user in Supabase Auth
  * This should only be used in trusted server contexts
  */
-export const createAuthUser = async (email: string, password: string, metadata?: Record<string, any>) => {
+export const createAuthUser = async (
+  email: string,
+  password: string,
+  metadata?: Record<string, any>
+) => {
   const adminClient = createAdminClient();
-  
+
   const { data, error } = await adminClient.auth.admin.createUser({
     email,
     password,
     email_confirm: true, // Auto-confirm the email
     user_metadata: metadata || {},
   });
-  
+
   if (error) {
     return { error: error.message };
   }
-  
+
   return { user: data.user };
 };
 
@@ -108,13 +112,13 @@ export const createAuthUser = async (email: string, password: string, metadata?:
  */
 export const deleteAuthUser = async (userId: string) => {
   const adminClient = createAdminClient();
-  
+
   const { data, error } = await adminClient.auth.admin.deleteUser(userId);
-  
+
   if (error) {
     return { error: error.message };
   }
-  
+
   return { success: true };
 };
 
@@ -124,17 +128,17 @@ export const deleteAuthUser = async (userId: string) => {
  */
 export const getUserByEmail = async (email: string) => {
   const adminClient = createAdminClient();
-  
+
   const { data, error } = await adminClient.auth.admin.listUsers({
     filter: {
       email: email,
     },
   });
-  
+
   if (error) {
     return { error: error.message };
   }
-  
+
   return { user: data.users[0] || null };
 };
 
@@ -142,17 +146,20 @@ export const getUserByEmail = async (email: string) => {
  * Update a user's metadata in Supabase Auth
  * This should only be used in trusted server contexts
  */
-export const updateUserMetadata = async (userId: string, metadata: Record<string, any>) => {
+export const updateUserMetadata = async (
+  userId: string,
+  metadata: Record<string, any>
+) => {
   const adminClient = createAdminClient();
-  
+
   const { data, error } = await adminClient.auth.admin.updateUserById(userId, {
     user_metadata: metadata,
   });
-  
+
   if (error) {
     return { error: error.message };
   }
-  
+
   return { user: data.user };
 };
 

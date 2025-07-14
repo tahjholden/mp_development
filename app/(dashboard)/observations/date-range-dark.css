@@ -1,0 +1,61 @@
+/* Custom dark theme for react-date-range */
+.rdrCalendarWrapper,
+.rdrDateDisplayWrapper,
+.rdrMonthAndYearWrapper,
+.rdrMonths,
+.rdrMonth,
+.rdrWeekDays,
+.rdrDays,
+.rdrDay,
+.rdrDateDisplay {
+  background: #181818 !important;
+  color: #f5e7b2 !important;
+  border-color: #d8cc97 !important;
+}
+
+.rdrDayNumber span {
+  color: #f5e7b2 !important;
+}
+
+.rdrDayToday .rdrDayNumber span {
+  border: 1.5px solid #d8cc97 !important;
+  color: #d8cc97 !important;
+}
+
+.rdrDaySelected,
+.rdrDayStartPreview,
+.rdrDayEndPreview,
+.rdrDayInPreview,
+.rdrDayInRange {
+  background: #d8cc97 !important;
+  color: #181818 !important;
+}
+
+.rdrDaySelected .rdrDayNumber span,
+.rdrDayInRange .rdrDayNumber span {
+  color: #181818 !important;
+}
+
+.rdrMonthAndYearPickers select,
+.rdrMonthAndYearPickers option {
+  background: #232323 !important;
+  color: #f5e7b2 !important;
+}
+
+.rdrDayDisabled,
+.rdrDayDisabled .rdrDayNumber span {
+  color: #444 !important;
+  background: #232323 !important;
+}
+
+.rdrDateDisplayItem input {
+  background: #232323 !important;
+  color: #f5e7b2 !important;
+  border: 1px solid #d8cc97 !important;
+}
+
+.rdrDefinedRangesWrapper {
+  background: #181818 !important;
+  color: #f5e7b2 !important;
+  border-right: 1px solid #d8cc97 !important;
+}

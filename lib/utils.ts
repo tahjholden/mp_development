@@ -1,6 +1,30 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { z } from 'zod';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
+
+// Shared user validation schemas
+export const UserSchema = z.object({
+  id: z.string(),
+  displayName: z.string().optional(),
+  name: z.string().optional(),
+  email: z.string(),
+  role: z.string(),
+  isSuperadmin: z.boolean().optional(),
+  firstName: z.string().nullable().optional(),
+  lastName: z.string().nullable().optional(),
+  personType: z.string().nullable().optional(),
+  groupId: z.string().nullable().optional(),
+  groupName: z.string().nullable().optional(),
+  position: z.string().nullable().optional(),
+});
+
+export const UserResponseSchema = z.object({
+  user: UserSchema.nullable(),
+});
+
+export type User = z.infer<typeof UserSchema>;
+export type UserResponse = z.infer<typeof UserResponseSchema>;

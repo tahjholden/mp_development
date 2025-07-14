@@ -7,4 +7,6 @@ export default {
   dbCredentials: {
     url: process.env.POSTGRES_URL!,
   },
+  strict: true,
+  verbose: true,
 } satisfies Config;

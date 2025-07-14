@@ -1,39 +1,61 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, sql, isNotNull } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import {
   mpCorePerson,
-  mpCoreGroup,
   mpCorePersonGroup,
-  invitations,
-  mpCoreOrganizations,
-  activityLogs,
-  type NewPerson,
-  type NewGroup,
-  type NewPersonGroup,
-  type NewActivityLog,
-  type NewOrganization,
-  ActivityType,
+  infrastructureInvitations,
+  infrastructureActivityLogs,
 } from '@/lib/db/schema';
 import { setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { createCheckoutSession } from '@/lib/payments/stripe';
+// import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
 import {
   validatedAction,
   validatedActionWithUser,
 } from '@/lib/auth/middleware';
 
+// Define ActivityType enum since it's not in the schema
+export enum ActivityType {
+  SIGN_IN = 'SIGN_IN',
+  SIGN_UP = 'SIGN_UP',
+  SIGN_OUT = 'SIGN_OUT',
+  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
+  DELETE_ACCOUNT = 'DELETE_ACCOUNT',
+  UPDATE_ACCOUNT = 'UPDATE_ACCOUNT',
+  CREATE_TEAM = 'CREATE_TEAM',
+  REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
+  INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
+  ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+}
+
+// Define types for the activity log
+type NewActivityLog = {
+  organizationId: string | null;
+  personId: string;
+  action: ActivityType;
+  ipAddress: string;
+};
+
+type NewPerson = {
+  email: string;
+  firstName: string;
+  displayName: string;
+  authUid: string;
+  organizationId: string | null;
+};
+
 async function logActivity(
   organizationId: string | null | undefined,
   personId: string,
   type: ActivityType,
-  ipAddress?: string,
+  ipAddress?: string
 ) {
-  if (organizationId === null || organizationId === undefined) {
+  if (organizationId === null || organizationId === undefined || !db) {
     return;
   }
   const newActivity: NewActivityLog = {
@@ -42,7 +64,7 @@ async function logActivity(
     action: type,
     ipAddress: ipAddress || '',
   };
-  await db.insert(activityLogs).values(newActivity);
+  await db.insert(infrastructureActivityLogs).values(newActivity);
 }
 
 const signInSchema = z.object({
@@ -56,14 +78,18 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
   // and set our own application session.
   const { email } = data;
 
+  if (!db) {
+    return {
+      error: 'Database connection not available.',
+      email,
+    };
+  }
+
   const userWithTeam = await db
     .select({
       user: mpCorePerson,
-      team: mpCoreGroup,
     })
     .from(mpCorePerson)
-    .leftJoin(mpCorePersonGroup, eq(mpCorePerson.id, mpCorePersonGroup.personId))
-    .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
     .where(eq(mpCorePerson.email, email))
     .limit(1);
 
@@ -74,17 +100,24 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     };
   }
 
-  const { user: foundUser, team: foundTeam } = userWithTeam[0];
+  const foundUser = userWithTeam[0]?.user;
+  if (!foundUser) {
+    return {
+      error: 'Could not find your profile. Please sign up.',
+      email,
+    };
+  }
 
   await Promise.all([
     setSession(foundUser),
-    logActivity(foundTeam?.organizationId, foundUser.id, ActivityType.SIGN_IN),
+    logActivity(foundUser.organizationId, foundUser.id, ActivityType.SIGN_IN),
   ]);
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
     const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ user: foundUser, priceId });
+    // return createCheckoutSession({ user: foundUser, priceId });
+    redirect('/dashboard');
   }
 
   redirect('/dashboard');
@@ -99,6 +132,13 @@ const signUpSchema = z.object({
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const { email, displayName, authUid, inviteId } = data;
+
+  if (!db) {
+    return {
+      error: 'Database connection not available.',
+      email,
+    };
+  }
 
   const existingUser = await db
     .select()
@@ -116,20 +156,12 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     };
   }
 
-  // A user needs a top-level organization.
-  const newOrg: NewOrganization = {
-    name: `${email}'s Organization`,
-  };
-  const [createdOrg] = await db
-    .insert(mpCoreOrganizations)
-    .values(newOrg)
-    .returning();
-
   const newPerson: NewPerson = {
     email,
+    firstName: displayName || email,
     displayName: displayName || email,
     authUid,
-    organizationId: createdOrg.id,
+    organizationId: null, // We'll handle this later if needed
   };
 
   const [createdPerson] = await db
@@ -144,89 +176,21 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     };
   }
 
-  let groupId: string;
-  let userRole: string;
-  let createdGroup: typeof mpCoreGroup.$inferSelect | null = null;
-
-  if (inviteId) {
-    const [invitation] = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.id, parseInt(inviteId)),
-          eq(invitations.email, email),
-          eq(invitations.status, 'pending'),
-        ),
-      )
-      .limit(1);
-
-    if (invitation) {
-      groupId = invitation.groupId;
-      userRole = invitation.role;
-
-      await db
-        .update(invitations)
-        .set({ status: 'accepted' })
-        .where(eq(invitations.id, invitation.id));
-
-      await logActivity(
-        createdOrg.id,
-        createdPerson.id,
-        ActivityType.ACCEPT_INVITATION,
-      );
-
-      [createdGroup] = await db
-        .select()
-        .from(mpCoreGroup)
-        .where(eq(mpCoreGroup.id, groupId))
-        .limit(1);
-    } else {
-      return { error: 'Invalid or expired invitation.', email };
-    }
-  } else {
-    // Create a new group (team) if there's no invitation
-    const newGroup: NewGroup = {
-      name: `${email}'s Team`,
-      organizationId: createdOrg.id,
-    };
-
-    [createdGroup] = await db.insert(mpCoreGroup).values(newGroup).returning();
-
-    if (!createdGroup) {
-      // Consider rolling back the user creation here in a real app
-      return {
-        error: 'Failed to create team. Please try again.',
-        email,
-      };
-    }
-
-    groupId = createdGroup.id;
-    userRole = 'owner';
-
-    await logActivity(
-      createdOrg.id,
-      createdPerson.id,
-      ActivityType.CREATE_TEAM,
-    );
-  }
-
-  const newPersonGroup: NewPersonGroup = {
-    personId: createdPerson.id,
-    groupId: groupId,
-    role: userRole,
-  };
-
+  // Simplified signup - just create the person
   await Promise.all([
-    db.insert(mpCorePersonGroup).values(newPersonGroup),
-    logActivity(createdOrg.id, createdPerson.id, ActivityType.SIGN_UP),
+    logActivity(
+      createdPerson.organizationId,
+      createdPerson.id,
+      ActivityType.SIGN_UP
+    ),
     setSession(createdPerson),
   ]);
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
     const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ user: createdPerson, priceId });
+    // return createCheckoutSession({ user: createdPerson, priceId });
+    redirect('/dashboard');
   }
 
   redirect('/dashboard');
@@ -235,8 +199,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 export async function signOut() {
   const user = await getUser();
   if (!user) return;
-  const userWithTeam = await getUserWithTeam(user.id);
-  await logActivity(userWithTeam?.team?.organizationId, user.id, ActivityType.SIGN_OUT);
+  await logActivity(user.organizationId, user.id, ActivityType.SIGN_OUT);
   (await cookies()).delete('session');
   redirect('/sign-in');
 }
@@ -257,7 +220,7 @@ export const updatePassword = validatedActionWithUser(
     return {
       error: 'Password updates are handled by the authentication provider.',
     };
-  },
+  }
 );
 const removeUserSchema = z.object({
   userId: z.string(), // Now a string (UUID)
@@ -272,10 +235,15 @@ export const removeUser = validatedActionWithUser(
       return { error: 'Team not found.' };
     }
 
+    if (!db) {
+      return { error: 'Database connection not available.' };
+    }
+
     const membership = await db.query.mpCorePersonGroup.findFirst({
       where: and(
+        isNotNull(mpCorePersonGroup.groupId),
         eq(mpCorePersonGroup.groupId, userWithTeam.team.id),
-        eq(mpCorePersonGroup.personId, user.id),
+        eq(mpCorePersonGroup.personId, user.id)
       ),
     });
 
@@ -288,21 +256,22 @@ export const removeUser = validatedActionWithUser(
       .where(
         and(
           eq(mpCorePersonGroup.personId, userId),
-          eq(mpCorePersonGroup.groupId, userWithTeam.team.id),
-        ),
+          eq(mpCorePersonGroup.groupId, userWithTeam.team.id)
+        )
       );
 
-    if (userWithTeam.team.organizationId) {
+    // Note: team.organizationId doesn't exist in the current schema
+    // We'll use the user's organizationId instead
+    if (user.organizationId) {
       await logActivity(
-        userWithTeam.team.organizationId,
+        user.organizationId,
         user.id,
-        ActivityType.REMOVE_TEAM_MEMBER,
+        ActivityType.REMOVE_TEAM_MEMBER
       );
     }
 
-
     return { success: true, message: 'User removed.' };
-  },
+  }
 );
 
 const inviteUserSchema = z.object({
@@ -320,61 +289,46 @@ export const inviteUser = validatedActionWithUser(
       return { error: 'Team not found.' };
     }
 
-    const membership = await db.query.mpCorePersonGroup.findFirst({
-      where: and(
-        eq(mpCorePersonGroup.groupId, team.id),
-        eq(mpCorePersonGroup.personId, user.id),
-      ),
-    });
-
-    if (membership?.role !== 'owner') {
-      return { error: 'Only owners can invite members.' };
+    if (!db) {
+      return { error: 'Database connection not available.' };
     }
 
-    // Check if user is already in the team
-    const existingMember = await db.query.mpCorePerson.findFirst({
-      where: eq(mpCorePerson.email, email),
-      with: {
-        groupMemberships: {
-          where: eq(mpCorePersonGroup.groupId, team.id),
-        },
-      },
-    });
-
-    if (existingMember && existingMember.groupMemberships.length > 0) {
-      return { error: 'User is already a member of this team.' };
+    if (!team.id || !user.id) {
+      return { error: 'Invalid team or user ID.' };
     }
-
     // Check for existing pending invitation
-    const existingInvitation = await db.query.invitations.findFirst({
-      where: and(
-        eq(invitations.groupId, team.id),
-        eq(invitations.email, email),
-        eq(invitations.status, 'pending'),
-      ),
-    });
+    const existingInvitation =
+      await db.query.infrastructureInvitations.findFirst({
+        where: and(
+          eq(infrastructureInvitations.teamId, team.id),
+          eq(infrastructureInvitations.email, email),
+          eq(infrastructureInvitations.status, 'pending')
+        ),
+      });
 
     if (existingInvitation) {
       return { error: 'An invitation has already been sent to this email.' };
     }
 
-    await db.insert(invitations).values({
-      groupId: team.id,
+    await db.insert(infrastructureInvitations).values({
+      teamId: team.id,
       email,
       role,
       invitedBy: user.id,
     });
 
-    if (team.organizationId) {
+    // Note: team.organizationId doesn't exist in the current schema
+    // We'll use the user's organizationId instead
+    if (user.organizationId) {
       await logActivity(
-        team.organizationId,
+        user.organizationId,
         user.id,
-        ActivityType.INVITE_TEAM_MEMBER,
+        ActivityType.INVITE_TEAM_MEMBER
       );
     }
     // In a real app, you would also send an email here.
     return { success: true, message: 'Invitation sent.' };
-  },
+  }
 );
 
 const updateProfileSchema = z.object({
@@ -387,19 +341,25 @@ export const updateProfile = validatedActionWithUser(
     const { displayName } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
+    if (!db) {
+      return { error: 'Database connection not available.' };
+    }
+
     await db
       .update(mpCorePerson)
       .set({ displayName })
       .where(eq(mpCorePerson.id, user.id));
 
-    if (userWithTeam?.team?.organizationId) {
+    // Note: team.organizationId doesn't exist in the current schema
+    // We'll use the user's organizationId instead
+    if (user.organizationId) {
       await logActivity(
-        userWithTeam.team.organizationId,
+        user.organizationId,
         user.id,
-        ActivityType.UPDATE_ACCOUNT,
+        ActivityType.UPDATE_ACCOUNT
       );
     }
 
     return { success: true, message: 'Profile updated successfully.' };
-  },
-); 
+  }
+);

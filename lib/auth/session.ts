@@ -38,7 +38,7 @@ export async function setSession(user: Person) {
   const session: SessionData = {
     user: {
       id: user.id,
-      isSuperadmin: user.isSuperadmin || false,
+      isSuperadmin: false, // Default to false since this field doesn't exist in the schema
     },
     expires: expiresInOneDay.toISOString(),
   };
@@ -46,7 +46,7 @@ export async function setSession(user: Person) {
   (await cookies()).set('session', encryptedSession, {
     expires: expiresInOneDay,
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production', // Only secure in production
     sameSite: 'lax',
   });
 }

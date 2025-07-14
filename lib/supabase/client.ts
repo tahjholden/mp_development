@@ -11,8 +11,8 @@ let supabaseClient: SupabaseClient | null = null;
 export const createClient = () => {
   if (supabaseClient) return supabaseClient;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_CORE!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_CORE!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase URL and Anon Key must be provided');
@@ -35,7 +35,7 @@ export const createClient = () => {
  */
 export const signInWithEmail = async (email: string, password: string) => {
   const supabase = createClient();
-  
+
   // First authenticate with Supabase
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -49,7 +49,7 @@ export const signInWithEmail = async (email: string, password: string) => {
   // Then create our custom session
   const formData = new FormData();
   formData.append('email', email);
-  
+
   // Use our server action to create a session
   return signIn({}, formData);
 };
@@ -59,13 +59,13 @@ export const signInWithEmail = async (email: string, password: string) => {
  * This handles both Supabase user creation and our custom session management
  */
 export const signUpWithEmail = async (
-  email: string, 
-  password: string, 
+  email: string,
+  password: string,
   displayName?: string,
   inviteId?: string
 ) => {
   const supabase = createClient();
-  
+
   // First create a user in Supabase
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -87,15 +87,15 @@ export const signUpWithEmail = async (
     const formData = new FormData();
     formData.append('email', email);
     formData.append('authUid', data.user.id);
-    
+
     if (displayName) {
       formData.append('displayName', displayName);
     }
-    
+
     if (inviteId) {
       formData.append('inviteId', inviteId);
     }
-    
+
     // Use our server action to create a session
     return signUp({}, formData);
   }
@@ -108,10 +108,10 @@ export const signUpWithEmail = async (
  */
 export const signOutUser = async () => {
   const supabase = createClient();
-  
+
   // Sign out from Supabase
   await supabase.auth.signOut();
-  
+
   // Our server action will handle clearing the custom session cookie
   // and redirecting to the sign-in page
   window.location.href = '/sign-in';
@@ -123,12 +123,12 @@ export const signOutUser = async () => {
 export const getSupabaseSession = async () => {
   const supabase = createClient();
   const { data, error } = await supabase.auth.getSession();
-  
+
   if (error) {
     console.error('Error getting Supabase session:', error);
     return null;
   }
-  
+
   return data.session;
 };
 
@@ -145,15 +145,15 @@ export const getSupabaseUser = async () => {
  */
 export const resetPassword = async (email: string) => {
   const supabase = createClient();
-  
+
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/auth/update-password`,
   });
-  
+
   if (error) {
     return { error: error.message };
   }
-  
+
   return { success: true };
 };
 
@@ -162,15 +162,15 @@ export const resetPassword = async (email: string) => {
  */
 export const updatePassword = async (newPassword: string) => {
   const supabase = createClient();
-  
+
   const { data, error } = await supabase.auth.updateUser({
     password: newPassword,
   });
-  
+
   if (error) {
     return { error: error.message };
   }
-  
+
   return { success: true };
 };
 
