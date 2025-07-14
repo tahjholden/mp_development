@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Shield,
-  Plus,
-} from 'lucide-react';
+import { Shield, Plus } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -14,9 +11,7 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import type { DateRange } from 'react-day-picker';
-import type {
-  Player as SharedPlayer,
-} from '@/components/basketball/PlayerListCard';
+import type { Player as SharedPlayer } from '@/components/basketball/PlayerListCard';
 import { z } from 'zod';
 
 // Types for observations (matching actual API response)
@@ -53,10 +48,14 @@ export default function ObservationsPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Player/team data for left column - EXACT SAME AS PLAYERS PAGE
-  const [playersById, setPlayersById] = useState<Record<string, SharedPlayer>>({});
+  const [playersById, setPlayersById] = useState<
+    Record<string, SharedPlayer & { team: string }>
+  >({});
   const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<any[]>([]); // Changed to any[] as per new_code
-  const [selectedPlayer, setSelectedPlayer] = useState<SharedPlayer | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<
+    (SharedPlayer & { team: string }) | null
+  >(null);
 
   // Infinite scroll state - EXACT SAME AS PLAYERS PAGE
   const [loadingPlayers, setLoadingPlayers] = useState(false);
@@ -86,7 +85,7 @@ export default function ObservationsPage() {
       : Math.ceil(filteredByDate.length / (pageSize as number));
 
   // Handler for selecting a player - EXACT SAME AS PLAYERS PAGE
-  const handlePlayerSelect = (player: SharedPlayer) => {
+  const handlePlayerSelect = (player: SharedPlayer & { team: string }) => {
     setSelectedPlayer(player);
   };
 
@@ -106,19 +105,22 @@ export default function ObservationsPage() {
             name: player.name || 'Unknown Player',
             team: player.team || 'No Team',
             status: player.status || 'active',
-          }));
+          })) as (SharedPlayer & { team: string })[];
 
           if (reset) {
             // Reset the list with normalized state
-            const playersMap: Record<string, SharedPlayer> = {};
+            const playersMap: Record<string, SharedPlayer & { team: string }> =
+              {};
             const ids: string[] = [];
 
-            transformedPlayers.forEach((player: SharedPlayer) => {
-              if (!playersMap[player.id]) {
-                playersMap[player.id] = player;
-                ids.push(player.id);
+            transformedPlayers.forEach(
+              (player: SharedPlayer & { team: string }) => {
+                if (!playersMap[player.id]) {
+                  playersMap[player.id] = player;
+                  ids.push(player.id);
+                }
               }
-            });
+            );
 
             setPlayersById(playersMap);
             setPlayerIds(ids);
@@ -129,12 +131,14 @@ export default function ObservationsPage() {
               const newPlayersById = { ...prevPlayersById };
               const newIds: string[] = [];
 
-              transformedPlayers.forEach((player: SharedPlayer) => {
-                if (!newPlayersById[player.id]) {
-                  newPlayersById[player.id] = player;
-                  newIds.push(player.id);
+              transformedPlayers.forEach(
+                (player: SharedPlayer & { team: string }) => {
+                  if (!newPlayersById[player.id]) {
+                    newPlayersById[player.id] = player;
+                    newIds.push(player.id);
+                  }
                 }
-              });
+              );
 
               setPlayerIds(prevIds => [...prevIds, ...newIds]);
               return newPlayersById;
@@ -172,8 +176,9 @@ export default function ObservationsPage() {
   const filteredPlayers = playerIds
     .map(id => playersById[id])
     .filter(
-      (player: SharedPlayer | undefined): player is SharedPlayer =>
-        !!player && !!player.id
+      (
+        player: (SharedPlayer & { team: string }) | undefined
+      ): player is SharedPlayer & { team: string } => !!player && !!player.id
     )
     .filter(player => {
       const matchesSearch = player.name
@@ -234,7 +239,6 @@ export default function ObservationsPage() {
         setObservations(obsArr);
         setTotalObservations(total);
         setObsOffset(obsArr.length);
-
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -266,7 +270,9 @@ export default function ObservationsPage() {
         if (data && Array.isArray(data)) {
           arr = data;
         }
-        const result = z.array(z.object({ id: z.string(), name: z.string() })).safeParse(arr);
+        const result = z
+          .array(z.object({ id: z.string(), name: z.string() }))
+          .safeParse(arr);
         if (result.success) {
           // Deduplicate teams by id
           const uniqueTeams = Array.from(
@@ -303,18 +309,21 @@ export default function ObservationsPage() {
             name: player.name || 'Unknown Player',
             team: player.team || 'No Team',
             status: player.status || 'active',
-          }));
+          })) as (SharedPlayer & { team: string })[];
 
           // Reset the list with normalized state
-          const playersMap: Record<string, SharedPlayer> = {};
+          const playersMap: Record<string, SharedPlayer & { team: string }> =
+            {};
           const ids: string[] = [];
 
-          transformedPlayers.forEach((player: SharedPlayer) => {
-            if (!playersMap[player.id]) {
-              playersMap[player.id] = player;
-              ids.push(player.id);
+          transformedPlayers.forEach(
+            (player: SharedPlayer & { team: string }) => {
+              if (!playersMap[player.id]) {
+                playersMap[player.id] = player;
+                ids.push(player.id);
+              }
             }
-          });
+          );
 
           setPlayersById(playersMap);
           setPlayerIds(ids);
@@ -491,7 +500,7 @@ export default function ObservationsPage() {
                 <p className="text-zinc-400 text-sm">No players found</p>
               </div>
             ) : (
-              sortedPlayers.map((player: SharedPlayer) => (
+              sortedPlayers.map((player: SharedPlayer & { team: string }) => (
                 <div
                   key={player.id}
                   onClick={() => handlePlayerSelect(player)}
@@ -504,7 +513,9 @@ export default function ObservationsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-white">{player.name}</p>
-                      <p className="text-sm text-zinc-400">{player.team}</p>
+                      <p className="text-sm text-zinc-400">
+                        {String(player.team)}
+                      </p>
                     </div>
                     <div
                       className={`w-2 h-2 rounded-full ${

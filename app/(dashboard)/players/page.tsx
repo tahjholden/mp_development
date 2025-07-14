@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Shield,
-  Plus,
-  Eye,
-  Search,
-  Filter,
-} from 'lucide-react';
+import { Shield, Plus, Eye, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import UniversalButton from '@/components/ui/UniversalButton';
 import UniversalModal from '@/components/ui/UniversalModal';
@@ -63,14 +57,14 @@ const TeamsArraySchema = z.array(TeamSchema);
 
 export default function PlayersPage() {
   // Normalized state pattern - industry standard
-  const [playersById, setPlayersById] = useState<Record<string, SharedPlayer>>(
-    {}
-  );
+  const [playersById, setPlayersById] = useState<
+    Record<string, SharedPlayer & { team: string }>
+  >({});
   const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedPlayer, setSelectedPlayer] = useState<SharedPlayer | null>(
-    null
-  );
+  const [selectedPlayer, setSelectedPlayer] = useState<
+    (SharedPlayer & { team: string }) | null
+  >(null);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
   const [showArchivePlanModal, setShowArchivePlanModal] = useState(false);
@@ -89,7 +83,7 @@ export default function PlayersPage() {
   };
 
   // Handler for selecting a player
-  const handlePlayerSelect = (player: SharedPlayer) => {
+  const handlePlayerSelect = (player: SharedPlayer & { team: string }) => {
     setSelectedPlayer(player);
   };
 
@@ -155,19 +149,22 @@ export default function PlayersPage() {
             name: player.name || 'Unknown Player',
             team: player.team || 'No Team',
             status: player.status || 'active',
-          }));
+          })) as (SharedPlayer & { team: string })[];
 
           if (reset) {
             // Reset the list with normalized state
-            const playersMap: Record<string, SharedPlayer> = {};
+            const playersMap: Record<string, SharedPlayer & { team: string }> =
+              {};
             const ids: string[] = [];
 
-            transformedPlayers.forEach((player: SharedPlayer) => {
-              if (!playersMap[player.id]) {
-                playersMap[player.id] = player;
-                ids.push(player.id);
+            transformedPlayers.forEach(
+              (player: SharedPlayer & { team: string }) => {
+                if (!playersMap[player.id]) {
+                  playersMap[player.id] = player;
+                  ids.push(player.id);
+                }
               }
-            });
+            );
 
             setPlayersById(playersMap);
             setPlayerIds(ids);
@@ -178,12 +175,14 @@ export default function PlayersPage() {
               const newPlayersById = { ...prevPlayersById };
               const newIds: string[] = [];
 
-              transformedPlayers.forEach((player: SharedPlayer) => {
-                if (!newPlayersById[player.id]) {
-                  newPlayersById[player.id] = player;
-                  newIds.push(player.id);
+              transformedPlayers.forEach(
+                (player: SharedPlayer & { team: string }) => {
+                  if (!newPlayersById[player.id]) {
+                    newPlayersById[player.id] = player;
+                    newIds.push(player.id);
+                  }
                 }
-              });
+              );
 
               setPlayerIds(prevIds => [...prevIds, ...newIds]);
               return newPlayersById;
@@ -193,7 +192,7 @@ export default function PlayersPage() {
 
           // setHasMore(data.players.length === 10); // This line was removed by the linter
         }
-      } catch (error) {
+      } catch {
         // console.error('Error fetching players:', error);
       } finally {
         setLoading(false);
@@ -206,10 +205,7 @@ export default function PlayersPage() {
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-      if (
-        scrollHeight - scrollTop <= clientHeight * 1.5 &&
-        !loading
-      ) {
+      if (scrollHeight - scrollTop <= clientHeight * 1.5 && !loading) {
         fetchPlayers(offset);
       }
     },
@@ -220,8 +216,9 @@ export default function PlayersPage() {
   const filteredPlayers = playerIds
     .map(id => playersById[id])
     .filter(
-      (player: SharedPlayer | undefined): player is SharedPlayer =>
-        !!player && !!player.id
+      (
+        player: (SharedPlayer & { team: string }) | undefined
+      ): player is SharedPlayer & { team: string } => !!player && !!player.id
     )
     .filter(player => {
       const matchesSearch = player.name
@@ -306,18 +303,21 @@ export default function PlayersPage() {
             name: player.name || 'Unknown Player',
             team: player.team || 'No Team',
             status: player.status || 'active',
-          }));
+          })) as (SharedPlayer & { team: string })[];
 
           // Reset the list with normalized state
-          const playersMap: Record<string, SharedPlayer> = {};
+          const playersMap: Record<string, SharedPlayer & { team: string }> =
+            {};
           const ids: string[] = [];
 
-          transformedPlayers.forEach((player: SharedPlayer) => {
-            if (!playersMap[player.id]) {
-              playersMap[player.id] = player;
-              ids.push(player.id);
+          transformedPlayers.forEach(
+            (player: SharedPlayer & { team: string }) => {
+              if (!playersMap[player.id]) {
+                playersMap[player.id] = player;
+                ids.push(player.id);
+              }
             }
-          });
+          );
 
           setPlayersById(playersMap);
           setPlayerIds(ids);
@@ -527,7 +527,7 @@ export default function PlayersPage() {
                 <p className="text-zinc-400 text-sm">No players found</p>
               </div>
             ) : (
-              sortedPlayers.map((player: SharedPlayer) => (
+              sortedPlayers.map((player: SharedPlayer & { team: string }) => (
                 <div
                   key={player.id}
                   onClick={() => handlePlayerSelect(player)}
