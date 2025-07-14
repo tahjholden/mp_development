@@ -1342,9 +1342,9 @@ export const mpbcPersonRole = pgTable(
     personId: uuid('person_id'),
     organizationId: uuid('organization_id'),
     role: text().notNull(),
-    permissions: text().default(['']),
+    permissions: text().array().default(['']),
     scopeType: text('scope_type'),
-    scopeIds: uuid('scope_ids'),
+    scopeIds: uuid('scope_ids').array(),
     active: boolean().default(true),
     startedAt: timestamp('started_at', {
       withTimezone: true,
@@ -2804,9 +2804,9 @@ export const mpbcTemplateUsageLog = pgTable(
       mode: 'string',
     }).defaultNow(),
   },
-  table => [
+  _table => [
     foreignKey({
-      columns: [table.templateId],
+      columns: [_table.templateId],
       foreignColumns: [mpbcPracticeTemplatesEnhanced.id],
       name: 'template_usage_log_template_id_fkey',
     }),
@@ -2837,36 +2837,25 @@ export const mpbcVersionConfig = pgTable('mpbc_version_config', {
   }).defaultNow(),
 });
 
-export const mpbcSkillTag = pgTable(
-  'mpbc_skill_tag',
-  {
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    name: text(),
-    description: text(),
-    category: text(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    difficultyLevel: bigint('difficulty_level', { mode: 'number' }),
-    prerequisites: text(),
-    pillarId: text('pillar_id'),
-    parentSkillId: text('parent_skill_id'),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    progressionOrder: bigint('progression_order', { mode: 'number' }),
-    active: boolean(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }),
-    claCategoryMapping: text('cla_category_mapping'),
-    intelligenceFocus: text('intelligence_focus'),
-    contextRequirements: text('context_requirements'),
-  },
-  table => [
-    pgPolicy('Allow read for all', {
-      as: 'permissive',
-      for: 'select',
-      to: ['public'],
-      using: sql`true`,
-    }),
-  ]
-);
+export const mpbcSkillTag = pgTable('mpbc_skill_tag', {
+  id: uuid().defaultRandom().primaryKey().notNull(),
+  name: text(),
+  description: text(),
+  category: text(),
+  // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+  difficultyLevel: bigint('difficulty_level', { mode: 'number' }),
+  prerequisites: text(),
+  pillarId: text('pillar_id'),
+  parentSkillId: text('parent_skill_id'),
+  // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+  progressionOrder: bigint('progression_order', { mode: 'number' }),
+  active: boolean(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }),
+  claCategoryMapping: text('cla_category_mapping'),
+  intelligenceFocus: text('intelligence_focus'),
+  contextRequirements: text('context_requirements'),
+});
 
 export const mpbcCorePersonProfile = pgTable(
   'mpbc_core_person_profile',
@@ -2887,23 +2876,24 @@ export const mpbcCorePersonProfile = pgTable(
     responsibilityTier: text('responsibility_tier'),
     basketballProfile: jsonb('basketball_profile'),
   },
-  table => [
+  _table => [
     index('idx_mpbc_core_person_profile_org_id').using(
       'btree',
-      table.organizationId.asc().nullsLast().op('uuid_ops')
+      _table.organizationId.asc().nullsLast().op('uuid_ops')
     ),
     foreignKey({
-      columns: [table.organizationId],
+      columns: [_table.organizationId],
       foreignColumns: [mpCoreOrganizations.id],
       name: 'mpbc_core_person_profile_organization_id_fkey',
     }),
     foreignKey({
-      columns: [table.personId],
+      columns: [_table.personId],
       foreignColumns: [mpCorePerson.id],
       name: 'mpbc_core_person_profile_person_id_fkey',
     }).onDelete('cascade'),
   ]
 );
+
 export const vMpCoreGroupMembership = pgView('v_mp_core_group_membership', {
   id: uuid(),
   groupId: uuid('group_id'),
@@ -2930,7 +2920,7 @@ export const currentParticipants = pgView('current_participants', {
   cycleName: text('cycle_name'),
   organizationId: uuid('organization_id'),
 })
-  .with({ securityInvoker: 'on' })
+  .with({ securityInvoker: true })
   .as(
     sql`SELECT p.id, p.first_name, p.last_name, p.email, p.person_type, p.auth_uid, pg.group_id, g.name AS group_name, pg.role, pg."position", pg.identifier, pc.name AS cycle_name, p.organization_id FROM mp_core_person p JOIN mp_core_person_group pg ON p.id = pg.person_id JOIN mp_core_group g ON pg.group_id = g.id LEFT JOIN infrastructure_program_cycle pc ON pg.cycle_id = pc.id WHERE g.active = true`
   );
@@ -2953,7 +2943,7 @@ export const sessionParticipationSummary = pgView(
     attendancePercentage: numeric('attendance_percentage'),
   }
 )
-  .with({ securityInvoker: 'on' })
+  .with({ securityInvoker: true })
   .as(
     sql`SELECT s.id AS session_id, s.date, s.session_type, g.name AS group_name, count(pl.id) AS total_tracked, count( CASE WHEN pl.status = 'present'::text THEN 1 ELSE NULL::integer END) AS present_count, count( CASE WHEN pl.status = 'absent'::text THEN 1 ELSE NULL::integer END) AS absent_count, count( CASE WHEN pl.status = 'late'::text THEN 1 ELSE NULL::integer END) AS late_count, round(count( CASE WHEN pl.status = 'present'::text THEN 1 ELSE NULL::integer END)::numeric / NULLIF(count(pl.id), 0)::numeric * 100::numeric, 2) AS attendance_percentage FROM infrastructure_sessions s JOIN mp_core_group g ON g.id = s.group_id LEFT JOIN infrastructure_participation_log pl ON pl.session_id = s.id GROUP BY s.id, s.date, s.session_type, g.name`
   );
