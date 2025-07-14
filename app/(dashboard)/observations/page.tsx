@@ -1,32 +1,36 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Eye, Trash2, Star, Tag, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Edit, Eye, Trash2, Star, Tag, ChevronDown, ChevronUp, Search, Filter, Shield } from 'lucide-react'
 import { Sidebar } from '@/components/ui/Sidebar'
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import type { DateRange } from "react-day-picker";
+import PlayersList from '@/components/basketball/PlayersList';
+import type { Player as SharedPlayer } from '@/components/basketball/PlayerListCard';
 
-// Types for observations
+// Types for observations (matching actual API response)
 interface Observation {
   id: string
   playerId: string
+  playerFirstName?: string
+  playerLastName?: string
   playerName: string
-  coachId: string
-  coachName: string
   title: string
   description: string
   rating: number
   date: string
   tags: string[]
-  notes: string
-  private: boolean
   createdAt: string
-  updatedAt: string
+  updatedAt: string | null
 }
 
 interface Player {
   id: string
   name: string
   team: string
-  observations: number
+  status: string
 }
 
 interface Team {
@@ -36,87 +40,87 @@ interface Team {
 
 // Main component
 export default function ObservationsPage() {
-  const [observations, setObservations] = useState<Observation[]>([])
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [totalObservations, setTotalObservations] = useState<number>(0);
+  const [obsOffset, setObsOffset] = useState(0);
+  const [obsLoadingMore, setObsLoadingMore] = useState(false);
+  const obsLimit = 20;
+  const obsListRef = useRef<HTMLDivElement>(null);
   const [selectedObservation, setSelectedObservation] = useState<Observation | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Pagination state for observations
+  const [pageSize, setPageSize] = useState<number | 'all'>(25);
   const [page, setPage] = useState(1);
-  const pageSize = 5;
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Player/team data for left column
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<SharedPlayer | null>(null);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+  const [showAllPlayers, setShowAllPlayers] = useState(false);
+  const [showAllObservations, setShowAllObservations] = useState(false);
+  
+
 
   // Filter observations by selected player
-  const filteredObservations = selectedPlayerId 
-    ? observations.filter(obs => obs.playerId === selectedPlayerId)
-    : observations;
+  const filteredObservations =
+    selectedPlayerIds.length > 0
+      ? observations.filter((obs) => selectedPlayerIds.includes(obs.playerId))
+      : observations;
   
-  const paginatedObservations = filteredObservations.slice(0, page * pageSize);
-  const hasMore = filteredObservations.length > paginatedObservations.length;
-
-  const filteredPlayers = players.filter((player) => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
-    return matchesSearch && matchesTeam;
+  // Date range filter logic
+  const filteredByDate = observations.filter(obs => {
+    if (!dateRange?.from || !dateRange?.to) return true;
+    const obsDate = new Date(obs.date);
+    return obsDate >= dateRange.from && obsDate <= dateRange.to;
   });
 
-  // Handle player selection with toggle functionality
-  const handlePlayerSelect = (playerId: string) => {
-    if (selectedPlayerId === playerId) {
-      // Clicking the same player again - show all observations
-      setSelectedPlayerId(null);
-    } else {
-      // Clicking a different player - filter to their observations
-      setSelectedPlayerId(playerId);
+  // Pagination logic
+  const paginatedObservations = pageSize === 'all'
+    ? filteredByDate
+    : filteredByDate.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(filteredByDate.length / (pageSize as number));
+
+  const hasMore = filteredObservations.length > paginatedObservations.length;
+
+  // Handler for selecting a player
+  const handlePlayerSelect = (player: SharedPlayer) => {
+    setSelectedPlayer(player);
+    setSelectedPlayerIds([player.id]);
+  };
+  
+  // Load more players when scrolling (like players page)
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight * 1.5 && !obsLoadingMore && observations.length < totalObservations) {
+      handleObsScroll();
     }
   };
 
   // Fetch real data
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInitialData = async () => {
       try {
         setLoading(true)
         setError(null)
         
-        // Fetch observations
-        const observationsResponse = await fetch('/api/observations')
+        // Fetch initial observations with pagination
+        const observationsResponse = await fetch(`/api/observations?offset=0&limit=${obsLimit}`)
         if (!observationsResponse.ok) {
           throw new Error('Failed to fetch observations')
         }
-        const observationsData = await observationsResponse.json()
-        setObservations(observationsData)
+        const { observations: obsArr, total } = await observationsResponse.json();
+        setObservations(obsArr);
+        setTotalObservations(total);
+        setObsOffset(obsArr.length);
         
-        // Fetch players
-        const playersResponse = await fetch('/api/dashboard/players')
-        if (playersResponse.ok) {
-          const playersData = await playersResponse.json()
-          const transformedPlayers = playersData.map((player: any) => ({
-            id: player.id,
-            name: player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown Player',
-            team: player.team_name || player.team || 'No Team',
-            observations: observationsData.filter((obs: any) => obs.playerId === player.id).length
-          }))
-          setPlayers(transformedPlayers)
-        }
-
-        // Fetch teams
-        const teamsResponse = await fetch('/api/user/teams')
-        if (teamsResponse.ok) {
-          const teamsData = await teamsResponse.json()
-          // Deduplicate teams by id
-          const uniqueTeams = Array.from(new Map((teamsData as any[]).map((team: any) => [team.id, team])).values()) as Team[];
-          setTeams(uniqueTeams)
-        }
-        
-        if (observationsData.length > 0) {
-          setSelectedObservation(observationsData[0])
+        if (obsArr.length > 0) {
+          setSelectedObservation(obsArr[0])
         }
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -127,13 +131,40 @@ export default function ObservationsPage() {
       }
     }
 
-    fetchData()
+    fetchInitialData()
   }, [])
 
   // Reset page when player selection changes
   useEffect(() => {
     setPage(1);
-  }, [selectedPlayerId]);
+  }, [selectedPlayerIds]);
+
+
+
+  // Infinite scroll handler for expanded observations list
+  const handleObsScroll = async () => {
+    if (!showAllObservations || obsLoadingMore) return;
+    const el = obsListRef.current;
+    if (!el) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 64) {
+      // Near bottom, fetch more if available
+      if (observations.length < totalObservations) {
+        setObsLoadingMore(true);
+        try {
+          const res = await fetch(`/api/observations?offset=${obsOffset}&limit=${obsLimit}`);
+          if (res.ok) {
+            const data = await res.json();
+            setObservations(prev => [...prev, ...data.observations]);
+            setObsOffset(prev => prev + data.observations.length);
+          }
+        } finally {
+          setObsLoadingMore(false);
+        }
+      }
+    }
+  };
+
+
 
   if (loading) {
     return (
@@ -181,94 +212,82 @@ export default function ObservationsPage() {
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
         {/* LEFT PANE: Player List */}
         <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Players</h2>
-          
-          {/* Search Input */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
-            />
-          </div>
-
-          {/* Team Filter */}
-          <div className="relative mb-6">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
-            <button
-              onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
-              className="w-full pl-10 pr-4 py-3 text-left bg-zinc-800 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:border-[#d8cc97] flex items-center justify-between"
-            >
-              <span>{teamFilter === 'all' ? 'All Teams' : teamFilter}</span>
-              {isTeamDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-            {isTeamDropdownOpen && (
-              <div className="absolute z-10 mt-1 w-full bg-zinc-800 border border-zinc-700 rounded shadow-lg overflow-hidden">
-                <button
-                  onClick={() => { setTeamFilter('all'); setIsTeamDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-700 text-white"
-                >
-                  All Teams
-                </button>
-                {teams.map(team => (
-                  <button
-                    key={team.id}
-                    onClick={() => { setTeamFilter(team.name); setIsTeamDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-700 text-white"
-                  >
-                    {team.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Player List */}
-          <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
-            {filteredPlayers.length === 0 ? (
-              <div className="text-sm text-gray-500 text-center py-4">No players found</div>
-            ) : (
-              filteredPlayers.map((player) => (
-                <div
-                  key={player.id}
-                  onClick={() => handlePlayerSelect(player.id)}
-                  className={`p-4 rounded cursor-pointer transition-all ${
-                    selectedPlayerId === player.id
-                      ? "bg-[#d8cc97] text-black font-semibold"
-                      : "bg-zinc-800 hover:bg-zinc-700"
-                  }`}
-                >
-                  <p className="font-medium">{player.name}</p>
-                  <p className="text-xs text-gray-400">
-                    {player.observations} observations
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
+          <PlayersList
+            selectedPlayerId={selectedPlayer?.id}
+            onPlayerSelect={handlePlayerSelect}
+            title="Players"
+            showSearch={true}
+            showTeamFilter={true}
+            maxHeight="400px"
+          />
         </div>
 
         {/* CENTER PANE: Observations */}
         <div className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
-            {selectedPlayerId 
-              ? `${players.find(p => p.id === selectedPlayerId)?.name}'s Observations`
-              : "All Observations"
-            }
-          </h2>
-          
+          <div className="flex items-center mb-6 gap-4 justify-between w-full">
+            <h2 className="text-xl font-bold text-[#d8cc97] mt-0">
+              {selectedPlayerIds.length > 0 && selectedPlayer
+                ? `${selectedPlayer.name}'s Observations`
+                : "All Observations"
+              }
+            </h2>
+            <div className="flex items-center gap-4">
+              {/* Page size selector */}
+              <label className="text-sm text-zinc-400">Show:
+                <select
+                  className="ml-2 px-2 py-1 rounded bg-zinc-800 text-white border border-zinc-700"
+                  value={pageSize}
+                  onChange={e => {
+                    setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value));
+                    setPage(1);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value="all">All</option>
+                </select>
+              </label>
+              {/* Date range picker toggle */}
+              <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="px-3 py-1 border border-zinc-700 bg-zinc-800 text-[#d8cc97] hover:border-[#d8cc97]">
+                    {dateRange?.from && dateRange?.to
+                      ? `${dateRange.from.toLocaleDateString()} - ${dateRange.to.toLocaleDateString()}`
+                      : 'Select Date Range'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-4 bg-black border-[#d8cc97] text-[#d8cc97] w-auto">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    className="bg-black text-[#d8cc97]"
+                  />
+                  <Button
+                    variant="ghost"
+                    className="w-full mt-2 border border-[#d8cc97] text-[#d8cc97] hover:bg-[#232323]"
+                    onClick={() => setShowDatePicker(false)}
+                  >
+                    Close
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
           {paginatedObservations.length > 0 ? (
-            <div className="space-y-4">
+            <div
+              ref={obsListRef}
+              className="space-y-4"
+              style={{ maxHeight: `${(pageSize === 'all' ? 12 : pageSize) * 64}px`, minHeight: '0', overflowY: paginatedObservations.length > (pageSize === 'all' ? 12 : pageSize) ? 'auto' : 'visible' }}
+              onScroll={handleScroll}
+            >
               {paginatedObservations.map((obs) => (
                 <div
                   key={obs.id}
-                  onClick={() => setSelectedObservation(obs)}
-                  className={`bg-zinc-800 p-6 rounded cursor-pointer hover:bg-zinc-700 transition-all ${
-                    selectedObservation?.id === obs.id ? "ring-2 ring-[#d8cc97]" : ""
-                  }`}
+                  className="bg-zinc-800 px-6 py-3 rounded transition-all"
                   style={{ background: '#181818' }}
                 >
                   <div className="flex justify-between items-start mb-3">
@@ -284,30 +303,26 @@ export default function ObservationsPage() {
                   <p className="text-sm text-zinc-300 line-clamp-3">{obs.description}</p>
                 </div>
               ))}
-              
-              {/* Show More/Less Buttons */}
-              {hasMore && (
-                <button
-                  className="flex items-center justify-center w-full py-4 text-[#d8cc97] hover:text-[#b3a14e] transition-colors bg-black"
-                  onClick={() => setPage(page + 1)}
-                  style={{ background: 'black' }}
-                >
-                  Show More <ChevronDown className="ml-2 w-4 h-4" />
-                </button>
-              )}
-              {page > 1 && (
-                <button
-                  className="flex items-center justify-center w-full py-4 text-[#d8cc97] hover:text-[#b3a14e] transition-colors bg-black"
-                  onClick={() => setPage(page - 1)}
-                  style={{ background: 'black' }}
-                >
-                  Show Less <ChevronUp className="ml-2 w-4 h-4" />
-                </button>
-              )}
             </div>
           ) : (
             <div className="text-sm text-gray-500 text-center py-8">
-              {selectedPlayerId ? "No observations found for this player." : "No observations found."}
+              {selectedPlayerIds.length > 0 ? "No observations found for these players." : "No observations found."}
+            </div>
+          )}
+          {/* Pagination controls */}
+          {pageSize !== 'all' && totalPages > 1 && (
+            <div className="flex justify-center mt-4 gap-2">
+              <button
+                className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >Prev</button>
+              <span className="px-2 py-1 text-sm">Page {page} of {totalPages}</span>
+              <button
+                className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-sm"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >Next</button>
             </div>
           )}
         </div>

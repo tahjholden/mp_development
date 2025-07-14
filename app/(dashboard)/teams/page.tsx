@@ -6,10 +6,29 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/ui/Sidebar';
 import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
-import { cn } from '@/lib/utils';
+import { cn, UserResponseSchema } from '@/lib/utils';
 import PlayerListCard from '@/components/basketball/PlayerListCard';
 import Header from '@/components/ui/Header';
 import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
+import { z } from 'zod';
+
+// Zod schemas for validation
+const TeamSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  coachName: z.string().optional(),
+  createdAt: z.string(),
+});
+const TeamsArraySchema = z.array(TeamSchema);
+
+const PlayerSchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  teamId: z.string(),
+  personType: z.string().optional(),
+  position: z.string().optional(),
+});
+const PlayersArraySchema = z.array(PlayerSchema);
 
 interface Team {
   id: string;
@@ -45,32 +64,69 @@ export default function TeamsPage() {
       try {
         setIsLoading(true);
         
-        // Fetch current user
+        // Fetch current user with validation
         const response = await fetch('/api/user');
         if (!response.ok) throw new Error('Failed to fetch user');
         const userData = await response.json();
-        setCurrentUser(userData);
+        
+        // Validate user data
+        const validatedUser = UserResponseSchema.safeParse(userData);
+        if (!validatedUser.success) {
+          console.error('Invalid user data:', validatedUser.error);
+          throw new Error('Invalid user data received');
+        }
+        
+        if (!validatedUser.data.user) {
+          console.error('No user data available');
+          throw new Error('No user data available');
+        }
+        
+        setCurrentUser(validatedUser.data.user);
         
         // Fetch teams - either all teams for superadmin or only teams user is part of
         let teamsData: Team[] = [];
         
-        if (userData.isSuperadmin) {
+        if (validatedUser.data.user.isSuperadmin) {
           // Superadmin sees all teams
           const teamsResponse = await fetch('/api/teams');
           if (!teamsResponse.ok) throw new Error('Failed to fetch teams');
-          teamsData = await teamsResponse.json();
+          const rawTeamsData = await teamsResponse.json();
+          
+          // Validate teams data
+          const validatedTeams = TeamsArraySchema.safeParse(rawTeamsData);
+          if (!validatedTeams.success) {
+            console.error('Invalid teams data:', validatedTeams.error);
+            throw new Error('Invalid teams data received');
+          }
+          teamsData = validatedTeams.data;
         } else {
           // Regular user only sees their teams
           const userTeamsResponse = await fetch(`/api/user/teams`);
           if (!userTeamsResponse.ok) throw new Error('Failed to fetch user teams');
-          teamsData = await userTeamsResponse.json();
+          const rawUserTeamsData = await userTeamsResponse.json();
+          
+          // Validate user teams data
+          const validatedUserTeams = TeamsArraySchema.safeParse(rawUserTeamsData);
+          if (!validatedUserTeams.success) {
+            console.error('Invalid user teams data:', validatedUserTeams.error);
+            throw new Error('Invalid user teams data received');
+          }
+          teamsData = validatedUserTeams.data;
         }
         
-        // Deduplicate teams by id and sort alphabetically
+        // Filter out any invalid teams and deduplicate by id
+        const validTeams = teamsData.filter((team): team is Team => 
+          team && typeof team === 'object' && 
+          typeof team.id === 'string' && 
+          typeof team.name === 'string' &&
+          team.id.trim() !== '' && 
+          team.name.trim() !== ''
+        );
+        
         const uniqueTeams = Array.from(
-          new Map(teamsData.map((team: any) => [team.id, team])).values()
-        ) as Team[];
-        uniqueTeams.sort((a: any, b: any) => a.name.localeCompare(b.name));
+          new Map(validTeams.map((team) => [team.id, team])).values()
+        );
+        uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
         setTeams(uniqueTeams);
         
         // Select the first team by default if available
@@ -80,6 +136,8 @@ export default function TeamsPage() {
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setTeams([]);
+        setCurrentUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -87,14 +145,37 @@ export default function TeamsPage() {
     
     fetchUserAndTeams();
   }, []);
-  
-  // Fetch players for a selected team
+
+  // Fetch team players with validation
   const fetchTeamPlayers = async (teamId: string) => {
     try {
       const response = await fetch(`/api/teams/${teamId}/players`);
       if (!response.ok) throw new Error('Failed to fetch team players');
-      const playersData = await response.json();
-      setTeamPlayers(playersData);
+      const rawPlayersData = await response.json();
+      
+      // Validate players data
+      const validatedPlayers = PlayersArraySchema.safeParse(rawPlayersData);
+      if (!validatedPlayers.success) {
+        console.error('Invalid players data:', validatedPlayers.error);
+        throw new Error('Invalid players data received');
+      }
+      
+      // Filter out any invalid players
+      const validPlayers = validatedPlayers.data.filter((player): player is Player => 
+        player && typeof player === 'object' && 
+        typeof player.id === 'string' && 
+        typeof player.displayName === 'string' &&
+        typeof player.teamId === 'string' &&
+        player.id.trim() !== '' && 
+        player.displayName.trim() !== '' &&
+        player.teamId.trim() !== ''
+      );
+      
+      // Deduplicate players by id
+      const uniquePlayers = Array.from(
+        new Map(validPlayers.map((player) => [player.id, player])).values()
+      );
+      setTeamPlayers(uniquePlayers);
     } catch (error) {
       console.error('Error fetching team players:', error);
       setTeamPlayers([]);

@@ -7,8 +7,13 @@ export async function GET() {
   try {
     const user = await getUser();
     
+    if (!db) {
+      return Response.json({ error: 'Database not available' }, { status: 500 });
+    }
+
+    // If no user session, still fetch data for development
     if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
+      console.log('No user session found, fetching all development plans for development');
     }
 
     if (!db) {

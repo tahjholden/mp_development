@@ -10,6 +10,7 @@ import { updateProfile } from '@/app/(login)/actions';
 import { type Person } from '@/lib/db/schema';
 import useSWR from 'swr';
 import { Suspense } from 'react';
+import { UserResponse } from '@/lib/utils';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -63,7 +64,8 @@ function AccountForm({
 }
 
 function AccountFormWithData({ state }: { state: ActionState }) {
-  const { data: user } = useSWR<Person>('/api/user', fetcher);
+  const { data: userResponse } = useSWR<UserResponse>('/api/user', fetcher);
+  const user = userResponse?.user;
   return (
     <AccountForm
       state={state}

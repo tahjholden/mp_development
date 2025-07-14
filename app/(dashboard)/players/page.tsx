@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Plus, Eye, Edit, Trash2, Star, Tag, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
@@ -10,24 +10,23 @@ import UniversalButton from '@/components/ui/UniversalButton';
 import UniversalModal from '@/components/ui/UniversalModal';
 import AddPlayerModal from '@/components/basketball/AddPlayerModal';
 import ArchivePlanModal from '@/components/basketball/ArchivePlanModal';
+import { z } from 'zod';
+import type { Player as SharedPlayer } from '@/components/basketball/PlayerListCard';
 
 // Types for observations
 interface Observation {
   id: string;
   playerId: string;
+  playerFirstName?: string;
+  playerLastName?: string;
   playerName: string;
-  coachId: string;
-  coachName: string;
   title: string;
   description: string;
-  category: string;
   rating: number;
   date: string;
   tags: string[];
-  notes: string;
-  private: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt: string | null;
 }
 
 interface Player {
@@ -42,16 +41,56 @@ interface Team {
   name: string;
 }
 
+// Zod schema for Observation (matching actual API response)
+const ObservationSchema = z.object({
+  id: z.string(),
+  playerId: z.string(),
+  playerFirstName: z.string().optional(),
+  playerLastName: z.string().optional(),
+  playerName: z.string(),
+  title: z.string(),
+  description: z.string(),
+  rating: z.number(),
+  date: z.string(),
+  tags: z.array(z.string()),
+  createdAt: z.string(),
+  updatedAt: z.string().nullable(),
+});
+const ObservationsArraySchema = z.array(ObservationSchema);
+
+// Zod schema for Player
+const PlayerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  team: z.string(),
+  status: z.string(),
+});
+const PlayersArraySchema = z.array(PlayerSchema);
+
+// Zod schema for Team
+const TeamSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+const TeamsArraySchema = z.array(TeamSchema);
+
 export default function PlayersPage() {
-  const [players, setPlayers] = useState<Player[]>([]);
+  // Normalized state pattern - industry standard
+  const [playersById, setPlayersById] = useState<Record<string, SharedPlayer>>({});
+  const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<SharedPlayer | null>(null);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
   const [showArchivePlanModal, setShowArchivePlanModal] = useState(false);
   const [observations, setObservations] = useState<Observation[]>([]);
   const [loadingObservations, setLoadingObservations] = useState(true);
   const [errorObservations, setErrorObservations] = useState<string | null>(null);
+  
+  // Infinite scroll state
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,7 +103,7 @@ export default function PlayersPage() {
   };
   
   // Handler for selecting a player
-  const handlePlayerSelect = (player: Player) => {
+  const handlePlayerSelect = (player: SharedPlayer) => {
     setSelectedPlayer(player);
   };
   
@@ -85,7 +124,7 @@ export default function PlayersPage() {
     
     // Create a new player object
     const newPlayer = {
-      id: `${players.length + 1}`,
+      id: `${playerIds.length + 1}`,
       name: `${data.firstName} ${data.lastName}`,
       teamId: data.teamId,
       status: 'active' as const,
@@ -122,60 +161,211 @@ export default function PlayersPage() {
     setShowArchivePlanModal(false);
   };
 
+  // Fetch players with pagination
+  const fetchPlayers = useCallback(async (currentOffset: number = 0, reset: boolean = false) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/dashboard/players?offset=${currentOffset}&limit=10`);
+      const data = await response.json();
+      
+      if (data.players) {
+        const transformedPlayers = data.players.map((player: any) => ({
+          id: player.id,
+          name: player.name || 'Unknown Player',
+          team: player.team || 'No Team',
+          status: player.status || 'active'
+        }));
+        
+        if (reset) {
+          // Reset the list with normalized state
+          const playersMap: Record<string, SharedPlayer> = {};
+          const ids: string[] = [];
+          
+          transformedPlayers.forEach((player: SharedPlayer) => {
+            if (!playersMap[player.id]) {
+              playersMap[player.id] = player;
+              ids.push(player.id);
+            }
+          });
+          
+          setPlayersById(playersMap);
+          setPlayerIds(ids);
+          setOffset(10);
+        } else {
+          // Append to existing list with normalized state
+          setPlayersById(prevPlayersById => {
+            const newPlayersById = { ...prevPlayersById };
+            const newIds: string[] = [];
+            
+            transformedPlayers.forEach((player: SharedPlayer) => {
+              if (!newPlayersById[player.id]) {
+                newPlayersById[player.id] = player;
+                newIds.push(player.id);
+              }
+            });
+            
+            setPlayerIds(prevIds => [...prevIds, ...newIds]);
+            return newPlayersById;
+          });
+          setOffset(prev => prev + 10);
+        }
+        
+        setHasMore(data.players.length === 10);
+      }
+    } catch (error) {
+      console.error('Error fetching players:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load more players when scrolling
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight * 1.5 && !loading && hasMore) {
+      fetchPlayers(offset);
+    }
+  }, [fetchPlayers, loading, hasMore, offset]);
+
   // Filter players based on search and team filter
-  const filteredPlayers = players.filter((player) => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
-    return matchesSearch && matchesTeam;
-  });
+  const filteredPlayers = playerIds
+    .map(id => playersById[id])
+    .filter((player: SharedPlayer | undefined): player is SharedPlayer => !!player && !!player.id)
+    .filter((player) => {
+      const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
+      return matchesSearch && matchesTeam;
+    });
+  // Deduplicate by player.id before sorting and rendering
+  const dedupedPlayers = Array.from(new Map(filteredPlayers.map(p => [p.id, p])).values());
+  const sortedPlayers = [...dedupedPlayers].sort((a, b) => a.name.localeCompare(b.name));
+  // Debug: log duplicate IDs or undefined/null
+  if (typeof window !== 'undefined') {
+    const idSet = new Set();
+    for (const p of sortedPlayers) {
+      if (idSet.has(p.id)) {
+        console.error('DUPLICATE ID:', p.id);
+      }
+      idSet.add(p.id);
+    }
+    if (sortedPlayers.some(p => !p || !p.id)) {
+      console.error('Undefined or null player in sortedPlayers', sortedPlayers);
+    }
+  }
 
   useEffect(() => {
     // Fetch teams
     fetch('/api/user/teams')
       .then(res => res.json())
       .then(data => {
-        // Deduplicate teams by id
-        const uniqueTeams = Array.from(
-          new Map(data.map((team: any) => [team.id, team])).values()
-        ) as Team[];
-        uniqueTeams.sort((a: any, b: any) => a.name.localeCompare(b.name));
-        setTeams(uniqueTeams);
+        let arr: unknown = data;
+        if (data && Array.isArray(data)) {
+          arr = data;
+        }
+        const result = TeamsArraySchema.safeParse(arr);
+        if (result.success) {
+          // Deduplicate teams by id
+          const uniqueTeams = Array.from(
+            new Map(result.data.map((team) => [team.id, team])).values()
+          );
+          uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
+          setTeams(uniqueTeams);
+        } else {
+          console.error('Zod validation error for teams:', result.error);
+          setTeams([]);
+        }
       });
-    // Fetch players
-    fetch('/api/dashboard/players')
+
+    // Fetch initial players
+    setLoading(true);
+    fetch('/api/dashboard/players?offset=0&limit=10')
       .then(res => res.json())
       .then(data => {
-        const transformedPlayers = data.map((player: any) => ({
-          id: player.id,
-          name: player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown Player',
-          team: player.team_name || player.team || 'No Team',
-          status: player.status || 'active'
-        }));
-        setPlayers(transformedPlayers);
+        if (data.players) {
+          const transformedPlayers = data.players.map((player: any) => ({
+            id: player.id,
+            name: player.name || 'Unknown Player',
+            team: player.team || 'No Team',
+            status: player.status || 'active'
+          }));
+          
+          // Reset the list with normalized state
+          const playersMap: Record<string, SharedPlayer> = {};
+          const ids: string[] = [];
+          
+          transformedPlayers.forEach((player: SharedPlayer) => {
+            if (!playersMap[player.id]) {
+              playersMap[player.id] = player;
+              ids.push(player.id);
+            }
+          });
+          
+          setPlayersById(playersMap);
+          setPlayerIds(ids);
+          setOffset(10);
+          setHasMore(data.players.length === 10);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching players:', error);
+      })
+      .finally(() => {
+        setLoading(false);
       });
+
     // Fetch observations
     setLoadingObservations(true);
     setErrorObservations(null);
     fetch('/api/observations')
       .then(res => res.json())
-      .then(data => setObservations(data))
-      .catch(err => setErrorObservations('Failed to fetch observations'))
+      .then(data => {
+        // Handle the API response structure: { observations: [...], total: number }
+        if (data && data.observations && Array.isArray(data.observations)) {
+          const result = ObservationsArraySchema.safeParse(data.observations);
+          if (result.success) {
+            setObservations(result.data);
+          } else {
+            console.error('Zod validation error for observations:', result.error);
+            setObservations([]);
+            setErrorObservations('Invalid observations data received from API.');
+          }
+        } else {
+          console.error('Invalid API response structure for observations:', data);
+          setObservations([]);
+          setErrorObservations('Invalid observations data structure received from API.');
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching observations:', err);
+        setErrorObservations('Failed to fetch observations');
+      })
       .finally(() => setLoadingObservations(false));
   }, []);
 
+  // Reset pagination when search or filter changes
+  useEffect(() => {
+    setOffset(0);
+    setHasMore(true);
+    fetchPlayers(0, true);
+  }, [searchTerm, teamFilter]);
+
   // Helper to get rating stars
-  const getRatingStars = (rating: number) => {
+  const getRatingStars = (rating: number | undefined) => {
+    const safeRating = typeof rating === 'number' ? rating : 0;
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`h-4 w-4 ${i < rating ? 'text-yellow-500 fill-current' : 'text-zinc-600'}`}
+        className={`h-4 w-4 ${i < safeRating ? 'text-yellow-500 fill-current' : 'text-zinc-600'}`}
       />
     ));
   };
 
-  // Filter observations for the selected player
+  // Defensive: always check Array.isArray before .filter
+  const safeObservations = Array.isArray(observations) ? observations.filter(Boolean) : [];
   const playerObservations = selectedPlayer
-    ? observations.filter(obs => obs.playerId === selectedPlayer.id)
+    ? safeObservations
+        .filter((obs): obs is Observation => !!obs && typeof obs.playerId === 'string')
+        .filter(obs => obs.playerId === selectedPlayer.id)
     : [];
 
   return (
@@ -205,7 +395,7 @@ export default function PlayersPage() {
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
         {/* LEFT PANE: Player List */}
         <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
-        <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
             <UniversalButton.Primary
               size="sm"
@@ -215,7 +405,6 @@ export default function PlayersPage() {
               Add Player
             </UniversalButton.Primary>
           </div>
-          
           {/* Search Input */}
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
@@ -227,7 +416,6 @@ export default function PlayersPage() {
               className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
             />
           </div>
-
           {/* Team Filter */}
           <div className="relative mb-6">
             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
@@ -239,7 +427,6 @@ export default function PlayersPage() {
                 <span>{teamFilter === 'all' ? 'All Teams' : teamFilter}</span>
                 <span className="text-zinc-400">▼</span>
               </button>
-              
               {isTeamDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded shadow-lg z-10 max-h-48 overflow-y-auto">
                   <button
@@ -267,16 +454,19 @@ export default function PlayersPage() {
               )}
             </div>
           </div>
-
-          {/* Player List */}
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {filteredPlayers.length === 0 ? (
+          {/* Player List - Fixed height for exactly 10 player cards */}
+          <div 
+            className="flex-1 overflow-y-auto space-y-2"
+            style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
+            onScroll={handleScroll}
+          >
+            {sortedPlayers.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
                 <p className="text-zinc-400 text-sm">No players found</p>
               </div>
             ) : (
-              filteredPlayers.map((player) => (
+              sortedPlayers.map((player: SharedPlayer) => (
                 <div
                   key={player.id}
                   onClick={() => handlePlayerSelect(player)}

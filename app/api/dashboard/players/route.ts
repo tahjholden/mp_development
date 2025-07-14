@@ -3,68 +3,35 @@ import { db } from '@/lib/db/drizzle';
 import { mpCorePerson } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '12', 10), 100); // max 100 per page
+
     const user = await getUser();
-    
     if (!user) {
-      console.log('No user found, returning mock players for development');
       // For development, return mock data if no user is found
       const mockPlayers = [
         {
-          id: '1',
-          name: 'John Smith',
-          team: 'Varsity Boys',
-          position: 'Point Guard',
-          status: 'active',
-          performance: {
-            overall: 85,
-            shooting: 88,
-            defense: 82,
-            ballHandling: 90,
-          },
+          id: '1', name: 'John Smith', team: 'Varsity Boys', position: 'Point Guard', status: 'active', performance: { overall: 85, shooting: 88, defense: 82, ballHandling: 90 },
         },
-        {
-          id: '2',
-          name: 'Sarah Johnson',
-          team: 'JV Girls',
-          position: 'Shooting Guard',
+        { id: '2', name: 'Sarah Johnson', team: 'JV Girls', position: 'Shooting Guard', status: 'active', performance: { overall: 78, shooting: 85, defense: 75, ballHandling: 72 }, },
+        { id: '3', name: 'Mike Wilson', team: 'Varsity Boys', position: 'Center', status: 'active', performance: { overall: 82, shooting: 75, defense: 88, ballHandling: 70 }, },
+        { id: '4', name: 'Emily Davis', team: 'JV Girls', position: 'Power Forward', status: 'active', performance: { overall: 80, shooting: 78, defense: 85, ballHandling: 75 }, },
+        // Add more mock players for testing pagination
+        ...Array.from({ length: 40 }, (_, i) => ({
+          id: `${i + 5}`,
+          name: `Mock Player ${i + 5}`,
+          team: i % 2 === 0 ? 'Varsity Boys' : 'JV Girls',
+          position: 'Unknown',
           status: 'active',
-          performance: {
-            overall: 78,
-            shooting: 85,
-            defense: 75,
-            ballHandling: 72,
-          },
-        },
-        {
-          id: '3',
-          name: 'Mike Wilson',
-          team: 'Varsity Boys',
-          position: 'Center',
-          status: 'active',
-          performance: {
-            overall: 82,
-            shooting: 75,
-            defense: 88,
-            ballHandling: 70,
-          },
-        },
-        {
-          id: '4',
-          name: 'Emily Davis',
-          team: 'JV Girls',
-          position: 'Power Forward',
-          status: 'active',
-          performance: {
-            overall: 80,
-            shooting: 78,
-            defense: 85,
-            ballHandling: 75,
-          },
-        },
+          performance: { overall: 70 + (i % 30), shooting: 70 + (i % 30), defense: 70 + (i % 30), ballHandling: 70 + (i % 30) },
+        })),
       ];
-      return Response.json(mockPlayers);
+      const total = mockPlayers.length;
+      const paged = mockPlayers.slice(offset, offset + limit);
+      return Response.json({ players: paged, total });
     }
 
     if (!db) {
@@ -123,13 +90,10 @@ export async function GET() {
     const uniquePlayers = formattedPlayers.filter((player, index, self) => 
       index === self.findIndex(p => p.id === player.id)
     );
+    const total = uniquePlayers.length;
+    const paged = uniquePlayers.slice(offset, offset + limit);
 
-    console.log(`Found ${players.length} players, ${uniquePlayers.length} unique players`);
-    if (players.length !== uniquePlayers.length) {
-      console.log('Duplicate IDs found:', players.map(p => p.id).filter((id, index, arr) => arr.indexOf(id) !== index));
-    }
-
-    return Response.json(uniquePlayers);
+    return Response.json({ players: paged, total });
   } catch (error) {
     console.error('Error fetching dashboard players:', error);
     return Response.json({ error: 'Failed to fetch players' }, { status: 500 });

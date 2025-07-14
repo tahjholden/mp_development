@@ -4,19 +4,35 @@ import { db } from '@/lib/db/drizzle';
 import { mpCorePerson, mpbc_observations } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await getUser();
     
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     if (!db) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
-    // Fetch real observations joined with player info
+    // If no user session, still fetch data for development
+    if (!user) {
+      console.log('No user session found, fetching all observations for development');
+    }
+
+    // Parse pagination params
+    const { searchParams } = new URL(req.url);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100); // max 100 per page
+
+    // Fetch all observations (for total count)
+    const allResults = await db
+      .select({
+        id: mpbc_observations.id,
+      })
+      .from(mpbc_observations)
+      .leftJoin(mpCorePerson, eq(mpbc_observations.player_id, mpCorePerson.id))
+      .where(eq(mpCorePerson.personType, 'player'));
+    const total = allResults.length;
+
+    // Fetch paginated observations
     const results = await db
       .select({
         id: mpbc_observations.id,
@@ -33,7 +49,9 @@ export async function GET() {
       })
       .from(mpbc_observations)
       .leftJoin(mpCorePerson, eq(mpbc_observations.player_id, mpCorePerson.id))
-      .where(eq(mpCorePerson.personType, 'player'));
+      .where(eq(mpCorePerson.personType, 'player'))
+      .limit(limit)
+      .offset(offset);
 
     // Map tags and other fields if needed
     const observations = results.map(obs => ({
@@ -47,7 +65,7 @@ export async function GET() {
       description: obs.description || '',
     }));
 
-    return NextResponse.json(observations);
+    return NextResponse.json({ observations, total });
   } catch (error) {
     console.error('Error fetching observations:', error);
     return NextResponse.json({ error: 'Failed to fetch observations' }, { status: 500 });
@@ -57,13 +75,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getUser();
-    
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
     const body = await request.json();
-    
     // In a real implementation, you would save the observation to the database
     // For now, return a success response
     return NextResponse.json({ 
