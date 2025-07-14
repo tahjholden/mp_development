@@ -10,7 +10,6 @@ import {
   Zap,
   Lightbulb,
   Shield,
-  Plus,
   Search,
   Filter,
 } from 'lucide-react';
@@ -79,21 +78,39 @@ interface Team {
   name: string;
 }
 
+// API response types
+interface ApiPlayer {
+  id: string;
+  name?: string;
+  team?: string;
+  status?: string;
+}
+
+interface ApiPlan {
+  id?: string;
+  playerId?: string;
+  playerName?: string;
+  objective?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string | null;
+  goals?: DevelopmentGoal[];
+  tags?: string[];
+  readiness?: string;
+  updatedAt?: string;
+  createdAt?: string;
+}
+
 export default function DevelopmentPlansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [plans, setPlans] = useState<DevelopmentPlan[]>([]);
 
   // Player list state - EXACT SAME AS PLAYERS PAGE
-  const [playersById, setPlayersById] = useState<Record<string, Player>>({});
-  const [playerIds, setPlayerIds] = useState<string[]>([]);
+  const [playersById] = useState<Record<string, Player>>({});
+  const [playerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-
-  // Infinite scroll state - EXACT SAME AS PLAYERS PAGE
-  const [loadingPlayers, setLoadingPlayers] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
 
   // Search and filter state - EXACT SAME AS PLAYERS PAGE
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,105 +122,6 @@ export default function DevelopmentPlansPage() {
     setSelectedPlayer(player);
   };
 
-  // Fetch players with pagination - EXACT SAME AS PLAYERS PAGE
-  const fetchPlayers = useCallback(
-    async (currentOffset: number = 0, reset: boolean = false) => {
-      setLoadingPlayers(true);
-      try {
-        const response = await fetch(
-          `/api/dashboard/players?offset=${currentOffset}&limit=10`
-        );
-        const data = await response.json();
-
-        if (data.players) {
-          const transformedPlayers = data.players.map((player: any) => ({
-            id: player.id,
-            name: player.name || 'Unknown Player',
-            team: player.team || 'No Team',
-            status: player.status || 'active',
-          }));
-
-          if (reset) {
-            // Reset the list with normalized state
-            const playersMap: Record<string, Player> = {};
-            const ids: string[] = [];
-
-            transformedPlayers.forEach((player: Player) => {
-              if (!playersMap[player.id]) {
-                playersMap[player.id] = player;
-                ids.push(player.id);
-              }
-            });
-
-            setPlayersById(playersMap);
-            setPlayerIds(ids);
-            setOffset(10);
-          } else {
-            // Append to existing list with normalized state
-            setPlayersById(prevPlayersById => {
-              const newPlayersById = { ...prevPlayersById };
-              const newIds: string[] = [];
-
-              transformedPlayers.forEach((player: Player) => {
-                if (!newPlayersById[player.id]) {
-                  newPlayersById[player.id] = player;
-                  newIds.push(player.id);
-                }
-              });
-
-              setPlayerIds(prevIds => [...prevIds, ...newIds]);
-              return newPlayersById;
-            });
-            setOffset(prev => prev + 10);
-          }
-
-          setHasMore(data.players.length === 10);
-        }
-      } catch (error) {
-        console.error('Error fetching players:', error);
-      } finally {
-        setLoadingPlayers(false);
-      }
-    },
-    []
-  );
-
-  // Load more players when scrolling - EXACT SAME AS PLAYERS PAGE
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-      if (
-        scrollHeight - scrollTop <= clientHeight * 1.5 &&
-        !loadingPlayers &&
-        hasMore
-      ) {
-        fetchPlayers(offset);
-      }
-    },
-    [fetchPlayers, loadingPlayers, hasMore, offset]
-  );
-
-  // Filter players based on search and team filter - EXACT SAME AS PLAYERS PAGE
-  const filteredPlayers = playerIds
-    .map(id => playersById[id])
-    .filter(
-      (player: Player | undefined): player is Player => !!player && !!player.id
-    )
-    .filter(player => {
-      const matchesSearch = player.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
-      return matchesSearch && matchesTeam;
-    });
-  // Deduplicate by player.id before sorting and rendering
-  const dedupedPlayers = Array.from(
-    new Map(filteredPlayers.map(p => [p.id, p])).values()
-  );
-  const sortedPlayers = [...dedupedPlayers].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
-
   // Add state and handlers for search, team filter, and dropdown (copied from Players page)
   const [drillSuggestions, setDrillSuggestions] = useState<DrillSuggestion[]>(
     []
@@ -211,7 +129,6 @@ export default function DevelopmentPlansPage() {
 
   // Fetch data with validation
   useEffect(() => {
-    console.log('useEffect called, starting fetchData');
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -219,15 +136,13 @@ export default function DevelopmentPlansPage() {
 
         // Fetch development plans with validation
         const plansResponse = await fetch('/api/development-plans');
-        console.log('Plans response status:', plansResponse.status);
         if (plansResponse.ok) {
           const rawPlansData = await plansResponse.json();
-          console.log('Raw plans data:', rawPlansData);
 
           // Handle the API response structure: direct array of plans
           if (Array.isArray(rawPlansData)) {
             // Transform the API data to match our interface
-            const transformedPlans = rawPlansData.map((plan: any) => ({
+            const transformedPlans = rawPlansData.map((plan: ApiPlan) => ({
               id: plan.id || '',
               playerId: plan.playerId || '',
               playerName: plan.playerName || 'Unknown Player',
@@ -257,7 +172,7 @@ export default function DevelopmentPlansPage() {
 
             // Skip validation for now to debug the issue
             const validPlans = transformedPlans.filter(
-              (plan: any) =>
+              (plan: DevelopmentPlan) =>
                 plan &&
                 typeof plan === 'object' &&
                 typeof plan.id === 'string' &&
@@ -270,20 +185,12 @@ export default function DevelopmentPlansPage() {
                 plan.objective.trim() !== ''
             ) as DevelopmentPlan[];
 
-            console.log('Valid plans count:', validPlans.length);
-            console.log('First valid plan:', validPlans[0]);
-
             // Deduplicate plans by id
             const uniquePlans = Array.from(
               new Map(validPlans.map(plan => [plan.id, plan])).values()
             );
-            console.log('Unique plans count:', uniquePlans.length);
             setPlans(uniquePlans);
           } else {
-            console.error(
-              'Invalid API response structure for plans:',
-              rawPlansData
-            );
             setPlans([]);
           }
         }
@@ -298,7 +205,6 @@ export default function DevelopmentPlansPage() {
             .array(z.object({ id: z.string(), name: z.string() }))
             .safeParse(rawTeamsData);
           if (!validatedTeams.success) {
-            console.error('Invalid teams data:', validatedTeams.error);
             throw new Error('Invalid teams data received');
           }
 
@@ -321,110 +227,101 @@ export default function DevelopmentPlansPage() {
 
         // Skip mock drill suggestions for now to debug the issue
         setDrillSuggestions([]);
-      } catch (err: any) {
-        console.error('Error in fetchData:', err);
-        setError(err.message || 'Failed to fetch data');
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to fetch data';
+        setError(errorMessage);
         setPlans([]);
         setDrillSuggestions([]);
       } finally {
-        console.log('Setting loading to false');
         setLoading(false);
       }
     };
     fetchData();
   }, []);
 
-  // Fetch initial players and teams - EXACT SAME AS PLAYERS PAGE
-  useEffect(() => {
-    // Fetch teams
-    fetch('/api/user/teams')
-      .then(res => {
-        if (!res.ok) {
-          console.log('Teams API returned error status:', res.status);
-          setTeams([]);
-          return;
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (!data) return; // Skip if no data (error case)
+  // State for infinite scroll (All Teams)
+  const [allPlayersById, setAllPlayersById] = useState<Record<string, Player>>(
+    {}
+  );
+  const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
+  const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
 
-        let arr: unknown = data;
-        if (data && Array.isArray(data)) {
-          arr = data;
-        }
-        const result = z
-          .array(z.object({ id: z.string(), name: z.string() }))
-          .safeParse(arr);
-        if (result.success) {
-          // Deduplicate teams by id
-          const uniqueTeams = Array.from(
-            new Map(result.data.map(team => [team.id, team])).values()
-          );
-          uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
-          setTeams(uniqueTeams);
-        } else {
-          console.error('Zod validation error for teams:', result.error);
-          setTeams([]);
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching teams:', error);
-        setTeams([]);
-      });
-
-    // Fetch initial players
-    setLoadingPlayers(true);
-    fetch('/api/dashboard/players?offset=0&limit=10')
-      .then(res => {
-        if (!res.ok) {
-          console.log('Players API returned error status:', res.status);
-          return null;
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (!data) return; // Skip if no data (error case)
-
+  // Infinite scroll fetch for All Teams
+  const fetchAllPlayers = useCallback(
+    async (currentOffset: number = 0, reset: boolean = false) => {
+      setAllLoadingPlayers(true);
+      try {
+        const response = await fetch(
+          `/api/dashboard/players?offset=${currentOffset}&limit=20`
+        );
+        const data = await response.json();
         if (data.players) {
-          const transformedPlayers = data.players.map((player: any) => ({
+          const transformedPlayers = data.players.map((player: ApiPlayer) => ({
             id: player.id,
             name: player.name || 'Unknown Player',
             team: player.team || 'No Team',
-            status: player.status || 'active',
+            status: (player.status as PlayerStatus) || 'active',
           }));
-
-          // Reset the list with normalized state
-          const playersMap: Record<string, Player> = {};
-          const ids: string[] = [];
-
-          transformedPlayers.forEach((player: Player) => {
-            if (!playersMap[player.id]) {
-              playersMap[player.id] = player;
-              ids.push(player.id);
-            }
-          });
-
-          setPlayersById(playersMap);
-          setPlayerIds(ids);
-          setOffset(10);
-          setHasMore(data.players.length === 10);
+          if (reset) {
+            const playersMap: Record<string, Player> = {};
+            const ids: string[] = [];
+            transformedPlayers.forEach((player: Player) => {
+              if (!playersMap[player.id]) {
+                playersMap[player.id] = player;
+                ids.push(player.id);
+              }
+            });
+            setAllPlayersById(playersMap);
+            setAllPlayerIds(ids);
+          } else {
+            setAllPlayersById(prev => {
+              const newPlayersById = { ...prev };
+              const newIds: string[] = [];
+              transformedPlayers.forEach((player: Player) => {
+                if (!newPlayersById[player.id]) {
+                  newPlayersById[player.id] = player;
+                  newIds.push(player.id);
+                }
+              });
+              setAllPlayerIds(prevIds => [...prevIds, ...newIds]);
+              return newPlayersById;
+            });
+          }
         }
-      })
-      .catch(error => {
-        console.error('Error fetching players:', error);
-      })
-      .finally(() => {
-        setLoadingPlayers(false);
-      });
-  }, []);
+      } catch {
+        // Error handling without console.log
+        setError('Failed to fetch all players');
+      } finally {
+        setAllLoadingPlayers(false);
+      }
+    },
+    []
+  );
 
-  // Reset pagination when search or filter changes - EXACT SAME AS PLAYERS PAGE
+  // Fetch all players on mount or when All Teams is selected
   useEffect(() => {
-    setOffset(0);
-    setHasMore(true);
-    fetchPlayers(0, true);
-  }, [searchTerm, teamFilter]);
+    if (teamFilter === 'all') {
+      fetchAllPlayers(0, true);
+    }
+  }, [teamFilter, fetchAllPlayers]);
+
+  // Player list rendering logic
+  const sortedAllPlayers = [...allPlayerIds.map(id => allPlayersById[id])]
+    .filter((player): player is Player => !!player && !!player.id)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const sortedTeamPlayers = [...playerIds.map(id => playersById[id])]
+    .filter((player): player is Player => !!player && !!player.id)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const playersToShow =
+    teamFilter === 'all' ? sortedAllPlayers : sortedTeamPlayers;
+  const isLoadingPlayers = teamFilter === 'all' ? allLoadingPlayers : false;
+
+  // In the player list UI:
+  // - Use playersToShow for rendering
+  // - For 'All Teams', use onScroll={handleAllScroll} and show a loading spinner at the bottom if isLoadingPlayers
+  // - For a specific team, no infinite scroll
+  // - Never show blank unless playersToShow.length === 0
 
   // Get readiness color
   const getReadinessColor = (readiness: string) => {
@@ -529,13 +426,6 @@ export default function DevelopmentPlansPage() {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
-            <UniversalButton.Primary
-              size="sm"
-              onClick={() => {}}
-              leftIcon={<Plus size={16} />}
-            >
-              Add Player
-            </UniversalButton.Primary>
           </div>
           {/* Search Input */}
           <div className="relative mb-6">
@@ -590,15 +480,14 @@ export default function DevelopmentPlansPage() {
           <div
             className="flex-1 overflow-y-auto space-y-2"
             style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
-            onScroll={handleScroll}
           >
-            {sortedPlayers.length === 0 ? (
+            {playersToShow.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
                 <p className="text-zinc-400 text-sm">No players found</p>
               </div>
             ) : (
-              sortedPlayers.map((player: Player) => (
+              playersToShow.map((player: Player) => (
                 <div
                   key={player.id}
                   onClick={() => handlePlayerSelect(player)}
@@ -625,6 +514,11 @@ export default function DevelopmentPlansPage() {
                   </div>
                 </div>
               ))
+            )}
+            {isLoadingPlayers && teamFilter === 'all' && (
+              <div className="flex justify-center py-4">
+                <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
+              </div>
             )}
           </div>
         </div>
@@ -680,19 +574,21 @@ export default function DevelopmentPlansPage() {
                         </div>
                         <div className="flex items-center space-x-2">
                           <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                            className={
                               plan.status === 'active'
-                                ? 'bg-green-500/20 text-green-500'
+                                ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-500'
                                 : plan.status === 'completed'
-                                  ? 'bg-blue-500/20 text-blue-500'
-                                  : 'bg-yellow-500/20 text-yellow-500'
-                            }`}
+                                  ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-500'
+                                  : 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-500'
+                            }
                           >
                             {(plan.status || 'draft').charAt(0).toUpperCase() +
                               (plan.status || 'draft').slice(1)}
                           </span>
                           <div
-                            className={`w-2 h-2 rounded-full ${getReadinessColor(plan.readiness || 'medium')}`}
+                            className={`w-2 h-2 rounded-full ${getReadinessColor(
+                              plan.readiness || 'medium'
+                            )}`}
                           />
                         </div>
                       </div>
