@@ -1,7 +1,7 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { mpCorePerson, mpCorePersonGroup, mpCoreGroup } from '@/lib/db/schema';
+import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET(
   request: Request,
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const user = await getUser();
-    
+
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
@@ -17,33 +17,47 @@ export async function GET(
     const { id: teamId } = await params;
 
     if (!db) {
-      return Response.json({ error: 'Database not available' }, { status: 500 });
+      return Response.json(
+        { error: 'Database not available' },
+        { status: 500 }
+      );
     }
 
-    // Get players for the specific team from the current_participants table
+    // Get players for the specific team with their group/team info
     const players = await db
       .select({
         id: mpCorePerson.id,
-        name: mpCorePerson.firstName,
+        firstName: mpCorePerson.firstName,
         lastName: mpCorePerson.lastName,
         email: mpCorePerson.email,
-        teamId: mpCorePerson.groupId,
-        teamName: mpCorePerson.groupName,
-        position: mpCorePerson.position,
-        role: mpCorePerson.role,
+        teamId: mpCoreGroup.id,
+        teamName: mpCoreGroup.name,
+        position: mpCorePersonGroup.position,
+        role: mpCorePersonGroup.role,
         personType: mpCorePerson.personType,
-        identifier: mpCorePerson.identifier,
-        cycleName: mpCorePerson.cycleName,
+        identifier: mpCorePersonGroup.identifier,
+        cycleName: mpCorePersonGroup.cycleId, // or join to cycle table if needed
       })
       .from(mpCorePerson)
-      .where(eq(mpCorePerson.groupId, teamId));
+      .innerJoin(
+        mpCorePersonGroup,
+        eq(mpCorePerson.id, mpCorePersonGroup.personId)
+      )
+      .innerJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
+      .where(
+        and(
+          eq(mpCorePersonGroup.groupId, teamId),
+          eq(mpCorePerson.personType, 'player')
+        )
+      );
 
     // Transform the data to match the expected format
     const formattedPlayers = players.map(player => ({
       id: player.id,
-      name: player.name && player.lastName 
-        ? `${player.name} ${player.lastName}`.trim()
-        : player.name || player.lastName || 'Unknown Player',
+      name:
+        player.firstName && player.lastName
+          ? `${player.firstName} ${player.lastName}`.trim()
+          : player.firstName || player.lastName || 'Unknown Player',
       teamId: player.teamId,
       teamName: player.teamName,
       position: player.position || 'Unknown',
@@ -60,6 +74,9 @@ export async function GET(
     return Response.json(formattedPlayers);
   } catch (error) {
     console.error('Error fetching team players:', error);
-    return Response.json({ error: 'Failed to fetch team players' }, { status: 500 });
+    return Response.json(
+      { error: 'Failed to fetch team players' },
+      { status: 500 }
+    );
   }
-} 
+}

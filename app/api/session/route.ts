@@ -7,4 +7,4 @@ export async function GET() {
     return NextResponse.json({ authenticated: true });
   }
   return NextResponse.json({ authenticated: false });
-} 
+}

@@ -15,7 +15,7 @@ export const colors = {
     800: '#854d0e',
     900: '#713f12',
   },
-  
+
   // Semantic colors
   danger: {
     50: '#fef2f2',
@@ -29,7 +29,7 @@ export const colors = {
     800: '#991b1b',
     900: '#7f1d1d',
   },
-  
+
   // Success colors
   success: {
     50: '#f0fdf4',
@@ -43,7 +43,7 @@ export const colors = {
     800: '#166534',
     900: '#14532d',
   },
-  
+
   // Warning colors
   warning: {
     50: '#fffbeb',
@@ -57,7 +57,7 @@ export const colors = {
     800: '#92400e',
     900: '#78350f',
   },
-  
+
   // Neutral colors
   gray: {
     50: '#f9fafb',
@@ -71,7 +71,7 @@ export const colors = {
     800: '#1f2937',
     900: '#111827',
   },
-  
+
   // Archive colors
   archive: {
     50: '#f8fafc',
@@ -88,9 +88,9 @@ export const colors = {
 
   // Domain-specific colours
   playerStatus: {
-    active: '#C2B56B',     // same as gold[500]
-    archived: '#A22828',   // same as danger[500]
-    inactive: '#374151',   // same as gray[700]
+    active: '#C2B56B', // same as gold[500]
+    archived: '#A22828', // same as danger[500]
+    inactive: '#374151', // same as gray[700]
   },
 
   // Background colors
@@ -113,27 +113,27 @@ export const colors = {
     primary: '#27272A', // zinc-800
     secondary: '#3F3F46', // zinc-700
     gold: '#C2B56B',
-  }
+  },
 };
 
 export const spacing = {
-  xs: '0.25rem',    // 4px
-  sm: '0.5rem',     // 8px
-  md: '1rem',       // 16px
-  lg: '1.5rem',     // 24px
-  xl: '2rem',       // 32px
-  '2xl': '3rem',    // 48px
-  '3xl': '4rem',    // 64px
-  '4xl': '6rem',    // 96px (used for wider gutters in 3-column layouts)
+  xs: '0.25rem', // 4px
+  sm: '0.5rem', // 8px
+  md: '1rem', // 16px
+  lg: '1.5rem', // 24px
+  xl: '2rem', // 32px
+  '2xl': '3rem', // 48px
+  '3xl': '4rem', // 64px
+  '4xl': '6rem', // 96px (used for wider gutters in 3-column layouts)
 };
 
 export const borderRadius = {
   none: '0',
-  sm: '0.125rem',   // 2px
-  md: '0.375rem',   // 6px
-  lg: '0.5rem',     // 8px
-  xl: '0.75rem',    // 12px
-  '2xl': '1rem',    // 16px
+  sm: '0.125rem', // 2px
+  md: '0.375rem', // 6px
+  lg: '0.5rem', // 8px
+  xl: '0.75rem', // 12px
+  '2xl': '1rem', // 16px
   full: '9999px',
 };
 
@@ -144,14 +144,14 @@ export const typography = {
     mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   },
   size: {
-    xs: '0.75rem',      // 12px
-    sm: '0.875rem',     // 14px
-    base: '1rem',       // 16px
-    lg: '1.125rem',     // 18px
-    xl: '1.25rem',      // 20px
-    '2xl': '1.5rem',    // 24px
-    '3xl': '1.875rem',  // 30px
-    '4xl': '2.25rem',   // 36px
+    xs: '0.75rem', // 12px
+    sm: '0.875rem', // 14px
+    base: '1rem', // 16px
+    lg: '1.125rem', // 18px
+    xl: '1.25rem', // 20px
+    '2xl': '1.5rem', // 24px
+    '3xl': '1.875rem', // 30px
+    '4xl': '2.25rem', // 36px
   },
   weight: {
     normal: '400',
@@ -168,7 +168,7 @@ export const typography = {
     caption: 'text-sm text-muted-foreground',
     button: 'text-sm font-medium',
     label: 'text-sm font-medium leading-none',
-  }
+  },
 };
 
 export const shadows = {
@@ -190,23 +190,23 @@ export const semanticColors = {
   primary: colors.gold[500],
   primaryLight: colors.gold[400],
   primaryDark: colors.gold[600],
-  
+
   danger: colors.danger[500],
   dangerLight: colors.danger[400],
   dangerDark: colors.danger[600],
-  
+
   success: colors.success[500],
   successLight: colors.success[400],
   successDark: colors.success[600],
-  
+
   warning: colors.warning[500],
   warningLight: colors.warning[400],
   warningDark: colors.warning[600],
-  
+
   archive: colors.archive[500],
   archiveLight: colors.archive[400],
   archiveDark: colors.archive[600],
-  
+
   gray: colors.gray[500],
   grayLight: colors.gray[400],
   grayDark: colors.gray[600],
@@ -226,7 +226,6 @@ export const semanticColors = {
   playerActive: colors.playerStatus.active,
   playerArchived: colors.playerStatus.archived,
   playerInactive: colors.playerStatus.inactive,
-
 
   // Border colors
   border: colors.border.primary,

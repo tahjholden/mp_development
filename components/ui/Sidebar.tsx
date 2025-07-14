@@ -109,7 +109,9 @@ const navItems: NavItemType[] = [
 export function Sidebar({ user, onSignOut }: SidebarProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Close mobile sidebar when pathname changes
   useEffect(() => {
@@ -118,18 +120,20 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
 
   // Pre-expand the item that contains the current path
   useEffect(() => {
-    navItems.forEach((item) => {
+    navItems.forEach(item => {
       if (item.children) {
-        const shouldExpand = item.children.some((child) => pathname.startsWith(child.href));
+        const shouldExpand = item.children.some(child =>
+          pathname.startsWith(child.href)
+        );
         if (shouldExpand) {
-          setExpandedItems((prev) => ({ ...prev, [item.title]: true }));
+          setExpandedItems(prev => ({ ...prev, [item.title]: true }));
         }
       }
     });
   }, [pathname]);
 
   const toggleExpand = (title: string) => {
-    setExpandedItems((prev) => ({
+    setExpandedItems(prev => ({
       ...prev,
       [title]: !prev[title],
     }));
@@ -163,33 +167,35 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300 ease-in-out",
-          "w-64 md:w-64 md:translate-x-0",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          'fixed top-0 left-0 z-40 h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300 ease-in-out',
+          'w-64 md:w-64 md:translate-x-0',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         {/* Logo & Brand */}
         <div className="flex items-center justify-center h-16 border-b border-zinc-800">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Award size={24} className="text-gold-500" />
-            <span className="text-lg font-semibold text-white">MP Basketball</span>
+            <span className="text-lg font-semibold text-white">
+              MP Basketball
+            </span>
           </Link>
         </div>
 
         {/* Navigation */}
         <nav className="px-3 py-4 overflow-y-auto h-[calc(100vh-16rem)]">
           <ul className="space-y-1">
-            {navItems.map((item) => (
+            {navItems.map(item => (
               <li key={item.title}>
                 {item.children ? (
                   <div>
                     <button
                       onClick={() => toggleExpand(item.title)}
                       className={cn(
-                        "flex items-center justify-between w-full px-3 py-2 rounded-md text-sm font-medium",
+                        'flex items-center justify-between w-full px-3 py-2 rounded-md text-sm font-medium',
                         isActive(item.href)
-                          ? "bg-gold-500/20 text-gold-500"
-                          : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                          ? 'bg-gold-500/20 text-gold-500'
+                          : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
                       )}
                     >
                       <div className="flex items-center">
@@ -204,15 +210,15 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
                     </button>
                     {expandedItems[item.title] && (
                       <ul className="pl-10 mt-1 space-y-1">
-                        {item.children.map((child) => (
+                        {item.children.map(child => (
                           <li key={child.title}>
                             <Link
                               href={child.href}
                               className={cn(
-                                "flex items-center px-3 py-2 rounded-md text-sm font-medium",
+                                'flex items-center px-3 py-2 rounded-md text-sm font-medium',
                                 isActive(child.href)
-                                  ? "bg-gold-500/20 text-gold-500"
-                                  : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                  ? 'bg-gold-500/20 text-gold-500'
+                                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                               )}
                             >
                               <span className="mr-2">{child.icon}</span>
@@ -227,10 +233,10 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center px-3 py-2 rounded-md text-sm font-medium",
+                      'flex items-center px-3 py-2 rounded-md text-sm font-medium',
                       isActive(item.href)
-                        ? "bg-gold-500/20 text-gold-500"
-                        : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                        ? 'bg-gold-500/20 text-gold-500'
+                        : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
                     )}
                   >
                     <span className="mr-3">{item.icon}</span>

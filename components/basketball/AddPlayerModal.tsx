@@ -41,44 +41,46 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleTeamSelect = (teamId: string) => {
-    setFormData((prev) => ({ ...prev, teamId }));
+    setFormData(prev => ({ ...prev, teamId }));
     setIsTeamDropdownOpen(false);
     if (errors.teamId) {
-      setErrors((prev) => ({ ...prev, teamId: '' }));
+      setErrors(prev => ({ ...prev, teamId: '' }));
     }
   };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
     }
-    
+
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Last name is required';
     }
-    
+
     if (!formData.teamId) {
       newErrors.teamId = 'Team selection is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSubmit(formData);
       setFormData({
@@ -90,12 +92,12 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
     }
   };
 
-  const selectedTeam = teams.find((team) => team.id === formData.teamId);
+  const selectedTeam = teams.find(team => team.id === formData.teamId);
 
   return (
     <UniversalModal.Basic
       open={isOpen}
-      onOpenChange={(open) => {
+      onOpenChange={open => {
         if (!open) onClose();
       }}
       title="Add New Player"
@@ -104,7 +106,10 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
       <form onSubmit={handleSubmit} className="p-6">
         <div className="space-y-6">
           <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-gold-500 mb-1">
+            <label
+              htmlFor="firstName"
+              className="block text-sm font-medium text-gold-500 mb-1"
+            >
               FIRST NAME <span className="text-gold-500">*</span>
             </label>
             <input
@@ -115,15 +120,20 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
               onChange={handleChange}
               placeholder="e.g., Michael"
               className={cn(
-                "w-full bg-zinc-800 border rounded-md py-2 px-3 text-white focus:outline-none focus:ring-1 focus:ring-gold-500",
-                errors.firstName ? "border-danger-500" : "border-zinc-700"
+                'w-full bg-zinc-800 border rounded-md py-2 px-3 text-white focus:outline-none focus:ring-1 focus:ring-gold-500',
+                errors.firstName ? 'border-danger-500' : 'border-zinc-700'
               )}
             />
-            {errors.firstName && <p className="mt-1 text-xs text-danger-500">{errors.firstName}</p>}
+            {errors.firstName && (
+              <p className="mt-1 text-xs text-danger-500">{errors.firstName}</p>
+            )}
           </div>
-          
+
           <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-gold-500 mb-1">
+            <label
+              htmlFor="lastName"
+              className="block text-sm font-medium text-gold-500 mb-1"
+            >
               LAST NAME <span className="text-gold-500">*</span>
             </label>
             <input
@@ -134,15 +144,20 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
               onChange={handleChange}
               placeholder="e.g., Jordan"
               className={cn(
-                "w-full bg-zinc-800 border rounded-md py-2 px-3 text-white focus:outline-none focus:ring-1 focus:ring-gold-500",
-                errors.lastName ? "border-danger-500" : "border-zinc-700"
+                'w-full bg-zinc-800 border rounded-md py-2 px-3 text-white focus:outline-none focus:ring-1 focus:ring-gold-500',
+                errors.lastName ? 'border-danger-500' : 'border-zinc-700'
               )}
             />
-            {errors.lastName && <p className="mt-1 text-xs text-danger-500">{errors.lastName}</p>}
+            {errors.lastName && (
+              <p className="mt-1 text-xs text-danger-500">{errors.lastName}</p>
+            )}
           </div>
-          
+
           <div>
-            <label htmlFor="teamId" className="block text-sm font-medium text-gold-500 mb-1">
+            <label
+              htmlFor="teamId"
+              className="block text-sm font-medium text-gold-500 mb-1"
+            >
               TEAM <span className="text-gold-500">*</span>
             </label>
             <div className="relative">
@@ -150,45 +165,58 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
                 type="button"
                 onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
                 className={cn(
-                  "w-full flex items-center justify-between bg-zinc-800 border rounded-md py-2 px-3 text-white focus:outline-none focus:ring-1 focus:ring-gold-500",
-                  errors.teamId ? "border-danger-500" : "border-zinc-700"
+                  'w-full flex items-center justify-between bg-zinc-800 border rounded-md py-2 px-3 text-white focus:outline-none focus:ring-1 focus:ring-gold-500',
+                  errors.teamId ? 'border-danger-500' : 'border-zinc-700'
                 )}
               >
-                <span className={selectedTeam ? "text-white" : "text-zinc-500"}>
-                  {selectedTeam ? selectedTeam.name : "Select a team"}
+                <span className={selectedTeam ? 'text-white' : 'text-zinc-500'}>
+                  {selectedTeam ? selectedTeam.name : 'Select a team'}
                 </span>
-                {isTeamDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {isTeamDropdownOpen ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
               </button>
-              
+
               {isTeamDropdownOpen && (
                 <div className="absolute z-10 mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-md shadow-lg overflow-hidden">
                   <div className="max-h-48 overflow-y-auto py-1">
                     {teams.length > 0 ? (
-                      teams.map((team) => (
+                      teams.map(team => (
                         <button
                           key={team.id}
                           type="button"
                           onClick={() => handleTeamSelect(team.id)}
                           className={cn(
-                            "w-full text-left px-3 py-2 text-sm hover:bg-zinc-700",
-                            team.id === formData.teamId ? "bg-zinc-700 text-gold-500" : "text-white"
+                            'w-full text-left px-3 py-2 text-sm hover:bg-zinc-700',
+                            team.id === formData.teamId
+                              ? 'bg-zinc-700 text-gold-500'
+                              : 'text-white'
                           )}
                         >
                           {team.name}
                         </button>
                       ))
                     ) : (
-                      <p className="px-3 py-2 text-sm text-zinc-400">No teams available</p>
+                      <p className="px-3 py-2 text-sm text-zinc-400">
+                        No teams available
+                      </p>
                     )}
                   </div>
                 </div>
               )}
             </div>
-            {errors.teamId && <p className="mt-1 text-xs text-danger-500">{errors.teamId}</p>}
+            {errors.teamId && (
+              <p className="mt-1 text-xs text-danger-500">{errors.teamId}</p>
+            )}
           </div>
-          
+
           <div>
-            <label htmlFor="initialPdp" className="block text-sm font-medium text-gold-500 mb-1">
+            <label
+              htmlFor="initialPdp"
+              className="block text-sm font-medium text-gold-500 mb-1"
+            >
               INITIAL PDP (OPTIONAL)
             </label>
             <textarea
@@ -202,7 +230,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
             />
           </div>
         </div>
-        
+
         <div className="mt-8 flex justify-between gap-4">
           <UniversalButton.Secondary
             type="button"
@@ -211,7 +239,7 @@ const AddPlayerModal: React.FC<AddPlayerModalProps> = ({
           >
             Cancel
           </UniversalButton.Secondary>
-          
+
           <UniversalButton.Primary
             type="submit"
             className="flex-1 py-3 uppercase"

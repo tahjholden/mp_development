@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Plus, Search, Filter } from 'lucide-react';
 import UniversalButton from '@/components/ui/UniversalButton';
-
-interface Player {
-  id: string;
-  name: string;
-  team: string;
-  status: string;
-}
+import type { Player, PlayerStatus } from './PlayerListCard';
 
 interface Team {
   id: string;
@@ -20,7 +14,12 @@ interface PlayersListProps {
   teams?: Team[];
   onPlayerSelect: (player: Player) => void;
   selectedPlayer?: Player | null;
+  selectedPlayerId?: string;
   onAddPlayer?: () => void;
+  title?: string;
+  showSearch?: boolean;
+  showTeamFilter?: boolean;
+  maxHeight?: string;
 }
 
 const PlayersList: React.FC<PlayersListProps> = ({
@@ -29,7 +28,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
   teams = [],
   onPlayerSelect,
   selectedPlayer,
-  onAddPlayer
+  onAddPlayer,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -38,15 +37,23 @@ const PlayersList: React.FC<PlayersListProps> = ({
   // Filter players based on search and team filter
   const filteredPlayers = playerIds
     .map(id => playersById[id])
-    .filter((player: Player | undefined): player is Player => !!player && !!player.id)
-    .filter((player) => {
-      const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+    .filter(
+      (player: Player | undefined): player is Player => !!player && !!player.id
+    )
+    .filter(player => {
+      const matchesSearch = player.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
       const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
       return matchesSearch && matchesTeam;
     });
   // Deduplicate by player.id before sorting and rendering
-  const dedupedPlayers = Array.from(new Map(filteredPlayers.map(p => [p.id, p])).values());
-  const sortedPlayers = [...dedupedPlayers].sort((a, b) => a.name.localeCompare(b.name));
+  const dedupedPlayers = Array.from(
+    new Map(filteredPlayers.map(p => [p.id, p])).values()
+  );
+  const sortedPlayers = [...dedupedPlayers].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   return (
     <>
@@ -67,7 +74,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
           type="text"
           placeholder="Search players..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={e => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
         />
       </div>
@@ -93,7 +100,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
               >
                 All Teams
               </button>
-              {teams.map((team) => (
+              {teams.map(team => (
                 <button
                   key={team.id}
                   onClick={() => {
@@ -110,7 +117,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
         </div>
       </div>
       {/* Player List - Fixed height for exactly 10 player cards */}
-      <div 
+      <div
         className="flex-1 overflow-y-auto space-y-2"
         style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
       >
@@ -135,9 +142,11 @@ const PlayersList: React.FC<PlayersListProps> = ({
                   <p className="font-medium text-white">{player.name}</p>
                   <p className="text-sm text-zinc-400">{player.team}</p>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${
-                  player.status === 'active' ? 'bg-green-500' : 'bg-zinc-500'
-                }`} />
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    player.status === 'active' ? 'bg-green-500' : 'bg-zinc-500'
+                  }`}
+                />
               </div>
             </div>
           ))
@@ -147,4 +156,4 @@ const PlayersList: React.FC<PlayersListProps> = ({
   );
 };
 
-export default PlayersList; 
+export default PlayersList;

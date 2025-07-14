@@ -3,7 +3,7 @@ import { getUser } from '@/lib/db/queries';
 export async function GET() {
   try {
     const user = await getUser();
-    
+
     if (!user) {
       console.log('No user found, returning mock activities for development');
       // For development, return mock data if no user is found
@@ -90,6 +90,9 @@ export async function GET() {
     return Response.json(activities);
   } catch (error) {
     console.error('Error fetching dashboard activities:', error);
-    return Response.json({ error: 'Failed to fetch activities' }, { status: 500 });
+    return Response.json(
+      { error: 'Failed to fetch activities' },
+      { status: 500 }
+    );
   }
-} 
+}

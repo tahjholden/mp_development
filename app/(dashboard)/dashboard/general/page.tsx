@@ -7,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { updateProfile } from '@/app/(login)/actions';
-import { type Person } from '@/lib/db/schema';
+// import { type Person } from '@/lib/db/schema'; // Unused import
 import useSWR from 'swr';
 import { Suspense } from 'react';
 import { UserResponse } from '@/lib/utils';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 type ActionState = {
   displayName?: string;
@@ -30,7 +30,7 @@ type AccountFormProps = {
 function AccountForm({
   state,
   nameValue = '',
-  emailValue = ''
+  emailValue = '',
 }: AccountFormProps) {
   return (
     <>

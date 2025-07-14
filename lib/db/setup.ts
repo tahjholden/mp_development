@@ -14,8 +14,8 @@ function question(query: string): Promise<string> {
     output: process.stdout,
   });
 
-  return new Promise((resolve) =>
-    rl.question(query, (ans) => {
+  return new Promise(resolve =>
+    rl.question(query, ans => {
       rl.close();
       resolve(ans);
     })

@@ -37,9 +37,18 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
   const columnTemplate = `${leftColumnWidth} ${middleColumnWidth} ${rightColumnWidth}`;
 
   return (
-    <div className={cn('w-full', fullHeight && 'min-h-[calc(100vh-4rem)]', className)}>
-      <div 
-        className={cn('grid grid-cols-1 md:grid-cols-3', gapSizeClasses[gapSize])}
+    <div
+      className={cn(
+        'w-full',
+        fullHeight && 'min-h-[calc(100vh-4rem)]',
+        className
+      )}
+    >
+      <div
+        className={cn(
+          'grid grid-cols-1 md:grid-cols-3',
+          gapSizeClasses[gapSize]
+        )}
         style={{ gridTemplateColumns: columnTemplate }}
       >
         <div className="col-span-1">{leftColumn}</div>

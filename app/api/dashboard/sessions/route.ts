@@ -3,7 +3,7 @@ import { getUser } from '@/lib/db/queries';
 export async function GET() {
   try {
     const user = await getUser();
-    
+
     if (!user) {
       console.log('No user found, returning mock sessions for development');
       // For development, return mock data if no user is found
@@ -100,6 +100,9 @@ export async function GET() {
     return Response.json(sessions);
   } catch (error) {
     console.error('Error fetching dashboard sessions:', error);
-    return Response.json({ error: 'Failed to fetch sessions' }, { status: 500 });
+    return Response.json(
+      { error: 'Failed to fetch sessions' },
+      { status: 500 }
+    );
   }
-} 
+}

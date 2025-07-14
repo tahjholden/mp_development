@@ -1,22 +1,22 @@
-import { checkoutAction } from '@/lib/payments/actions';
 import { Check } from 'lucide-react';
-import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
-import { SubmitButton } from './submit-button';
-
-// Prices are fresh for one hour max
-export const revalidate = 3600;
 
 export default async function PricingPage() {
-  const [prices, products] = await Promise.all([
-    getStripePrices(),
-    getStripeProducts(),
-  ]);
+  // Mock data since Stripe is not implemented yet
+  const basePlan = { name: 'Base', id: 'prod_base' };
+  const plusPlan = { name: 'Plus', id: 'prod_plus' };
 
-  const basePlan = products.find((product) => product.name === 'Base');
-  const plusPlan = products.find((product) => product.name === 'Plus');
-
-  const basePrice = prices.find((price) => price.productId === basePlan?.id);
-  const plusPrice = prices.find((price) => price.productId === plusPlan?.id);
+  const basePrice = {
+    id: 'price_base',
+    unitAmount: 800,
+    interval: 'month',
+    trialPeriodDays: 7,
+  };
+  const plusPrice = {
+    id: 'price_plus',
+    unitAmount: 1200,
+    interval: 'month',
+    trialPeriodDays: 7,
+  };
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -85,10 +85,18 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      <form action={checkoutAction}>
-        <input type="hidden" name="priceId" value={priceId} />
-        <SubmitButton />
-      </form>
+      <div className="text-center">
+        <p className="text-sm text-gray-500 mb-4">
+          Payment integration coming soon
+        </p>
+        <button
+          type="button"
+          className="w-full bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 transition-colors"
+          disabled
+        >
+          Coming Soon
+        </button>
+      </div>
     </div>
   );
 }

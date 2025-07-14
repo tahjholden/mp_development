@@ -15,7 +15,7 @@ export default function DatabaseTestLayout({
 }) {
   // In a real application, you would fetch the user data here
   // const user = await getUser();
-  
+
   return (
     <DashboardLayout
       user={mockUser}

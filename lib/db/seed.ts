@@ -1,80 +1,40 @@
 // import { stripe } from '../payments/stripe';
 import { db } from './drizzle';
-import { users, teams, teamMembers } from './schema';
-import { hashPassword } from '@/lib/auth/session';
-
-// async function createStripeProducts() {
-//   console.log('Creating Stripe products and prices...');
-
-//   const baseProduct = await stripe.products.create({
-//     name: 'Base',
-//     description: 'Base subscription plan',
-//   });
-
-//   await stripe.prices.create({
-//     product: baseProduct.id,
-//     unit_amount: 800, // $8 in cents
-//     currency: 'usd',
-//     recurring: {
-//       interval: 'month',
-//       trial_period_days: 7,
-//     },
-//   });
-
-//   const plusProduct = await stripe.products.create({
-//     name: 'Plus',
-//     description: 'Plus subscription plan',
-//   });
-
-//   await stripe.prices.create({
-//     product: plusProduct.id,
-//     unit_amount: 1200, // $12 in cents
-//     currency: 'usd',
-//     recurring: {
-//       interval: 'month',
-//       trial_period_days: 7,
-//     },
-//   });
-
-//   console.log('Stripe products and prices created successfully.');
-// }
+import { mpCorePerson } from './schema';
 
 async function seed() {
-  const email = 'test@test.com';
-  const password = 'admin123';
-  const passwordHash = await hashPassword(password);
+  if (!db) {
+    console.error('Database connection not available');
+    return;
+  }
 
-  const [user] = await db
-    .insert(users)
+  const email = 'test@test.com';
+
+  const result = await db
+    .insert(mpCorePerson)
     .values([
       {
         email: email,
-        passwordHash: passwordHash,
-        role: "owner",
+        firstName: 'Test',
+        lastName: 'User',
+        personType: 'player',
+        role: 'owner',
       },
     ])
     .returning();
 
-  console.log('Initial user created.');
+  if (result[0]) {
+    console.log('Initial user created:', result[0].email);
+  } else {
+    console.log('Failed to create initial user');
+  }
 
-  const [team] = await db
-    .insert(teams)
-    .values({
-      name: 'Test Team',
-    })
-    .returning();
-
-  await db.insert(teamMembers).values({
-    teamId: team.id,
-    userId: user.id,
-    role: 'owner',
-  });
-
-  // await createStripeProducts();
+  // Note: Teams are handled as group_id and group_name in current_participants
+  // No separate teams table exists in the current schema
 }
 
 seed()
-  .catch((error) => {
+  .catch(error => {
     console.error('Seed process failed:', error);
     process.exit(1);
   })

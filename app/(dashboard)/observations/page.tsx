@@ -1,41 +1,53 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useRef } from 'react'
-import { Plus, Edit, Eye, Trash2, Star, Tag, ChevronDown, ChevronUp, Search, Filter, Shield } from 'lucide-react'
-import { Sidebar } from '@/components/ui/Sidebar'
+import { useState, useEffect, useRef } from 'react';
+import {
+  Plus,
+  Edit,
+  Eye,
+  Trash2,
+  Star,
+  Tag,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Filter,
+  Shield,
+} from 'lucide-react';
+import { Sidebar } from '@/components/ui/Sidebar';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import type { DateRange } from "react-day-picker";
+import type { DateRange } from 'react-day-picker';
 import PlayersList from '@/components/basketball/PlayersList';
-import type { Player as SharedPlayer } from '@/components/basketball/PlayerListCard';
+import type {
+  Player as SharedPlayer,
+  PlayerStatus,
+} from '@/components/basketball/PlayerListCard';
 
 // Types for observations (matching actual API response)
 interface Observation {
-  id: string
-  playerId: string
-  playerFirstName?: string
-  playerLastName?: string
-  playerName: string
-  title: string
-  description: string
-  rating: number
-  date: string
-  tags: string[]
-  createdAt: string
-  updatedAt: string | null
-}
-
-interface Player {
-  id: string
-  name: string
-  team: string
-  status: string
+  id: string;
+  playerId: string;
+  playerFirstName?: string;
+  playerLastName?: string;
+  playerName: string;
+  title: string;
+  description: string;
+  rating: number;
+  date: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 interface Team {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 // Main component
@@ -46,9 +58,10 @@ export default function ObservationsPage() {
   const [obsLoadingMore, setObsLoadingMore] = useState(false);
   const obsLimit = 20;
   const obsListRef = useRef<HTMLDivElement>(null);
-  const [selectedObservation, setSelectedObservation] = useState<Observation | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [selectedObservation, setSelectedObservation] =
+    useState<Observation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Pagination state for observations
   const [pageSize, setPageSize] = useState<number | 'all'>(25);
@@ -57,22 +70,24 @@ export default function ObservationsPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Player/team data for left column
-  const [selectedPlayer, setSelectedPlayer] = useState<SharedPlayer | null>(null);
+  const [players, setPlayers] = useState<SharedPlayer[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<SharedPlayer | null>(
+    null
+  );
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
   const [showAllPlayers, setShowAllPlayers] = useState(false);
   const [showAllObservations, setShowAllObservations] = useState(false);
-  
-
 
   // Filter observations by selected player
   const filteredObservations =
     selectedPlayerIds.length > 0
-      ? observations.filter((obs) => selectedPlayerIds.includes(obs.playerId))
+      ? observations.filter(obs => selectedPlayerIds.includes(obs.playerId))
       : observations;
-  
+
   // Date range filter logic
   const filteredByDate = observations.filter(obs => {
     if (!dateRange?.from || !dateRange?.to) return true;
@@ -81,10 +96,14 @@ export default function ObservationsPage() {
   });
 
   // Pagination logic
-  const paginatedObservations = pageSize === 'all'
-    ? filteredByDate
-    : filteredByDate.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = pageSize === 'all' ? 1 : Math.ceil(filteredByDate.length / (pageSize as number));
+  const paginatedObservations =
+    pageSize === 'all'
+      ? filteredByDate
+      : filteredByDate.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages =
+    pageSize === 'all'
+      ? 1
+      : Math.ceil(filteredByDate.length / (pageSize as number));
 
   const hasMore = filteredObservations.length > paginatedObservations.length;
 
@@ -93,11 +112,15 @@ export default function ObservationsPage() {
     setSelectedPlayer(player);
     setSelectedPlayerIds([player.id]);
   };
-  
+
   // Load more players when scrolling (like players page)
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop <= clientHeight * 1.5 && !obsLoadingMore && observations.length < totalObservations) {
+    if (
+      scrollHeight - scrollTop <= clientHeight * 1.5 &&
+      !obsLoadingMore &&
+      observations.length < totalObservations
+    ) {
       handleObsScroll();
     }
   };
@@ -106,40 +129,41 @@ export default function ObservationsPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        setLoading(true)
-        setError(null)
-        
+        setLoading(true);
+        setError(null);
+
         // Fetch initial observations with pagination
-        const observationsResponse = await fetch(`/api/observations?offset=0&limit=${obsLimit}`)
+        const observationsResponse = await fetch(
+          `/api/observations?offset=0&limit=${obsLimit}`
+        );
         if (!observationsResponse.ok) {
-          throw new Error('Failed to fetch observations')
+          throw new Error('Failed to fetch observations');
         }
-        const { observations: obsArr, total } = await observationsResponse.json();
+        const { observations: obsArr, total } =
+          await observationsResponse.json();
         setObservations(obsArr);
         setTotalObservations(total);
         setObsOffset(obsArr.length);
-        
+
         if (obsArr.length > 0) {
-          setSelectedObservation(obsArr[0])
+          setSelectedObservation(obsArr[0]);
         }
       } catch (err) {
-        console.error('Error fetching data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch data')
-        setObservations([])
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+        setObservations([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchInitialData()
-  }, [])
+    fetchInitialData();
+  }, []);
 
   // Reset page when player selection changes
   useEffect(() => {
     setPage(1);
   }, [selectedPlayerIds]);
-
-
 
   // Infinite scroll handler for expanded observations list
   const handleObsScroll = async () => {
@@ -151,7 +175,9 @@ export default function ObservationsPage() {
       if (observations.length < totalObservations) {
         setObsLoadingMore(true);
         try {
-          const res = await fetch(`/api/observations?offset=${obsOffset}&limit=${obsLimit}`);
+          const res = await fetch(
+            `/api/observations?offset=${obsOffset}&limit=${obsLimit}`
+          );
           if (res.ok) {
             const data = await res.json();
             setObservations(prev => [...prev, ...data.observations]);
@@ -164,17 +190,17 @@ export default function ObservationsPage() {
     }
   };
 
-
-
   if (loading) {
     return (
       <div className="h-screen w-screen bg-[#161616] flex items-center justify-center">
         <div className="flex flex-col items-center justify-center w-full">
-          <span className="text-zinc-400 text-lg font-semibold mb-4">Loading observations...</span>
+          <span className="text-zinc-400 text-lg font-semibold mb-4">
+            Loading observations...
+          </span>
           <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -184,34 +210,53 @@ export default function ObservationsPage() {
           {error}
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="flex min-h-screen h-full bg-black text-white" style={{ background: 'black' }}>
+    <div
+      className="flex min-h-screen h-full bg-black text-white"
+      style={{ background: 'black' }}
+    >
       {/* Header - exact replica with coach info */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between" style={{ boxShadow: 'none' }}>
-        <span className="text-2xl font-bold tracking-wide text-[#d8cc97]" style={{ letterSpacing: '0.04em' }}>
+      <header
+        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+        style={{ boxShadow: 'none' }}
+      >
+        <span
+          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
+          style={{ letterSpacing: '0.04em' }}
+        >
           MP Player Development
         </span>
         <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">Coach</span>
-          <span className="text-xs text-[#d8cc97] leading-tight">coach@example.com</span>
+          <span className="text-base font-semibold text-white leading-tight">
+            Coach
+          </span>
+          <span className="text-xs text-[#d8cc97] leading-tight">
+            coach@example.com
+          </span>
           <span className="text-xs text-white leading-tight">Coach</span>
         </div>
       </header>
       {/* Sidebar */}
-      <Sidebar 
+      <Sidebar
         user={{
-          name: "Coach",
-          email: "coach@example.com", 
-          role: "Coach"
+          name: 'Coach',
+          email: 'coach@example.com',
+          role: 'Coach',
         }}
       />
       {/* Main Content */}
-      <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen" style={{ background: 'black', minHeight: '100vh' }}>
+      <div
+        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
+        style={{ background: 'black', minHeight: '100vh' }}
+      >
         {/* LEFT PANE: Player List */}
-        <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
+        <div
+          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
+          style={{ background: 'black' }}
+        >
           <PlayersList
             selectedPlayerId={selectedPlayer?.id}
             onPlayerSelect={handlePlayerSelect}
@@ -223,22 +268,27 @@ export default function ObservationsPage() {
         </div>
 
         {/* CENTER PANE: Observations */}
-        <div className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
+        <div
+          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
+          style={{ background: 'black' }}
+        >
           <div className="flex items-center mb-6 gap-4 justify-between w-full">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">
               {selectedPlayerIds.length > 0 && selectedPlayer
                 ? `${selectedPlayer.name}'s Observations`
-                : "All Observations"
-              }
+                : 'All Observations'}
             </h2>
             <div className="flex items-center gap-4">
               {/* Page size selector */}
-              <label className="text-sm text-zinc-400">Show:
+              <label className="text-sm text-zinc-400">
+                Show:
                 <select
                   className="ml-2 px-2 py-1 rounded bg-zinc-800 text-white border border-zinc-700"
                   value={pageSize}
                   onChange={e => {
-                    setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value));
+                    setPageSize(
+                      e.target.value === 'all' ? 'all' : Number(e.target.value)
+                    );
                     setPage(1);
                   }}
                 >
@@ -252,7 +302,10 @@ export default function ObservationsPage() {
               {/* Date range picker toggle */}
               <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="px-3 py-1 border border-zinc-700 bg-zinc-800 text-[#d8cc97] hover:border-[#d8cc97]">
+                  <Button
+                    variant="outline"
+                    className="px-3 py-1 border border-zinc-700 bg-zinc-800 text-[#d8cc97] hover:border-[#d8cc97]"
+                  >
                     {dateRange?.from && dateRange?.to
                       ? `${dateRange.from.toLocaleDateString()} - ${dateRange.to.toLocaleDateString()}`
                       : 'Select Date Range'}
@@ -281,10 +334,18 @@ export default function ObservationsPage() {
             <div
               ref={obsListRef}
               className="space-y-4"
-              style={{ maxHeight: `${(pageSize === 'all' ? 12 : pageSize) * 64}px`, minHeight: '0', overflowY: paginatedObservations.length > (pageSize === 'all' ? 12 : pageSize) ? 'auto' : 'visible' }}
+              style={{
+                maxHeight: `${(pageSize === 'all' ? 12 : pageSize) * 64}px`,
+                minHeight: '0',
+                overflowY:
+                  paginatedObservations.length >
+                  (pageSize === 'all' ? 12 : pageSize)
+                    ? 'auto'
+                    : 'visible',
+              }}
               onScroll={handleScroll}
             >
-              {paginatedObservations.map((obs) => (
+              {paginatedObservations.map(obs => (
                 <div
                   key={obs.id}
                   className="bg-zinc-800 px-6 py-3 rounded transition-all"
@@ -292,21 +353,39 @@ export default function ObservationsPage() {
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex flex-col">
-                      <div className="text-base font-bold text-[#d8cc97]">{obs.playerName}</div>
-                      <div className="text-xs text-zinc-400">{new Date(obs.date).toLocaleDateString()}</div>
+                      <div className="text-base font-bold text-[#d8cc97]">
+                        {obs.playerName}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {new Date(obs.date).toLocaleDateString()}
+                      </div>
                     </div>
                     <div className="flex gap-3">
-                      <button className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent" style={{ background: 'transparent' }}>Edit</button>
-                      <button className="text-xs text-red-400 font-semibold hover:underline bg-transparent" style={{ background: 'transparent' }}>Delete</button>
+                      <button
+                        className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent"
+                        style={{ background: 'transparent' }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="text-xs text-red-400 font-semibold hover:underline bg-transparent"
+                        style={{ background: 'transparent' }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                  <p className="text-sm text-zinc-300 line-clamp-3">{obs.description}</p>
+                  <p className="text-sm text-zinc-300 line-clamp-3">
+                    {obs.description}
+                  </p>
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-sm text-gray-500 text-center py-8">
-              {selectedPlayerIds.length > 0 ? "No observations found for these players." : "No observations found."}
+              {selectedPlayerIds.length > 0
+                ? 'No observations found for these players.'
+                : 'No observations found.'}
             </div>
           )}
           {/* Pagination controls */}
@@ -316,21 +395,32 @@ export default function ObservationsPage() {
                 className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-sm"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-              >Prev</button>
-              <span className="px-2 py-1 text-sm">Page {page} of {totalPages}</span>
+              >
+                Prev
+              </button>
+              <span className="px-2 py-1 text-sm">
+                Page {page} of {totalPages}
+              </span>
               <button
                 className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-sm"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-              >Next</button>
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
 
         {/* RIGHT PANE: Insights */}
-        <div className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen" style={{ background: 'black' }}>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Insights</h2>
-          
+        <div
+          className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen"
+          style={{ background: 'black' }}
+        >
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
+            Insights
+          </h2>
+
           {/* Teaser Feature Block */}
           <div className="bg-zinc-800 p-6 rounded">
             <div className="p-4 bg-zinc-900 rounded border border-dashed border-[#d8cc97]">

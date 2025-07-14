@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   // Stripe checkout is temporarily disabled
   return NextResponse.redirect(new URL('/dashboard', request.url));
-  
+
   /*
   const searchParams = request.nextUrl.searchParams;
   const sessionId = searchParams.get('session_id');

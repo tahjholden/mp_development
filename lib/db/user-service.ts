@@ -1,33 +1,33 @@
 /**
  * User Service
- * 
+ *
  * This service bridges the gap between mp_core (authentication) and mpbc (basketball roles) systems.
  * It provides a unified interface for user data that combines:
- * 
+ *
  * 1. Authentication data from mp_core_person
  * 2. Basketball role data from mpbc_person (source of truth)
  * 3. Additional roles from mp_core_person_role
  * 4. Basketball-specific roles from mpbc_person_role
- * 
+ *
  * The service handles both global (mp_core) and vertical-specific (mpbc) role logic.
  */
 
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
-import { 
-  PersonType, 
-  RoleContext, 
-  Capability, 
-  hasCapability, 
+import {
+  PersonType,
+  RoleContext,
+  Capability,
+  hasCapability,
   getAllPersonRoles,
   getPersonRolesWithContext,
-  switchActiveRole
+  switchActiveRole,
 } from '@/lib/db/role-logic';
-import { 
-  BasketballRoleType, 
+import {
+  BasketballRoleType,
   getBasketballRoles,
   hasBasketballRole,
-  BasketballRole
+  BasketballRole,
 } from '@/lib/db/basketball-roles';
 import { NextResponse } from 'next/server';
 import { getPackFeatures } from '@/lib/db/packs';
@@ -73,27 +73,27 @@ export interface UnifiedUser {
   firstName?: string;
   lastName?: string;
   displayName?: string;
-  
+
   // Organization
   organizationId: string;
   organizationName?: string;
-  
+
   // Status
   active: boolean;
   createdAt: Date;
   updatedAt?: Date;
-  
+
   // Roles
   primaryRole: PersonType;
   isAdmin: boolean;
   isSuperadmin: boolean;
   roles: string[];
   basketballRoles: BasketballRole[];
-  
+
   // Context
   currentContext?: RoleContext;
   availableContexts?: RoleContext[];
-  
+
   // Pack features
   packFeatures?: Record<string, boolean>;
 }
@@ -115,70 +115,83 @@ interface StoredRoleContext {
 export async function getCurrentUser(): Promise<UnifiedUser | null> {
   try {
     const supabase = createClient();
-    
+
     // Get authenticated user from Supabase
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return null;
     }
-    
+
     // Get core user data
     const { data: coreUser, error: coreError } = await supabase
       .from('mp_core_person')
-      .select('id, auth_uid, email, first_name, last_name, organization_id, active, created_at, updated_at')
+      .select(
+        'id, auth_uid, email, first_name, last_name, organization_id, active, created_at, updated_at'
+      )
       .eq('auth_uid', user.id)
       .single();
-    
+
     if (coreError || !coreUser) {
       console.error('Error fetching core user:', coreError);
       return null;
     }
-    
+
     // Get basketball user data
     const { data: basketballUser, error: basketballError } = await supabase
       .from('mpbc_person')
-      .select('id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at')
+      .select(
+        'id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at'
+      )
       .eq('person_id', coreUser.id)
       .maybeSingle();
-    
+
     // Get organization name
     const { data: organization } = await supabase
       .from('mp_core_organizations')
       .select('name')
       .eq('id', coreUser.organization_id)
       .maybeSingle();
-    
+
     // Get all roles
     const roles = await getAllPersonRoles(coreUser.id);
-    
+
     // Get basketball-specific roles
     const basketballRoles = await getBasketballRoles(coreUser.id);
-    
+
     // Get pack features
     const packFeatures = await getPackFeatures(coreUser.organization_id);
-    
+
     // Get current role context from cookies
-    const storedContext = getRoleContextFromCookies();
-    
+    const storedContext = await getRoleContextFromCookies();
+
     // Get all available role contexts
     const availableContexts = await getPersonRolesWithContext(coreUser.id);
-    
+
     // Find the current context or use the default
     let currentContext: RoleContext | undefined;
-    
+
     if (storedContext && storedContext.personId === coreUser.id) {
       // Use stored context
       currentContext = {
         personId: storedContext.personId,
         organizationId: storedContext.organizationId,
-        groupId: storedContext.groupId,
-        contextType: storedContext.contextType as 'team' | 'organization' | 'system'
+        ...(storedContext.groupId ? { groupId: storedContext.groupId } : {}),
+        ...(storedContext.contextType
+          ? {
+              contextType: storedContext.contextType as
+                | 'team'
+                | 'organization'
+                | 'system',
+            }
+          : {}),
       };
     } else if (availableContexts.length > 0) {
       // Use first available context
-      currentContext = availableContexts[0].context;
+      currentContext = availableContexts[0]?.context;
     }
-    
+
     // Build unified user object
     const unifiedUser: UnifiedUser = {
       id: coreUser.id,
@@ -186,27 +199,32 @@ export async function getCurrentUser(): Promise<UnifiedUser | null> {
       email: coreUser.email,
       firstName: coreUser.first_name,
       lastName: coreUser.last_name,
-      displayName: basketballUser?.display_name || `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
-      
+      displayName:
+        basketballUser?.display_name ||
+        `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
+
       organizationId: coreUser.organization_id,
       organizationName: organization?.name,
-      
+
       active: coreUser.active,
       createdAt: new Date(coreUser.created_at),
-      updatedAt: coreUser.updated_at ? new Date(coreUser.updated_at) : undefined,
-      
-      primaryRole: basketballUser?.person_type as PersonType || PersonType.PLAYER,
+      ...(coreUser.updated_at
+        ? { updatedAt: new Date(coreUser.updated_at) }
+        : {}),
+
+      primaryRole:
+        (basketballUser?.person_type as PersonType) || PersonType.PLAYER,
       isAdmin: basketballUser?.is_admin || false,
       isSuperadmin: basketballUser?.is_superadmin || false,
       roles,
       basketballRoles,
-      
-      currentContext,
+
+      ...(currentContext ? { currentContext } : {}),
       availableContexts: availableContexts.map(rc => rc.context),
-      
-      packFeatures
+
+      packFeatures: packFeatures as unknown as Record<string, boolean>,
     };
-    
+
     return unifiedUser;
   } catch (error) {
     console.error('Error getting current user:', error);
@@ -220,42 +238,46 @@ export async function getCurrentUser(): Promise<UnifiedUser | null> {
 export async function getUserById(userId: string): Promise<UnifiedUser | null> {
   try {
     const supabase = createClient();
-    
+
     // Get core user data
     const { data: coreUser, error: coreError } = await supabase
       .from('mp_core_person')
-      .select('id, auth_uid, email, first_name, last_name, organization_id, active, created_at, updated_at')
+      .select(
+        'id, auth_uid, email, first_name, last_name, organization_id, active, created_at, updated_at'
+      )
       .eq('id', userId)
       .single();
-    
+
     if (coreError || !coreUser) {
       console.error('Error fetching core user:', coreError);
       return null;
     }
-    
+
     // Get basketball user data
     const { data: basketballUser, error: basketballError } = await supabase
       .from('mpbc_person')
-      .select('id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at')
+      .select(
+        'id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at'
+      )
       .eq('person_id', coreUser.id)
       .maybeSingle();
-    
+
     // Get organization name
     const { data: organization } = await supabase
       .from('mp_core_organizations')
       .select('name')
       .eq('id', coreUser.organization_id)
       .maybeSingle();
-    
+
     // Get all roles
     const roles = await getAllPersonRoles(coreUser.id);
-    
+
     // Get basketball-specific roles
     const basketballRoles = await getBasketballRoles(coreUser.id);
-    
+
     // Get pack features
     const packFeatures = await getPackFeatures(coreUser.organization_id);
-    
+
     // Build unified user object
     const unifiedUser: UnifiedUser = {
       id: coreUser.id,
@@ -263,24 +285,29 @@ export async function getUserById(userId: string): Promise<UnifiedUser | null> {
       email: coreUser.email,
       firstName: coreUser.first_name,
       lastName: coreUser.last_name,
-      displayName: basketballUser?.display_name || `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
-      
+      displayName:
+        basketballUser?.display_name ||
+        `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
+
       organizationId: coreUser.organization_id,
       organizationName: organization?.name,
-      
+
       active: coreUser.active,
       createdAt: new Date(coreUser.created_at),
-      updatedAt: coreUser.updated_at ? new Date(coreUser.updated_at) : undefined,
-      
-      primaryRole: basketballUser?.person_type as PersonType || PersonType.PLAYER,
+      ...(coreUser.updated_at
+        ? { updatedAt: new Date(coreUser.updated_at) }
+        : {}),
+
+      primaryRole:
+        (basketballUser?.person_type as PersonType) || PersonType.PLAYER,
       isAdmin: basketballUser?.is_admin || false,
       isSuperadmin: basketballUser?.is_superadmin || false,
       roles,
       basketballRoles,
-      
-      packFeatures
+
+      packFeatures: packFeatures as unknown as Record<string, boolean>,
     };
-    
+
     return unifiedUser;
   } catch (error) {
     console.error('Error getting user by ID:', error);
@@ -299,22 +326,22 @@ export async function getUsersByRole(
   try {
     const supabase = createClient();
     const currentUser = await getCurrentUser();
-    
+
     if (!currentUser) {
       return [];
     }
-    
+
     // Use provided organizationId or default to current user's org
     const orgId = organizationId || currentUser.organizationId;
-    
+
     // Check if user has permission to view users in this organization
     if (orgId !== currentUser.organizationId && !currentUser.isSuperadmin) {
       return [];
     }
-    
+
     // Get users based on role type
     let userIds: string[] = [];
-    
+
     // Check if it's a core role or a basketball-specific role
     if (Object.values(PersonType).includes(role as PersonType)) {
       // It's a core role, query mpbc_person
@@ -323,7 +350,7 @@ export async function getUsersByRole(
         .select('person_id')
         .eq('organization_id', orgId)
         .eq('person_type', role);
-      
+
       if (users) {
         userIds = users.map(u => u.person_id);
       }
@@ -335,22 +362,22 @@ export async function getUsersByRole(
         .eq('organization_id', orgId)
         .eq('role', role)
         .eq('active', true);
-      
+
       if (users) {
         userIds = users.map(u => u.person_id);
       }
     }
-    
+
     // Get full user data for each user ID
     const unifiedUsers: UnifiedUser[] = [];
-    
+
     for (const userId of userIds) {
       const user = await getUserById(userId);
       if (user && (includeInactive || user.active)) {
         unifiedUsers.push(user);
       }
     }
-    
+
     return unifiedUsers;
   } catch (error) {
     console.error('Error getting users by role:', error);
@@ -366,12 +393,16 @@ export async function currentUserHasCapability(
   context?: RoleContext
 ): Promise<boolean> {
   const currentUser = await getCurrentUser();
-  
+
   if (!currentUser) {
     return false;
   }
-  
-  return hasCapability(currentUser.id, capability, context || currentUser.currentContext);
+
+  return hasCapability(
+    currentUser.id,
+    capability,
+    context || currentUser.currentContext
+  );
 }
 
 /**
@@ -382,12 +413,16 @@ export async function currentUserHasBasketballRole(
   context?: RoleContext
 ): Promise<boolean> {
   const currentUser = await getCurrentUser();
-  
+
   if (!currentUser) {
     return false;
   }
-  
-  return hasBasketballRole(currentUser.id, role, context || currentUser.currentContext);
+
+  return hasBasketballRole(
+    currentUser.id,
+    role,
+    context || currentUser.currentContext
+  );
 }
 
 /**
@@ -398,40 +433,42 @@ export async function switchUserRoleContext(
   context: RoleContext
 ): Promise<boolean> {
   const currentUser = await getCurrentUser();
-  
+
   if (!currentUser) {
     return false;
   }
-  
+
   const success = await switchActiveRole(currentUser.id, role, context);
-  
+
   if (success) {
     // Store the new context in cookies
-    storeRoleContextInCookies({
+    await storeRoleContextInCookies({
       personId: context.personId,
       organizationId: context.organizationId,
-      groupId: context.groupId,
-      contextType: context.contextType,
-      role
+      ...(context.groupId ? { groupId: context.groupId } : {}),
+      ...(context.contextType ? { contextType: context.contextType } : {}),
+      role,
     });
   }
-  
+
   return success;
 }
 
 /**
  * Get the role context from cookies
  */
-function getRoleContextFromCookies(): StoredRoleContext | null {
+async function getRoleContextFromCookies(): Promise<StoredRoleContext | null> {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const contextCookie = cookieStore.get('role_context');
-    
+
     if (!contextCookie) {
       return null;
     }
-    
-    return JSON.parse(decodeURIComponent(contextCookie.value)) as StoredRoleContext;
+
+    return JSON.parse(
+      decodeURIComponent(contextCookie.value)
+    ) as StoredRoleContext;
   } catch (error) {
     console.error('Error getting role context from cookies:', error);
     return null;
@@ -441,16 +478,22 @@ function getRoleContextFromCookies(): StoredRoleContext | null {
 /**
  * Store the role context in cookies
  */
-function storeRoleContextInCookies(context: StoredRoleContext): void {
+async function storeRoleContextInCookies(
+  context: StoredRoleContext
+): Promise<void> {
   try {
-    const cookieStore = cookies();
-    cookieStore.set('role_context', encodeURIComponent(JSON.stringify(context)), {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
+    const cookieStore = await cookies();
+    cookieStore.set(
+      'role_context',
+      encodeURIComponent(JSON.stringify(context)),
+      {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      }
+    );
   } catch (error) {
     console.error('Error storing role context in cookies:', error);
   }
@@ -459,9 +502,9 @@ function storeRoleContextInCookies(context: StoredRoleContext): void {
 /**
  * Clear the role context from cookies
  */
-export function clearRoleContextFromCookies(): void {
+export async function clearRoleContextFromCookies(): Promise<void> {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.delete('role_context');
   } catch (error) {
     console.error('Error clearing role context from cookies:', error);
@@ -477,11 +520,11 @@ export async function requireCapability(
   context?: RoleContext
 ): Promise<Response | null> {
   const hasAccess = await currentUserHasCapability(capability, context);
-  
+
   if (!hasAccess) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  
+
   return null;
 }
 
@@ -494,11 +537,11 @@ export async function requireRole(
   context?: RoleContext
 ): Promise<Response | null> {
   const currentUser = await getCurrentUser();
-  
+
   if (!currentUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
+
   // Check if it's a core role or a basketball-specific role
   if (Object.values(PersonType).includes(role as PersonType)) {
     // It's a core role
@@ -512,7 +555,7 @@ export async function requireRole(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }
-  
+
   return null;
 }
 
@@ -523,47 +566,46 @@ export async function getUsersInTeam(teamId: string): Promise<UnifiedUser[]> {
   try {
     const supabase = createClient();
     const currentUser = await getCurrentUser();
-    
+
     if (!currentUser) {
       return [];
     }
-    
+
     // Check if user has permission to view this team
     const canView = await hasCapability(
-      currentUser.id, 
-      Capability.VIEW_TEAM_PLAYERS, 
+      currentUser.id,
+      Capability.VIEW_TEAM_PLAYERS,
       { ...currentUser.currentContext!, groupId: teamId }
     );
-    
+
     if (!canView && !currentUser.isAdmin && !currentUser.isSuperadmin) {
       return [];
     }
-    
+
     // Get all users in the team
     const { data: teamMembers } = await supabase
       .from('mp_core_person_group')
       .select('person_id, role')
       .eq('group_id', teamId)
       .eq('active', true);
-    
+
     if (!teamMembers) {
       return [];
     }
-    
+
     // Get full user data for each team member
     const unifiedUsers: UnifiedUser[] = [];
-    
+
     for (const member of teamMembers) {
       const user = await getUserById(member.person_id);
       if (user) {
         // Add team role to the user object
         unifiedUsers.push({
           ...user,
-          teamRole: member.role
         });
       }
     }
-    
+
     return unifiedUsers;
   } catch (error) {
     console.error('Error getting users in team:', error);
@@ -589,73 +631,78 @@ export async function createOrUpdateUser(userData: {
   try {
     const supabase = createClient();
     const currentUser = await getCurrentUser();
-    
+
     if (!currentUser) {
       return null;
     }
-    
+
     // Check if current user has permission to create/update users
     if (!currentUser.isAdmin && !currentUser.isSuperadmin) {
       return null;
     }
-    
+
     // Check if organization ID is valid
-    if (userData.organizationId !== currentUser.organizationId && !currentUser.isSuperadmin) {
+    if (
+      userData.organizationId !== currentUser.organizationId &&
+      !currentUser.isSuperadmin
+    ) {
       return null;
     }
-    
+
     // Check if user already exists
     const { data: existingUser } = await supabase
       .from('mp_core_person')
       .select('id')
       .eq('email', userData.email)
       .maybeSingle();
-    
+
     let userId: string;
-    
+
     if (existingUser) {
       // Update existing user
       userId = existingUser.id;
-      
+
       await supabase
         .from('mp_core_person')
         .update({
           first_name: userData.firstName,
           last_name: userData.lastName,
           active: userData.active !== undefined ? userData.active : true,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
-      
+
       // Update mpbc_person
       const { data: existingMpbcPerson } = await supabase
         .from('mpbc_person')
         .select('id')
         .eq('person_id', userId)
         .maybeSingle();
-      
+
       if (existingMpbcPerson) {
         await supabase
           .from('mpbc_person')
           .update({
             person_type: userData.primaryRole,
-            display_name: userData.displayName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+            display_name:
+              userData.displayName ||
+              `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
             is_admin: userData.isAdmin || false,
             is_superadmin: userData.isSuperadmin || false,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('person_id', userId);
       } else {
-        await supabase
-          .from('mpbc_person')
-          .insert({
-            person_id: userId,
-            person_type: userData.primaryRole,
-            organization_id: userData.organizationId,
-            display_name: userData.displayName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
-            is_admin: userData.isAdmin || false,
-            is_superadmin: userData.isSuperadmin || false
-          });
+        await supabase.from('mpbc_person').insert({
+          person_id: userId,
+          person_type: userData.primaryRole,
+          organization_id: userData.organizationId,
+          display_name:
+            userData.displayName ||
+            `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+          is_admin: userData.isAdmin || false,
+          is_superadmin: userData.isSuperadmin || false,
+        });
       }
     } else {
       // Create new user
@@ -668,31 +715,31 @@ export async function createOrUpdateUser(userData: {
           organization_id: userData.organizationId,
           person_type: userData.primaryRole,
           active: userData.active !== undefined ? userData.active : true,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         })
         .select('id')
         .single();
-      
+
       if (error || !newUser) {
         console.error('Error creating user:', error);
         return null;
       }
-      
+
       userId = newUser.id;
-      
+
       // Create mpbc_person
-      await supabase
-        .from('mpbc_person')
-        .insert({
-          person_id: userId,
-          person_type: userData.primaryRole,
-          organization_id: userData.organizationId,
-          display_name: userData.displayName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
-          is_admin: userData.isAdmin || false,
-          is_superadmin: userData.isSuperadmin || false
-        });
+      await supabase.from('mpbc_person').insert({
+        person_id: userId,
+        person_type: userData.primaryRole,
+        organization_id: userData.organizationId,
+        display_name:
+          userData.displayName ||
+          `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+        is_admin: userData.isAdmin || false,
+        is_superadmin: userData.isSuperadmin || false,
+      });
     }
-    
+
     // Add or update basketball roles
     if (userData.basketballRoles && userData.basketballRoles.length > 0) {
       // First, deactivate all existing basketball roles
@@ -700,27 +747,25 @@ export async function createOrUpdateUser(userData: {
         .from('mpbc_person_role')
         .update({
           active: false,
-          ended_at: new Date().toISOString()
+          ended_at: new Date().toISOString(),
         })
         .eq('person_id', userId);
-      
+
       // Then add new roles
       for (const role of userData.basketballRoles) {
-        await supabase
-          .from('mpbc_person_role')
-          .insert({
-            person_id: userId,
-            organization_id: userData.organizationId,
-            role: role.role,
-            permissions: role.permissions || [],
-            scope_type: role.scopeType || 'organization',
-            scope_ids: role.scopeIds || [],
-            active: true,
-            started_at: new Date().toISOString()
-          });
+        await supabase.from('mpbc_person_role').insert({
+          person_id: userId,
+          organization_id: userData.organizationId,
+          role: role.role,
+          permissions: role.permissions || [],
+          scope_type: role.scopeType || 'organization',
+          scope_ids: role.scopeIds || [],
+          active: true,
+          started_at: new Date().toISOString(),
+        });
       }
     }
-    
+
     return userId;
   } catch (error) {
     console.error('Error creating/updating user:', error);
@@ -735,54 +780,58 @@ export async function getUserTeams(userId?: string): Promise<any[]> {
   try {
     const supabase = createClient();
     const currentUser = await getCurrentUser();
-    
+
     if (!currentUser) {
       return [];
     }
-    
+
     // Use provided userId or default to current user
     const targetUserId = userId || currentUser.id;
-    
+
     // Check if current user has permission to view this user's teams
-    if (targetUserId !== currentUser.id && !currentUser.isAdmin && !currentUser.isSuperadmin) {
+    if (
+      targetUserId !== currentUser.id &&
+      !currentUser.isAdmin &&
+      !currentUser.isSuperadmin
+    ) {
       const canView = await hasCapability(
-        currentUser.id, 
+        currentUser.id,
         Capability.VIEW_ORGANIZATION_DATA
       );
-      
+
       if (!canView) {
         return [];
       }
     }
-    
+
     // Get all teams the user is associated with
     const { data: userGroups } = await supabase
       .from('mp_core_person_group')
       .select('group_id, role')
       .eq('person_id', targetUserId)
       .eq('active', true);
-    
+
     if (!userGroups || userGroups.length === 0) {
       return [];
     }
-    
+
     // Get team details
     const teamIds = userGroups.map(ug => ug.group_id);
     const { data: teams } = await supabase
       .from('mp_core_group')
       .select('*')
       .in('id', teamIds);
-    
+
     if (!teams) {
       return [];
     }
-    
+
     // Combine team data with role
     return teams.map(team => {
       const userGroup = userGroups.find(ug => ug.group_id === team.id);
       return {
         ...team,
-        userRole: userGroup?.role
+        userRole: userGroup?.role,
       };
     });
   } catch (error) {
@@ -801,20 +850,20 @@ export async function isUserInTeamWithRole(
 ): Promise<boolean> {
   try {
     const supabase = createClient();
-    
+
     let query = supabase
       .from('mp_core_person_group')
       .select('id')
       .eq('person_id', userId)
       .eq('group_id', teamId)
       .eq('active', true);
-    
+
     if (role) {
       query = query.eq('role', role);
     }
-    
+
     const { data } = await query;
-    
+
     return !!data && data.length > 0;
   } catch (error) {
     console.error('Error checking if user is in team with role:', error);
@@ -833,21 +882,21 @@ export async function addUserToTeam(
   try {
     const supabase = createClient();
     const currentUser = await getCurrentUser();
-    
+
     if (!currentUser) {
       return false;
     }
-    
+
     // Check if current user has permission to manage teams
     const canManage = await hasCapability(
-      currentUser.id, 
+      currentUser.id,
       Capability.MANAGE_TEAMS
     );
-    
+
     if (!canManage && !currentUser.isAdmin && !currentUser.isSuperadmin) {
       return false;
     }
-    
+
     // Check if user is already in the team
     const { data: existingMembership } = await supabase
       .from('mp_core_person_group')
@@ -855,7 +904,7 @@ export async function addUserToTeam(
       .eq('person_id', userId)
       .eq('group_id', teamId)
       .maybeSingle();
-    
+
     if (existingMembership) {
       // Update existing membership
       await supabase
@@ -863,22 +912,20 @@ export async function addUserToTeam(
         .update({
           role,
           active: true,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', existingMembership.id);
     } else {
       // Create new membership
-      await supabase
-        .from('mp_core_person_group')
-        .insert({
-          person_id: userId,
-          group_id: teamId,
-          role,
-          active: true,
-          created_at: new Date().toISOString()
-        });
+      await supabase.from('mp_core_person_group').insert({
+        person_id: userId,
+        group_id: teamId,
+        role,
+        active: true,
+        created_at: new Date().toISOString(),
+      });
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error adding user to team:', error);
@@ -896,31 +943,31 @@ export async function removeUserFromTeam(
   try {
     const supabase = createClient();
     const currentUser = await getCurrentUser();
-    
+
     if (!currentUser) {
       return false;
     }
-    
+
     // Check if current user has permission to manage teams
     const canManage = await hasCapability(
-      currentUser.id, 
+      currentUser.id,
       Capability.MANAGE_TEAMS
     );
-    
+
     if (!canManage && !currentUser.isAdmin && !currentUser.isSuperadmin) {
       return false;
     }
-    
+
     // Update membership to inactive
     await supabase
       .from('mp_core_person_group')
       .update({
         active: false,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('person_id', userId)
       .eq('group_id', teamId);
-    
+
     return true;
   } catch (error) {
     console.error('Error removing user from team:', error);

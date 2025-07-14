@@ -6,17 +6,17 @@ import { SWRConfig } from 'swr';
 
 export const metadata: Metadata = {
   title: 'Next.js SaaS Starter',
-  description: 'Get started quickly with Next.js, Postgres, and Stripe.'
+  description: 'Get started quickly with Next.js, Postgres, and Stripe.',
 };
 
 export const viewport: Viewport = {
-  maximumScale: 1
+  maximumScale: 1,
 };
 
 const manrope = Manrope({ subsets: ['latin'] });
 
 export default function RootLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
@@ -42,7 +42,7 @@ export default function RootLayout({
             } catch (err) {
               /* eslint-disable no-console */
               console.warn(
-                '[layout] Database unavailable, skipping SWR fallback data.',
+                '[layout] Database unavailable, skipping SWR fallback data.'
               );
             }
             return { fallback };

@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson } from '@/lib/db/schema';
+import { mpCorePerson, mpCorePersonGroup, mpCoreGroup } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET() {
@@ -8,7 +8,7 @@ export async function GET() {
     console.log('Dashboard stats API called');
     const user = await getUser();
     console.log('User from getUser():', user ? user.email : 'null');
-    
+
     if (!user) {
       console.log('No user found, returning mock data for development');
       // For development, return mock data if no user is found
@@ -28,37 +28,38 @@ export async function GET() {
     }
 
     if (!db) {
-      return Response.json({ error: 'Database not available' }, { status: 500 });
+      return Response.json(
+        { error: 'Database not available' },
+        { status: 500 }
+      );
     }
 
-    // Get players count
+    // Get players count (players with a group membership)
     const playersResult = await db
       .select({ count: mpCorePerson.id })
       .from(mpCorePerson)
+      .innerJoin(
+        mpCorePersonGroup,
+        eq(mpCorePerson.id, mpCorePersonGroup.personId)
+      )
       .where(
         and(
           eq(mpCorePerson.personType, 'player'),
-          isNotNull(mpCorePerson.groupId)
+          isNotNull(mpCorePersonGroup.groupId)
         )
       );
-
     const totalPlayers = playersResult.length;
 
-    // Get teams count (unique groupId/groupName combinations)
+    // Get teams count (unique group IDs from mpCoreGroup)
     const teamsResult = await db
-      .select({
-        groupId: mpCorePerson.groupId,
-        groupName: mpCorePerson.groupName,
-      })
-      .from(mpCorePerson)
-      .where(
-        and(
-          isNotNull(mpCorePerson.groupId),
-          isNotNull(mpCorePerson.groupName)
-        )
+      .select({ groupId: mpCoreGroup.id, groupName: mpCoreGroup.name })
+      .from(mpCoreGroup)
+      .innerJoin(
+        mpCorePersonGroup,
+        eq(mpCoreGroup.id, mpCorePersonGroup.groupId)
       )
-      .groupBy(mpCorePerson.groupId, mpCorePerson.groupName);
-
+      .where(isNotNull(mpCorePersonGroup.groupId))
+      .groupBy(mpCoreGroup.id, mpCoreGroup.name);
     const activeTeams = teamsResult.length;
 
     // For now, return mock data for sessions and drills since we don't have those tables yet
@@ -80,4 +81,4 @@ export async function GET() {
     console.error('Error fetching dashboard stats:', error);
     return Response.json({ error: 'Failed to fetch stats' }, { status: 500 });
   }
-} 
+}
