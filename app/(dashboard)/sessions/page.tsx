@@ -2,20 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Plus,
-  Edit,
-  Eye,
-  Trash2,
-  Star,
-  Tag,
   ChevronDown,
   ChevronUp,
   Search,
   Filter,
-  Calendar,
-  Clock,
-  Users,
-  Target,
 } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { z } from 'zod';
@@ -99,10 +89,6 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state for sessions
-  const [page, setPage] = useState(1);
-  const pageSize = 5;
-
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -114,10 +100,6 @@ export default function SessionsPage() {
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
 
   // Filter sessions by selected team
-  const filteredSessions = selectedSessionId
-    ? sessions.filter(session => session.id === selectedSessionId)
-    : sessions;
-
   const filteredSessionsList = sessions.filter(session => {
     const matchesSearch = session.title
       .toLowerCase()
@@ -312,7 +294,7 @@ export default function SessionsPage() {
 
   // Reset page when session selection changes
   useEffect(() => {
-    setPage(1);
+    // setPage(1); // This line is removed
   }, [selectedSessionId]);
 
   if (loading) {

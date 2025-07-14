@@ -5,12 +5,12 @@ import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    console.log('Dashboard stats API called');
+    // console.log('Dashboard stats API called');
     const user = await getUser();
-    console.log('User from getUser():', user ? user.email : 'null');
+    // console.log('User from getUser():', user ? user.email : 'null');
 
     if (!user) {
-      console.log('No user found, returning mock data for development');
+      // console.log('No user found, returning mock data for development');
       // For development, return mock data if no user is found
       const mockStats = {
         totalPlayers: 24,
@@ -77,8 +77,8 @@ export async function GET() {
     };
 
     return Response.json(stats);
-  } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+  } catch {
+    // console.error('Error fetching dashboard stats:', error);
     return Response.json({ error: 'Failed to fetch stats' }, { status: 500 });
   }
 }

@@ -4,20 +4,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Users,
-  Calendar,
-  User,
   Loader2,
   Search,
-  Filter,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/ui/Sidebar';
-import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
-import { cn, UserResponseSchema } from '@/lib/utils';
-import PlayerListCard from '@/components/basketball/PlayerListCard';
-import Header from '@/components/ui/Header';
-import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
+import { UserResponseSchema } from '@/lib/utils';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -54,17 +46,14 @@ interface Player {
 }
 
 export default function TeamsPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamPlayers, setTeamPlayers] = useState<Player[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [showAddTeamModal, setShowAddTeamModal] = useState(false);
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
-  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
 
   // Fetch current user and their teams
   useEffect(() => {
@@ -204,7 +193,9 @@ export default function TeamsPage() {
 
   // Handler for adding a new team
   const handleAddTeam = () => {
-    setShowAddTeamModal(true);
+    // This functionality is not yet implemented, so this handler is kept for now
+    // but the modal is removed.
+    console.log('Add Team clicked');
   };
 
   // Filter teams based on search

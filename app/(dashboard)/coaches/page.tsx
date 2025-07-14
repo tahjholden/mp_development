@@ -1,13 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Filter,
-  Edit,
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { z } from 'zod';
 
@@ -73,10 +67,6 @@ export default function CoachesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state for coaches
-  const [page, setPage] = useState(1);
-  const pageSize = 5;
-
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -86,9 +76,9 @@ export default function CoachesPage() {
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
 
   // Filter coaches by selected team
-  const filteredCoaches = selectedCoachId
-    ? coaches.filter(coach => coach.id === selectedCoachId)
-    : coaches;
+  // const filteredCoaches = selectedCoachId
+  //   ? coaches.filter(coach => coach.id === selectedCoachId)
+  //   : coaches;
 
   const filteredCoachesList = coaches.filter(coach => {
     const matchesSearch = coach.name
@@ -159,7 +149,7 @@ export default function CoachesPage() {
         // Validate coaches data
         const validatedCoaches = CoachesArraySchema.safeParse(mockCoaches);
         if (!validatedCoaches.success) {
-          console.error('Invalid coaches data:', validatedCoaches.error);
+          // console.error('Invalid coaches data:', validatedCoaches.error);
           throw new Error('Invalid coaches data received');
         }
 
@@ -203,7 +193,12 @@ export default function CoachesPage() {
             Array.isArray(rawPlayersData.players)
           ) {
             const transformedRawPlayers = rawPlayersData.players.map(
-              (player: any) => ({
+              (player: {
+                id: string;
+                name?: string;
+                team?: string;
+                status?: string;
+              }) => ({
                 id: player.id,
                 name: player.name || 'Unknown Player',
                 team: player.team || 'No Team',
@@ -216,7 +211,7 @@ export default function CoachesPage() {
               transformedRawPlayers
             );
             if (!validatedPlayers.success) {
-              console.error('Invalid players data:', validatedPlayers.error);
+              // console.error('Invalid players data:', validatedPlayers.error);
               throw new Error('Invalid players data received');
             }
 
@@ -239,10 +234,10 @@ export default function CoachesPage() {
             );
             setPlayers(uniquePlayers);
           } else {
-            console.error(
-              'Invalid API response structure for players:',
-              rawPlayersData
-            );
+            // console.error(
+            //   'Invalid API response structure for players:',
+            //   rawPlayersData
+            // );
             setPlayers([]);
           }
         }
@@ -255,7 +250,7 @@ export default function CoachesPage() {
           // Validate teams data
           const validatedTeams = TeamsArraySchema.safeParse(rawTeamsData);
           if (!validatedTeams.success) {
-            console.error('Invalid teams data:', validatedTeams.error);
+            // console.error('Invalid teams data:', validatedTeams.error);
             throw new Error('Invalid teams data received');
           }
 
@@ -280,7 +275,7 @@ export default function CoachesPage() {
           setSelectedCoach(uniqueCoaches[0]);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        // console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
         setCoaches([]);
         setPlayers([]);
@@ -295,7 +290,7 @@ export default function CoachesPage() {
 
   // Reset page when coach selection changes
   useEffect(() => {
-    setPage(1);
+    // setPage(1);
   }, [selectedCoachId]);
 
   if (loading) {

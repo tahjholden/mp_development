@@ -31,7 +31,6 @@ export default async function PricingPage() {
             'Unlimited Workspace Members',
             'Email Support',
           ]}
-          priceId={basePrice?.id}
         />
         <PricingCard
           name={plusPlan?.name || 'Plus'}
@@ -43,7 +42,6 @@ export default async function PricingPage() {
             'Early Access to New Features',
             '24/7 Support + Slack Access',
           ]}
-          priceId={plusPrice?.id}
         />
       </div>
     </main>
@@ -56,14 +54,12 @@ function PricingCard({
   interval,
   trialDays,
   features,
-  priceId,
 }: {
   name: string;
   price: number;
   interval: string;
   trialDays: number;
   features: string[];
-  priceId?: string;
 }) {
   return (
     <div className="pt-6">

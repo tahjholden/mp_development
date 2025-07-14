@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, ChevronDown, ChevronUp, X } from 'lucide-react';
 import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
@@ -14,7 +14,7 @@ export interface Player {
   name: string;
   teamId?: string;
   status?: PlayerStatus;
-  [key: string]: any; // For additional player properties
+  [key: string]: unknown; // For additional player properties
 }
 
 export interface Team {

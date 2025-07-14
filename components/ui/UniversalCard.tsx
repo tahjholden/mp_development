@@ -206,7 +206,7 @@ const EmptyStateCard = forwardRef<HTMLDivElement, EmptyStateCardProps>(
     {
       className,
       variant = 'default',
-      size = 'lg',
+      // size = 'lg',
       icon,
       title,
       message,

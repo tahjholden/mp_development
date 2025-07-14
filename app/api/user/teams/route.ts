@@ -32,12 +32,7 @@ export async function GET() {
       .from(mpCorePersonGroup)
       .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
       .leftJoin(mpCorePerson, eq(mpCorePersonGroup.personId, mpCorePerson.id))
-      .where(
-        and(
-          isNotNull(mpCoreGroup.id),
-          isNotNull(mpCoreGroup.name)
-        )
-      )
+      .where(and(isNotNull(mpCoreGroup.id), isNotNull(mpCoreGroup.name)))
       .groupBy(
         mpCoreGroup.id,
         mpCoreGroup.name,

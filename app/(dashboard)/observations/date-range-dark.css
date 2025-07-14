@@ -22,7 +22,11 @@
   color: #d8cc97 !important;
 }
 
-.rdrDaySelected, .rdrDayStartPreview, .rdrDayEndPreview, .rdrDayInPreview, .rdrDayInRange {
+.rdrDaySelected,
+.rdrDayStartPreview,
+.rdrDayEndPreview,
+.rdrDayInPreview,
+.rdrDayInRange {
   background: #d8cc97 !important;
   color: #181818 !important;
 }
@@ -54,4 +58,4 @@
   background: #181818 !important;
   color: #f5e7b2 !important;
   border-right: 1px solid #d8cc97 !important;
-} 
+}

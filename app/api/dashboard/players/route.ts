@@ -153,6 +153,8 @@ export async function GET(req: Request) {
     const uniquePlayers = formattedPlayers.filter(
       (player, index, self) => index === self.findIndex(p => p.id === player.id)
     );
+    // Sort players alphabetically by name
+    uniquePlayers.sort((a, b) => a.name.localeCompare(b.name));
     const total = uniquePlayers.length;
     const paged = uniquePlayers.slice(offset, offset + limit);
 

@@ -1,4 +1,4 @@
-import { desc, and, eq, isNull } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db } from './drizzle';
 import {
   infrastructureActivityLogs,
@@ -14,30 +14,30 @@ export async function getUser(): Promise<
 > {
   // Database might be undefined in environments without POSTGRES_URL.
   if (!db) {
-    console.log('getUser: Database not available');
+    // console.log('getUser: Database not available');
     return null;
   }
 
   const sessionCookie = (await cookies()).get('session');
-  console.log('getUser: Session cookie exists:', !!sessionCookie);
+  // console.log('getUser: Session cookie exists:', !!sessionCookie);
   if (!sessionCookie || !sessionCookie.value) {
-    console.log('getUser: No session cookie or value');
+    // console.log('getUser: No session cookie or value');
     return null;
   }
 
   const sessionData = await verifyToken(sessionCookie.value);
-  console.log('getUser: Session data:', sessionData ? 'valid' : 'invalid');
+  // console.log('getUser: Session data:', sessionData ? 'valid' : 'invalid');
   if (
     !sessionData ||
     !sessionData.user ||
     typeof sessionData.user.id !== 'string' // UUIDs are strings
   ) {
-    console.log('getUser: Invalid session data');
+    // console.log('getUser: Invalid session data');
     return null;
   }
 
   if (new Date(sessionData.expires) < new Date()) {
-    console.log('getUser: Session expired');
+    // console.log('getUser: Session expired');
     return null;
   }
 

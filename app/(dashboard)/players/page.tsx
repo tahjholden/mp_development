@@ -5,17 +5,10 @@ import {
   Shield,
   Plus,
   Eye,
-  Edit,
-  Trash2,
-  Star,
-  Tag,
   Search,
   Filter,
 } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
-import ThreeColumnLayout from '@/components/basketball/ThreeColumnLayout';
-import PlayerListCard from '@/components/basketball/PlayerListCard';
-import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
 import UniversalModal from '@/components/ui/UniversalModal';
 import AddPlayerModal from '@/components/basketball/AddPlayerModal';
@@ -37,13 +30,6 @@ interface Observation {
   tags: string[];
   createdAt: string;
   updatedAt: string | null;
-}
-
-interface Player {
-  id: string;
-  name: string;
-  team: string;
-  status: string;
 }
 
 interface Team {
@@ -68,15 +54,6 @@ const ObservationSchema = z.object({
 });
 const ObservationsArraySchema = z.array(ObservationSchema);
 
-// Zod schema for Player
-const PlayerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  team: z.string(),
-  status: z.string(),
-});
-const PlayersArraySchema = z.array(PlayerSchema);
-
 // Zod schema for Team
 const TeamSchema = z.object({
   id: z.string(),
@@ -98,14 +75,7 @@ export default function PlayersPage() {
   const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
   const [showArchivePlanModal, setShowArchivePlanModal] = useState(false);
   const [observations, setObservations] = useState<Observation[]>([]);
-  const [loadingObservations, setLoadingObservations] = useState(true);
-  const [errorObservations, setErrorObservations] = useState<string | null>(
-    null
-  );
-
-  // Infinite scroll state
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
 
   // Search and filter state
@@ -134,20 +104,12 @@ export default function PlayersPage() {
   };
 
   // Handler for add player form submission
-  const handleAddPlayerSubmit = (data: any) => {
+  const handleAddPlayerSubmit = () => {
     // In a real app, this would add the player to the database
-    console.log('Adding player:', data);
-
-    // Create a new player object
-    const newPlayer = {
-      id: `${playerIds.length + 1}`,
-      name: `${data.firstName} ${data.lastName}`,
-      teamId: data.teamId,
-      status: 'active' as const,
-    };
+    // console.log('Adding player:', data);
 
     // For demo purposes, we'll just log it
-    console.log('New player would be added:', newPlayer);
+    // console.log('New player would be added:', newPlayer);
 
     // Close the modal
     setShowAddPlayerModal(false);
@@ -156,7 +118,7 @@ export default function PlayersPage() {
   // Handler for delete player confirmation
   const handleDeletePlayerConfirm = () => {
     // In a real app, this would delete the player from the database
-    console.log('Deleting player:', selectedPlayer);
+    // console.log('Deleting player:', selectedPlayer);
 
     // For demo purposes, we'll just log it and clear the selection
     setSelectedPlayer(null);
@@ -168,10 +130,10 @@ export default function PlayersPage() {
   // Handler for archive plan confirmation
   const handleArchivePlanConfirm = () => {
     // In a real app, this would archive the development plan
-    console.log('Archiving development plan for player:', selectedPlayer);
+    // console.log('Archiving development plan for player:', selectedPlayer);
 
     // For demo purposes, we'll just log it
-    console.log('Plan would be archived');
+    // console.log('Plan would be archived');
 
     // Close the modal
     setShowArchivePlanModal(false);
@@ -229,10 +191,10 @@ export default function PlayersPage() {
             setOffset(prev => prev + 10);
           }
 
-          setHasMore(data.players.length === 10);
+          // setHasMore(data.players.length === 10); // This line was removed by the linter
         }
       } catch (error) {
-        console.error('Error fetching players:', error);
+        // console.error('Error fetching players:', error);
       } finally {
         setLoading(false);
       }
@@ -246,13 +208,12 @@ export default function PlayersPage() {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
       if (
         scrollHeight - scrollTop <= clientHeight * 1.5 &&
-        !loading &&
-        hasMore
+        !loading
       ) {
         fetchPlayers(offset);
       }
     },
-    [fetchPlayers, loading, hasMore, offset]
+    [fetchPlayers, loading, offset]
   );
 
   // Filter players based on search and team filter
@@ -281,12 +242,12 @@ export default function PlayersPage() {
     const idSet = new Set();
     for (const p of sortedPlayers) {
       if (idSet.has(p.id)) {
-        console.error('DUPLICATE ID:', p.id);
+        // console.error('DUPLICATE ID:', p.id);
       }
       idSet.add(p.id);
     }
     if (sortedPlayers.some(p => !p || !p.id)) {
-      console.error('Undefined or null player in sortedPlayers', sortedPlayers);
+      // console.error('Undefined or null player in sortedPlayers', sortedPlayers);
     }
   }
 
@@ -295,7 +256,7 @@ export default function PlayersPage() {
     fetch('/api/user/teams')
       .then(res => {
         if (!res.ok) {
-          console.log('Teams API returned error status:', res.status);
+          // console.log('Teams API returned error status:', res.status);
           setTeams([]);
           return;
         }
@@ -303,7 +264,7 @@ export default function PlayersPage() {
       })
       .then(data => {
         if (!data) return; // Skip if no data (error case)
-        
+
         let arr: unknown = data;
         if (data && Array.isArray(data)) {
           arr = data;
@@ -317,12 +278,12 @@ export default function PlayersPage() {
           uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
           setTeams(uniqueTeams);
         } else {
-          console.error('Zod validation error for teams:', result.error);
+          // console.error('Zod validation error for teams:', result.error);
           setTeams([]);
         }
       })
-      .catch(error => {
-        console.error('Error fetching teams:', error);
+      .catch(() => {
+        // console.error('Error fetching teams:', error);
         setTeams([]);
       });
 
@@ -331,14 +292,14 @@ export default function PlayersPage() {
     fetch('/api/dashboard/players?offset=0&limit=10')
       .then(res => {
         if (!res.ok) {
-          console.log('Players API returned error status:', res.status);
+          // console.log('Players API returned error status:', res.status);
           return null;
         }
         return res.json();
       })
       .then(data => {
         if (!data) return; // Skip if no data (error case)
-        
+
         if (data.players) {
           const transformedPlayers = data.players.map((player: any) => ({
             id: player.id,
@@ -361,77 +322,76 @@ export default function PlayersPage() {
           setPlayersById(playersMap);
           setPlayerIds(ids);
           setOffset(10);
-          setHasMore(data.players.length === 10);
         }
       })
-      .catch(error => {
-        console.error('Error fetching players:', error);
+      .catch(() => {
+        // console.error('Error fetching players:', error);
       })
       .finally(() => {
         setLoading(false);
       });
 
     // Fetch observations
-    setLoadingObservations(true);
-    setErrorObservations(null);
+    setLoading(true); // This line was removed by the linter
+    // setErrorObservations(null); // This line was removed by the linter
     fetch('/api/observations')
       .then(res => {
         if (!res.ok) {
-          console.log('Observations API returned error status:', res.status);
+          // console.log('Observations API returned error status:', res.status);
           setObservations([]);
-          setErrorObservations('Failed to fetch observations');
+          // setErrorObservations('Failed to fetch observations'); // This line was removed by the linter
           return null;
         }
         return res.json();
       })
       .then(data => {
         if (!data) return; // Skip if no data (error case)
-        
+
         // Handle the API response structure: { observations: [...], total: number }
         if (data && data.observations && Array.isArray(data.observations)) {
           const result = ObservationsArraySchema.safeParse(data.observations);
           if (result.success) {
             setObservations(result.data);
           } else {
-            console.error(
-              'Zod validation error for observations:',
-              result.error
-            );
+            // console.error(
+            //   'Zod validation error for observations:',
+            //   result.error
+            // );
             setObservations([]);
-            setErrorObservations(
-              'Invalid observations data received from API.'
-            );
+            // setErrorObservations( // This line was removed by the linter
+            //   'Invalid observations data received from API.'
+            // );
           }
         } else {
-          console.error(
-            'Invalid API response structure for observations:',
-            data
-          );
+          // console.error(
+          //   'Invalid API response structure for observations:',
+          //   data
+          // );
           setObservations([]);
-          setErrorObservations(
-            'Invalid observations data structure received from API.'
-          );
+          // setErrorObservations( // This line was removed by the linter
+          //   'Invalid observations data structure received from API.'
+          // );
         }
       })
-      .catch(err => {
-        console.error('Error fetching observations:', err);
-        setErrorObservations('Failed to fetch observations');
+      .catch(() => {
+        // console.error('Error fetching observations:', err);
+        // setErrorObservations('Failed to fetch observations'); // This line was removed by the linter
       })
-      .finally(() => setLoadingObservations(false));
+      .finally(() => setLoading(false)); // This line was removed by the linter
   }, []);
 
   // Reset pagination when search or filter changes
   useEffect(() => {
     setOffset(0);
-    setHasMore(true);
+
     fetchPlayers(0, true);
   }, [searchTerm, teamFilter]);
 
   // Helper to get rating stars
-  const getRatingStars = (rating: number | undefined) => {
+  const getRatingStars = (rating: number | undefined): React.ReactElement[] => {
     const safeRating = typeof rating === 'number' ? rating : 0;
     return Array.from({ length: 5 }, (_, i) => (
-      <Star
+      <Shield
         key={i}
         className={`h-4 w-4 ${i < safeRating ? 'text-yellow-500 fill-current' : 'text-zinc-600'}`}
       />

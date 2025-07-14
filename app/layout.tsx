@@ -1,3 +1,4 @@
+import React from 'react';
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
@@ -39,7 +40,7 @@ export default function RootLayout({
             try {
               fallback['/api/user'] = getUser();
               fallback['/api/team'] = getTeamForUser();
-            } catch (err) {
+            } catch {
               /* eslint-disable no-console */
               console.warn(
                 '[layout] Database unavailable, skipping SWR fallback data.'

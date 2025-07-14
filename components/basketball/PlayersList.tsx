@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Shield, Plus, Search, Filter } from 'lucide-react';
 import UniversalButton from '@/components/ui/UniversalButton';
-import type { Player, PlayerStatus } from './PlayerListCard';
+import type { Player } from './PlayerListCard';
 
 interface Team {
   id: string;

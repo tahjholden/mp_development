@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-useless-fragment */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -22,7 +21,6 @@ import {
   BookOpen,
 } from 'lucide-react';
 import UniversalButton from './UniversalButton';
-import { colors } from '@/lib/design-tokens';
 
 type NavItemType = {
   title: string;
@@ -106,7 +104,7 @@ const navItems: NavItemType[] = [
   },
 ];
 
-export function Sidebar({ user, onSignOut }: SidebarProps) {
+export function Sidebar({ onSignOut }: SidebarProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(

@@ -1,12 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Filter,
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { z } from 'zod';
 
@@ -83,8 +78,8 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Pagination state for metrics
-  const [page, setPage] = useState(1);
-  const pageSize = 5;
+  // const [page, setPage] = useState(1);
+  // const pageSize = 5;
 
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
@@ -95,9 +90,9 @@ export default function AnalyticsPage() {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   // Filter metrics by selected category
-  const filteredMetrics = selectedMetricId
-    ? metrics.filter(metric => metric.id === selectedMetricId)
-    : metrics;
+  // const filteredMetrics = selectedMetricId
+  //   ? metrics.filter(metric => metric.id === selectedMetricId)
+  //   : metrics;
 
   const filteredMetricsList = metrics.filter(metric => {
     const matchesSearch = metric.name
@@ -194,7 +189,7 @@ export default function AnalyticsPage() {
         const validatedMetrics =
           AnalyticsMetricsArraySchema.safeParse(mockMetrics);
         if (!validatedMetrics.success) {
-          console.error('Invalid metrics data:', validatedMetrics.error);
+          // console.error('Invalid metrics data:', validatedMetrics.error);
           throw new Error('Invalid metrics data received');
         }
 
@@ -230,7 +225,12 @@ export default function AnalyticsPage() {
             Array.isArray(rawPlayersData.players)
           ) {
             const transformedRawPlayers = rawPlayersData.players.map(
-              (player: any) => ({
+              (player: {
+                id: string;
+                name?: string;
+                team?: string;
+                status?: string;
+              }) => ({
                 id: player.id,
                 name: player.name || 'Unknown Player',
                 team: player.team || 'No Team',
@@ -246,7 +246,7 @@ export default function AnalyticsPage() {
               transformedRawPlayers
             );
             if (!validatedPlayers.success) {
-              console.error('Invalid players data:', validatedPlayers.error);
+              // console.error('Invalid players data:', validatedPlayers.error);
               throw new Error('Invalid players data received');
             }
 
@@ -269,10 +269,10 @@ export default function AnalyticsPage() {
             );
             setPlayers(uniquePlayers);
           } else {
-            console.error(
-              'Invalid API response structure for players:',
-              rawPlayersData
-            );
+            // console.error(
+            //   'Invalid API response structure for players:',
+            //   rawPlayersData
+            // );
             setPlayers([]);
           }
         }
@@ -285,7 +285,7 @@ export default function AnalyticsPage() {
           // Validate teams data
           const validatedTeams = TeamsArraySchema.safeParse(rawTeamsData);
           if (!validatedTeams.success) {
-            console.error('Invalid teams data:', validatedTeams.error);
+            // console.error('Invalid teams data:', validatedTeams.error);
             throw new Error('Invalid teams data received');
           }
 
@@ -317,7 +317,7 @@ export default function AnalyticsPage() {
           setSelectedMetric(uniqueMetrics[0]);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        // console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
         setMetrics([]);
         setPlayers([]);
@@ -332,7 +332,7 @@ export default function AnalyticsPage() {
 
   // Reset page when metric selection changes
   useEffect(() => {
-    setPage(1);
+    // setPage(1);
   }, [selectedMetricId]);
 
   if (loading) {

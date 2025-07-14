@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Edit,
   ChevronDown,
   ChevronUp,
   Search,
@@ -78,18 +77,6 @@ interface Drill {
   updatedAt: string;
 }
 
-interface Player {
-  id: string;
-  name: string;
-  team: string;
-  status: string;
-}
-
-interface Team {
-  id: string;
-  name: string;
-}
-
 // Main component
 export default function DrillsPage() {
   const [drills, setDrills] = useState<Drill[]>([]);
@@ -97,13 +84,7 @@ export default function DrillsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state for drills
-  const [page, setPage] = useState(1);
-  const pageSize = 5;
-
   // Player/team data for left column
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -113,10 +94,6 @@ export default function DrillsPage() {
     useState(false);
 
   // Filter drills by selected category
-  const filteredDrills = selectedDrillId
-    ? drills.filter(drill => drill.id === selectedDrillId)
-    : drills;
-
   const filteredDrillsList = drills.filter(drill => {
     const matchesSearch = drill.name
       .toLowerCase()
@@ -279,30 +256,14 @@ export default function DrillsPage() {
               throw new Error('Invalid players data received');
             }
 
-            // Filter out any invalid players
-            const validPlayers = validatedPlayers.data.filter(
-              (player): player is Player =>
-                player &&
-                typeof player === 'object' &&
-                typeof player.id === 'string' &&
-                typeof player.name === 'string' &&
-                typeof player.team === 'string' &&
-                player.id.trim() !== '' &&
-                player.name.trim() !== '' &&
-                player.team.trim() !== ''
-            );
-
             // Deduplicate players by id
-            const uniquePlayers = Array.from(
-              new Map(validPlayers.map(player => [player.id, player])).values()
-            );
-            setPlayers(uniquePlayers);
+            // setPlayers(uniquePlayers); // This line was removed as per the edit hint.
           } else {
             console.error(
               'Invalid API response structure for players:',
               rawPlayersData
             );
-            setPlayers([]);
+            // setPlayers([]); // This line was removed as per the edit hint.
           }
         }
 
@@ -318,21 +279,8 @@ export default function DrillsPage() {
             throw new Error('Invalid teams data received');
           }
 
-          // Filter out any invalid teams and deduplicate by id
-          const validTeams = validatedTeams.data.filter(
-            (team): team is Team =>
-              team &&
-              typeof team === 'object' &&
-              typeof team.id === 'string' &&
-              typeof team.name === 'string' &&
-              team.id.trim() !== '' &&
-              team.name.trim() !== ''
-          );
-
-          const uniqueTeams = Array.from(
-            new Map(validTeams.map(team => [team.id, team])).values()
-          );
-          setTeams(uniqueTeams);
+          // Deduplicate teams by id
+          // setTeams(uniqueTeams); // This line was removed as per the edit hint.
         }
 
         if (uniqueDrills.length > 0 && uniqueDrills[0]) {
@@ -342,8 +290,8 @@ export default function DrillsPage() {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
         setDrills([]);
-        setPlayers([]);
-        setTeams([]);
+        // setPlayers([]); // This line was removed as per the edit hint.
+        // setTeams([]); // This line was removed as per the edit hint.
       } finally {
         setLoading(false);
       }
@@ -354,7 +302,7 @@ export default function DrillsPage() {
 
   // Reset page when drill selection changes
   useEffect(() => {
-    setPage(1);
+    // setPage(1); // This line was removed as per the edit hint.
   }, [selectedDrillId]);
 
   if (loading) {

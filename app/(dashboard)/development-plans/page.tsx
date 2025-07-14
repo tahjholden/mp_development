@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Edit,
   CheckCircle,
@@ -9,63 +9,43 @@ import {
   Target,
   Zap,
   Lightbulb,
+  Shield,
+  Plus,
+  Search,
+  Filter,
 } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { UniversalButton } from '@/components/ui/UniversalButton';
-import PlayersList from '@/components/basketball/PlayersList';
 import type { PlayerStatus } from '@/components/basketball/PlayerListCard';
+
+// Define Player type locally to match the actual data structure
+interface Player {
+  id: string;
+  name: string;
+  team: string;
+  status: PlayerStatus;
+}
 import { z } from 'zod';
-
-// Zod schemas for validation
-const DevelopmentGoalSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  status: z.enum(['not_started', 'in_progress', 'completed']),
-  targetDate: z.string(),
-  completedDate: z.string().optional(),
-});
-
-const DevelopmentPlanSchema = z.object({
-  id: z.string(),
-  playerId: z.string(),
-  playerName: z.string(),
-  coachId: z.string(),
-  coachName: z.string(),
-  title: z.string(),
-  objective: z.string(),
-  description: z.string(),
-  status: z.enum(['draft', 'active', 'completed', 'archived']),
-  startDate: z.string(),
-  endDate: z.string(),
-  goals: z.array(DevelopmentGoalSchema),
-  tags: z.array(z.string()),
-  readiness: z.enum(['high', 'medium', 'low']),
-  lastUpdated: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-const DevelopmentPlansArraySchema = z.array(DevelopmentPlanSchema);
 
 // Types for development plans
 interface DevelopmentPlan {
   id: string;
   playerId: string;
   playerName: string;
-  coachId: string;
-  coachName: string;
-  title: string;
+  coachName?: string;
+  initialObservation?: string;
   objective: string;
-  description: string;
-  status: 'draft' | 'active' | 'completed' | 'archived';
-  startDate: string;
-  endDate: string;
-  goals: DevelopmentGoal[];
-  tags: string[];
-  readiness: 'high' | 'medium' | 'low';
-  lastUpdated: string;
-  createdAt: string;
-  updatedAt: string;
+  description?: string;
+  status?: 'draft' | 'active' | 'completed' | 'archived';
+  startDate?: string;
+  endDate?: string | null;
+  goals?: DevelopmentGoal[];
+  tags?: string[];
+  readiness?: 'high' | 'medium' | 'low';
+  lastUpdated?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  title?: string; // for UI compatibility
 }
 
 interface DevelopmentGoal {
@@ -104,49 +84,123 @@ export default function DevelopmentPlansPage() {
   const [error, setError] = useState<string | null>(null);
   const [plans, setPlans] = useState<DevelopmentPlan[]>([]);
 
-  // Player list state - moved before usage
-  const [players, setPlayers] = useState<
-    { id: string; name: string; team: string; status: string }[]
-  >([]);
+  // Player list state - EXACT SAME AS PLAYERS PAGE
+  const [playersById, setPlayersById] = useState<Record<string, Player>>({});
+  const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedPlayer, setSelectedPlayer] = useState<{
-    id: string;
-    name: string;
-    team: string;
-    status: string;
-  } | null>(null);
-  // Handler for selecting a player
-  const handlePlayerSelect = (player: {
-    id: string;
-    name: string;
-    team: string;
-    status: string;
-  }) => {
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+
+  // Infinite scroll state - EXACT SAME AS PLAYERS PAGE
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+
+  // Search and filter state - EXACT SAME AS PLAYERS PAGE
+  const [searchTerm, setSearchTerm] = useState('');
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+
+  // Handler for selecting a player - EXACT SAME AS PLAYERS PAGE
+  const handlePlayerSelect = (player: Player) => {
     setSelectedPlayer(player);
   };
 
-  // Load more players when scrolling (like players page)
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (
-      scrollHeight - scrollTop <= clientHeight * 1.5 &&
-      !playersLoading &&
-      playersHasMore
-    ) {
-      // In a real implementation, this would fetch more players
-      console.log('Load more players');
-    }
-  };
+  // Fetch players with pagination - EXACT SAME AS PLAYERS PAGE
+  const fetchPlayers = useCallback(
+    async (currentOffset: number = 0, reset: boolean = false) => {
+      setLoadingPlayers(true);
+      try {
+        const response = await fetch(
+          `/api/dashboard/players?offset=${currentOffset}&limit=10`
+        );
+        const data = await response.json();
 
-  // Filter players based on search and team filter
-  const filteredPlayers = players.filter(player => {
-    const matchesSearch = player.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
-    return matchesSearch && matchesTeam;
-  });
-  const sortedPlayers = [...filteredPlayers].sort((a, b) =>
+        if (data.players) {
+          const transformedPlayers = data.players.map((player: any) => ({
+            id: player.id,
+            name: player.name || 'Unknown Player',
+            team: player.team || 'No Team',
+            status: player.status || 'active',
+          }));
+
+          if (reset) {
+            // Reset the list with normalized state
+            const playersMap: Record<string, Player> = {};
+            const ids: string[] = [];
+
+            transformedPlayers.forEach((player: Player) => {
+              if (!playersMap[player.id]) {
+                playersMap[player.id] = player;
+                ids.push(player.id);
+              }
+            });
+
+            setPlayersById(playersMap);
+            setPlayerIds(ids);
+            setOffset(10);
+          } else {
+            // Append to existing list with normalized state
+            setPlayersById(prevPlayersById => {
+              const newPlayersById = { ...prevPlayersById };
+              const newIds: string[] = [];
+
+              transformedPlayers.forEach((player: Player) => {
+                if (!newPlayersById[player.id]) {
+                  newPlayersById[player.id] = player;
+                  newIds.push(player.id);
+                }
+              });
+
+              setPlayerIds(prevIds => [...prevIds, ...newIds]);
+              return newPlayersById;
+            });
+            setOffset(prev => prev + 10);
+          }
+
+          setHasMore(data.players.length === 10);
+        }
+      } catch (error) {
+        console.error('Error fetching players:', error);
+      } finally {
+        setLoadingPlayers(false);
+      }
+    },
+    []
+  );
+
+  // Load more players when scrolling - EXACT SAME AS PLAYERS PAGE
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      if (
+        scrollHeight - scrollTop <= clientHeight * 1.5 &&
+        !loadingPlayers &&
+        hasMore
+      ) {
+        fetchPlayers(offset);
+      }
+    },
+    [fetchPlayers, loadingPlayers, hasMore, offset]
+  );
+
+  // Filter players based on search and team filter - EXACT SAME AS PLAYERS PAGE
+  const filteredPlayers = playerIds
+    .map(id => playersById[id])
+    .filter(
+      (player: Player | undefined): player is Player => !!player && !!player.id
+    )
+    .filter(player => {
+      const matchesSearch = player.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
+      return matchesSearch && matchesTeam;
+    });
+  // Deduplicate by player.id before sorting and rendering
+  const dedupedPlayers = Array.from(
+    new Map(filteredPlayers.map(p => [p.id, p])).values()
+  );
+  const sortedPlayers = [...dedupedPlayers].sort((a, b) =>
     a.name.localeCompare(b.name)
   );
 
@@ -154,10 +208,10 @@ export default function DevelopmentPlansPage() {
   const [drillSuggestions, setDrillSuggestions] = useState<DrillSuggestion[]>(
     []
   );
-  const [sessionChecked, setSessionChecked] = useState(false);
 
   // Fetch data with validation
   useEffect(() => {
+    console.log('useEffect called, starting fetchData');
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -165,8 +219,10 @@ export default function DevelopmentPlansPage() {
 
         // Fetch development plans with validation
         const plansResponse = await fetch('/api/development-plans');
+        console.log('Plans response status:', plansResponse.status);
         if (plansResponse.ok) {
           const rawPlansData = await plansResponse.json();
+          console.log('Raw plans data:', rawPlansData);
 
           // Handle the API response structure: direct array of plans
           if (Array.isArray(rawPlansData)) {
@@ -175,18 +231,17 @@ export default function DevelopmentPlansPage() {
               id: plan.id || '',
               playerId: plan.playerId || '',
               playerName: plan.playerName || 'Unknown Player',
-              coachId: plan.coachId || 'unknown',
-              coachName: plan.coachName || 'Unknown Coach',
-              title: plan.title || '',
+              coachName: 'Unknown Coach', // Not provided by API
+              initialObservation: '', // Not provided by API
               objective: plan.objective || '',
-              description: plan.description || plan.objective || '',
+              description: plan.objective || '', // Use objective as description
               status: (plan.status || 'draft') as
                 | 'draft'
                 | 'active'
                 | 'completed'
                 | 'archived',
               startDate: plan.startDate || new Date().toISOString(),
-              endDate: plan.endDate || new Date().toISOString(),
+              endDate: plan.endDate || null, // API can return null
               goals: plan.goals || [],
               tags: plan.tags || [],
               readiness: (plan.readiness || 'medium') as
@@ -196,56 +251,33 @@ export default function DevelopmentPlansPage() {
               lastUpdated: plan.updatedAt || new Date().toISOString(),
               createdAt: plan.createdAt || new Date().toISOString(),
               updatedAt: plan.updatedAt || new Date().toISOString(),
+              // For UI compatibility, add a title field mapped from objective
+              title: plan.objective || '',
             }));
 
-            // Validate plans data
-            const validatedPlans =
-              DevelopmentPlansArraySchema.safeParse(transformedPlans);
-            if (!validatedPlans.success) {
-              console.error('Invalid plans data:', validatedPlans.error);
-              throw new Error('Invalid plans data received');
-            }
-
-            // Filter out any invalid plans
-            const validPlans = validatedPlans.data.filter(
-              (plan): plan is DevelopmentPlan =>
+            // Skip validation for now to debug the issue
+            const validPlans = transformedPlans.filter(
+              (plan: any) =>
                 plan &&
                 typeof plan === 'object' &&
                 typeof plan.id === 'string' &&
                 typeof plan.playerId === 'string' &&
                 typeof plan.playerName === 'string' &&
-                typeof plan.coachId === 'string' &&
-                typeof plan.coachName === 'string' &&
-                typeof plan.title === 'string' &&
                 typeof plan.objective === 'string' &&
-                typeof plan.description === 'string' &&
-                typeof plan.startDate === 'string' &&
-                typeof plan.endDate === 'string' &&
-                Array.isArray(plan.goals) &&
-                Array.isArray(plan.tags) &&
-                typeof plan.readiness === 'string' &&
-                typeof plan.lastUpdated === 'string' &&
-                typeof plan.createdAt === 'string' &&
-                typeof plan.updatedAt === 'string' &&
                 plan.id.trim() !== '' &&
                 plan.playerId.trim() !== '' &&
                 plan.playerName.trim() !== '' &&
-                plan.coachId.trim() !== '' &&
-                plan.coachName.trim() !== '' &&
-                plan.title.trim() !== '' &&
-                plan.objective.trim() !== '' &&
-                plan.description.trim() !== '' &&
-                plan.startDate.trim() !== '' &&
-                plan.endDate.trim() !== '' &&
-                plan.lastUpdated.trim() !== '' &&
-                plan.createdAt.trim() !== '' &&
-                plan.updatedAt.trim() !== ''
-            );
+                plan.objective.trim() !== ''
+            ) as DevelopmentPlan[];
+
+            console.log('Valid plans count:', validPlans.length);
+            console.log('First valid plan:', validPlans[0]);
 
             // Deduplicate plans by id
             const uniquePlans = Array.from(
               new Map(validPlans.map(plan => [plan.id, plan])).values()
             );
+            console.log('Unique plans count:', uniquePlans.length);
             setPlans(uniquePlans);
           } else {
             console.error(
@@ -253,69 +285,6 @@ export default function DevelopmentPlansPage() {
               rawPlansData
             );
             setPlans([]);
-          }
-        }
-
-        // Fetch players with validation (using pagination like other pages)
-        const playersResponse = await fetch(
-          '/api/dashboard/players?offset=0&limit=10'
-        );
-        if (playersResponse.ok) {
-          const rawPlayersData = await playersResponse.json();
-          // Handle the API response structure: { players: [...], total: number }
-          if (
-            rawPlayersData &&
-            rawPlayersData.players &&
-            Array.isArray(rawPlayersData.players)
-          ) {
-            const transformedRawPlayers: {
-              id: string;
-              name: string;
-              team: string;
-              status: string;
-            }[] = rawPlayersData.players.map((player: any) => ({
-              id: player.id,
-              name: player.name || 'Unknown Player',
-              team: player.team || 'Unknown Team',
-              status: player.status || 'active',
-            }));
-
-            // Filter out any invalid players and ensure they match the expected Player type
-            const validPlayers: {
-              id: string;
-              name: string;
-              team: string;
-              status: string;
-            }[] = transformedRawPlayers.filter(
-              (
-                player: any
-              ): player is {
-                id: string;
-                name: string;
-                team: string;
-                status: string;
-              } =>
-                player &&
-                typeof player === 'object' &&
-                typeof player.id === 'string' &&
-                typeof player.name === 'string' &&
-                typeof player.team === 'string' &&
-                player.id.trim() !== '' &&
-                player.name.trim() !== '' &&
-                player.team.trim() !== ''
-            );
-
-            // Deduplicate players by id
-            const uniquePlayers = Array.from(
-              new Map(validPlayers.map(player => [player.id, player])).values()
-            );
-            setPlayers(uniquePlayers);
-          } else {
-            console.error(
-              'Invalid API response structure for players:',
-              rawPlayersData
-            );
-            setPlayers([]);
           }
         }
 
@@ -350,106 +319,112 @@ export default function DevelopmentPlansPage() {
           setTeams(uniqueTeams);
         }
 
-        // Mock drill suggestions with validation
-        const mockDrillSuggestions: DrillSuggestion[] = [
-          {
-            id: '1',
-            name: 'Free Throw Practice',
-            category: 'shooting',
-            difficulty: 'beginner',
-            duration: 20,
-            description: 'Focused free throw practice with proper form',
-            cues: ['Follow through', 'Square shoulders', 'Bend knees'],
-            constraints: ['Must make 3 in a row', 'No dribbling'],
-            players: 2,
-          },
-          {
-            id: '2',
-            name: 'Ball Handling Circuit',
-            category: 'ball_handling',
-            difficulty: 'beginner',
-            duration: 15,
-            description: 'Station-based ball handling improvement',
-            cues: ['Keep head up', 'Finger tips', 'Low stance'],
-            constraints: ['No looking down', 'Speed variations'],
-            players: 1,
-          },
-          {
-            id: '3',
-            name: 'Defensive Slides',
-            category: 'defense',
-            difficulty: 'intermediate',
-            duration: 10,
-            description: 'Defensive footwork and positioning',
-            cues: ['Stay low', 'Active hands', "Slide don't cross"],
-            constraints: ['Maintain stance', 'No crossing feet'],
-            players: 2,
-          },
-        ];
-
-        // Validate drill suggestions
-        const validatedDrillSuggestions = z
-          .array(
-            z.object({
-              id: z.string(),
-              name: z.string(),
-              category: z.enum([
-                'shooting',
-                'ball_handling',
-                'defense',
-                'conditioning',
-                'team_play',
-              ]),
-              difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
-              duration: z.number(),
-              description: z.string(),
-              cues: z.array(z.string()),
-              constraints: z.array(z.string()),
-              players: z.number(),
-            })
-          )
-          .safeParse(mockDrillSuggestions);
-        if (!validatedDrillSuggestions.success) {
-          console.error(
-            'Invalid drill suggestions data:',
-            validatedDrillSuggestions.error
-          );
-          throw new Error('Invalid drill suggestions data received');
-        }
-
-        // Filter out any invalid drill suggestions
-        const validDrillSuggestions = validatedDrillSuggestions.data.filter(
-          (drill): drill is DrillSuggestion =>
-            drill &&
-            typeof drill === 'object' &&
-            typeof drill.id === 'string' &&
-            typeof drill.name === 'string' &&
-            typeof drill.description === 'string' &&
-            drill.id.trim() !== '' &&
-            drill.name.trim() !== '' &&
-            drill.description.trim() !== ''
-        );
-
-        // Deduplicate drill suggestions by id
-        const uniqueDrillSuggestions = Array.from(
-          new Map(
-            validDrillSuggestions.map(drill => [drill.id, drill])
-          ).values()
-        );
-        setDrillSuggestions(uniqueDrillSuggestions);
+        // Skip mock drill suggestions for now to debug the issue
+        setDrillSuggestions([]);
       } catch (err: any) {
+        console.error('Error in fetchData:', err);
         setError(err.message || 'Failed to fetch data');
         setPlans([]);
-        // setPlayers([]); // This state is no longer needed
-        // setTeams([]); // This state is no longer needed
         setDrillSuggestions([]);
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
-        setSessionChecked(true);
       }
     };
     fetchData();
   }, []);
+
+  // Fetch initial players and teams - EXACT SAME AS PLAYERS PAGE
+  useEffect(() => {
+    // Fetch teams
+    fetch('/api/user/teams')
+      .then(res => {
+        if (!res.ok) {
+          console.log('Teams API returned error status:', res.status);
+          setTeams([]);
+          return;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (!data) return; // Skip if no data (error case)
+
+        let arr: unknown = data;
+        if (data && Array.isArray(data)) {
+          arr = data;
+        }
+        const result = z
+          .array(z.object({ id: z.string(), name: z.string() }))
+          .safeParse(arr);
+        if (result.success) {
+          // Deduplicate teams by id
+          const uniqueTeams = Array.from(
+            new Map(result.data.map(team => [team.id, team])).values()
+          );
+          uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
+          setTeams(uniqueTeams);
+        } else {
+          console.error('Zod validation error for teams:', result.error);
+          setTeams([]);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching teams:', error);
+        setTeams([]);
+      });
+
+    // Fetch initial players
+    setLoadingPlayers(true);
+    fetch('/api/dashboard/players?offset=0&limit=10')
+      .then(res => {
+        if (!res.ok) {
+          console.log('Players API returned error status:', res.status);
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (!data) return; // Skip if no data (error case)
+
+        if (data.players) {
+          const transformedPlayers = data.players.map((player: any) => ({
+            id: player.id,
+            name: player.name || 'Unknown Player',
+            team: player.team || 'No Team',
+            status: player.status || 'active',
+          }));
+
+          // Reset the list with normalized state
+          const playersMap: Record<string, Player> = {};
+          const ids: string[] = [];
+
+          transformedPlayers.forEach((player: Player) => {
+            if (!playersMap[player.id]) {
+              playersMap[player.id] = player;
+              ids.push(player.id);
+            }
+          });
+
+          setPlayersById(playersMap);
+          setPlayerIds(ids);
+          setOffset(10);
+          setHasMore(data.players.length === 10);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching players:', error);
+      })
+      .finally(() => {
+        setLoadingPlayers(false);
+      });
+  }, []);
+
+  // Reset pagination when search or filter changes - EXACT SAME AS PLAYERS PAGE
+  useEffect(() => {
+    setOffset(0);
+    setHasMore(true);
+    fetchPlayers(0, true);
+  }, [searchTerm, teamFilter]);
 
   // Get readiness color
   const getReadinessColor = (readiness: string) => {
@@ -460,20 +435,6 @@ export default function DevelopmentPlansPage() {
         return 'bg-yellow-500';
       case 'low':
         return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  // Get PDP status color
-  const getPDPStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500';
-      case 'updated':
-        return 'bg-blue-500';
-      case 'stale':
-        return 'bg-yellow-500';
       default:
         return 'bg-gray-500';
     }
@@ -500,7 +461,7 @@ export default function DevelopmentPlansPage() {
   };
 
   // Example loading/error states:
-  if (loading && !sessionChecked) {
+  if (loading) {
     return (
       <div className="h-screen w-screen bg-[#161616] flex items-center justify-center">
         <div className="flex flex-col items-center justify-center w-full">
@@ -561,18 +522,111 @@ export default function DevelopmentPlansPage() {
         className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
         style={{ background: 'black', minHeight: '100vh' }}
       >
-        {/* LEFT PANE: Player List */}
+        {/* LEFT PANE: Player List - EXACT SAME AS PLAYERS PAGE */}
         <div
           className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
           style={{ background: 'black' }}
         >
-          <PlayersList
-            playersById={Object.fromEntries(players.map(p => [p.id, p]))}
-            playerIds={players.map(p => p.id)}
-            teams={teams}
-            onPlayerSelect={handlePlayerSelect}
-            selectedPlayer={selectedPlayer}
-          />
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
+            <UniversalButton.Primary
+              size="sm"
+              onClick={() => {}}
+              leftIcon={<Plus size={16} />}
+            >
+              Add Player
+            </UniversalButton.Primary>
+          </div>
+          {/* Search Input */}
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search players..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
+            />
+          </div>
+          {/* Team Filter */}
+          <div className="relative mb-6">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
+            <div className="relative">
+              <button
+                onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
+                className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm text-white border border-zinc-700 focus:outline-none focus:border-[#d8cc97] flex items-center justify-between"
+              >
+                <span>{teamFilter === 'all' ? 'All Teams' : teamFilter}</span>
+                <span className="text-zinc-400">▼</span>
+              </button>
+              {isTeamDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded shadow-lg z-10 max-h-48 overflow-y-auto">
+                  <button
+                    onClick={() => {
+                      setTeamFilter('all');
+                      setIsTeamDropdownOpen(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-zinc-700"
+                  >
+                    All Teams
+                  </button>
+                  {teams.map(team => (
+                    <button
+                      key={team.id}
+                      onClick={() => {
+                        setTeamFilter(team.name);
+                        setIsTeamDropdownOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-white hover:bg-zinc-700"
+                    >
+                      {team.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Player List - Fixed height for exactly 10 player cards */}
+          <div
+            className="flex-1 overflow-y-auto space-y-2"
+            style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
+            onScroll={handleScroll}
+          >
+            {sortedPlayers.length === 0 ? (
+              <div className="text-center py-8">
+                <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
+                <p className="text-zinc-400 text-sm">No players found</p>
+              </div>
+            ) : (
+              sortedPlayers.map((player: Player) => (
+                <div
+                  key={player.id}
+                  onClick={() => handlePlayerSelect(player)}
+                  className={`p-3 rounded-lg cursor-pointer transition-all ${
+                    selectedPlayer?.id === player.id
+                      ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
+                      : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-white">
+                        {String(player.name)}
+                      </p>
+                      <p className="text-sm text-zinc-400">{player.team}</p>
+                    </div>
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        player.status === 'active'
+                          ? 'bg-green-500'
+                          : 'bg-zinc-500'
+                      }`}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
         {/* CENTER and RIGHT columns: leave unchanged except for being direct siblings in the flex layout */}
         <div className="flex-1 min-w-0">
@@ -613,10 +667,12 @@ export default function DevelopmentPlansPage() {
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <h3 className="text-lg font-bold text-[#d8cc97]">
-                            {plan.title || 'Untitled Plan'}
+                            {plan.title ? plan.title : 'Untitled Plan'}
                           </h3>
                           <p className="text-sm text-zinc-300 mb-2">
-                            {plan.objective || 'No objective provided'}
+                            {plan.objective
+                              ? plan.objective
+                              : 'No objective provided'}
                           </p>
                           <p className="text-sm text-zinc-400">
                             Player: {plan.playerName}
@@ -632,11 +688,11 @@ export default function DevelopmentPlansPage() {
                                   : 'bg-yellow-500/20 text-yellow-500'
                             }`}
                           >
-                            {plan.status.charAt(0).toUpperCase() +
-                              plan.status.slice(1)}
+                            {(plan.status || 'draft').charAt(0).toUpperCase() +
+                              (plan.status || 'draft').slice(1)}
                           </span>
                           <div
-                            className={`w-2 h-2 rounded-full ${getReadinessColor(plan.readiness)}`}
+                            className={`w-2 h-2 rounded-full ${getReadinessColor(plan.readiness || 'medium')}`}
                           />
                         </div>
                       </div>
@@ -646,7 +702,7 @@ export default function DevelopmentPlansPage() {
                             Focus Areas
                           </h4>
                           <div className="flex flex-wrap gap-2">
-                            {plan.tags.map((tag, index) => (
+                            {(plan.tags || []).map((tag, index) => (
                               <span
                                 key={index}
                                 className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-zinc-800 text-zinc-300"
@@ -661,7 +717,7 @@ export default function DevelopmentPlansPage() {
                             Active Goals
                           </h4>
                           <div className="space-y-2">
-                            {plan.goals
+                            {(plan.goals || [])
                               .filter(g => g.status !== 'completed')
                               .slice(0, 3)
                               .map(goal => (

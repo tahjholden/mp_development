@@ -103,7 +103,7 @@ export interface PersonWithRole {
   is_superadmin?: boolean;
   display_name?: string;
   roles?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -121,7 +121,7 @@ export async function getPersonRole(
     .single();
 
   if (error || !data) {
-    console.error('Error fetching person role:', error);
+    // console.error('Error fetching person role:', error);
     return null;
   }
 
@@ -142,7 +142,7 @@ export async function getAllPersonRoles(personId: string): Promise<string[]> {
     .single();
 
   if (personError || !personData) {
-    console.error('Error fetching person data:', personError);
+    // console.error('Error fetching person data:', personError);
     return [];
   }
 
@@ -161,7 +161,7 @@ export async function getAllPersonRoles(personId: string): Promise<string[]> {
     .eq('active', true);
 
   if (roleError) {
-    console.error('Error fetching person roles:', roleError);
+    // console.error('Error fetching person roles:', roleError);
     return [personData.person_type];
   }
 
@@ -172,7 +172,7 @@ export async function getAllPersonRoles(personId: string): Promise<string[]> {
   }
 
   if (bbRoleError) {
-    console.error('Error fetching mpbc person roles:', bbRoleError);
+    // console.error('Error fetching mpbc person roles:', bbRoleError);
   } else if (bbRoleData) {
     bbRoleData.forEach(r => roles.push(r.role));
   }
@@ -209,7 +209,7 @@ export async function hasCapability(
     .single();
 
   if (error || !person) {
-    console.error('Error fetching person data:', error);
+    // console.error('Error fetching person data:', error);
     return false;
   }
 
@@ -235,9 +235,13 @@ export async function hasCapability(
     case Capability.VIEW_OWN_DEVELOPMENT_PLANS:
     case Capability.VIEW_OWN_OBSERVATIONS:
     case Capability.SUBMIT_SELF_REFLECTION:
-      return personType === PersonType.PLAYER || personType === PersonType.COACH || 
-             person.is_admin || person.is_superadmin;
-    
+      return (
+        personType === PersonType.PLAYER ||
+        personType === PersonType.COACH ||
+        person.is_admin ||
+        person.is_superadmin
+      );
+
     // Coach capabilities
     case Capability.VIEW_TEAM_PLAYERS:
     case Capability.ADD_PLAYER:
@@ -246,60 +250,72 @@ export async function hasCapability(
     case Capability.ADD_OBSERVATION:
     case Capability.MANAGE_PRACTICE:
       // Basic coaching capabilities
-      if (personType !== PersonType.COACH && !person.is_admin && !person.is_superadmin) {
+      if (
+        personType !== PersonType.COACH &&
+        !person.is_admin &&
+        !person.is_superadmin
+      ) {
         return false;
       }
-      
+
       // If context is provided, check if coach is assigned to the team
       if (context?.groupId && personType === PersonType.COACH) {
         return await isCoachAssignedToTeam(personId, context.groupId);
       }
-      
+
       return true;
-    
+
     // Admin capabilities
     case Capability.MANAGE_COACHES:
     case Capability.MANAGE_TEAMS:
     case Capability.VIEW_ORGANIZATION_DATA:
       return person.is_admin || person.is_superadmin;
-    
+
     // Superadmin capabilities
     case Capability.MANAGE_ORGANIZATIONS:
     case Capability.MANAGE_SUBSCRIPTION:
       return person.is_superadmin;
-    
+
     // Philosophy pack management - requires superadmin or admin with feature
     case Capability.MANAGE_PHILOSOPHY_PACK:
       if (person.is_superadmin) return true;
       if (person.is_admin && packFeatures?.philosophyOverlay) return true;
       return false;
-    
+
     // Parent capabilities
     case Capability.VIEW_CHILD_DEVELOPMENT:
-      if (personType !== PersonType.PARENT && !person.is_admin && !person.is_superadmin) {
+      if (
+        personType !== PersonType.PARENT &&
+        !person.is_admin &&
+        !person.is_superadmin
+      ) {
         return false;
       }
-      
+
       // If context is provided, check if parent is linked to the player
       if (context?.personId && personType === PersonType.PARENT) {
         return await isParentOfPlayer(personId, context.personId);
       }
-      
+
       return person.is_admin || person.is_superadmin;
-    
+
     // Observer capabilities
     case Capability.VIEW_ASSIGNED_TEAMS:
-      if (personType !== PersonType.OBSERVER && !person.is_admin && !person.is_superadmin) {
+      if (
+        personType !== PersonType.OBSERVER &&
+        !person.is_admin &&
+        !person.is_superadmin
+      ) {
         return false;
       }
-      
+
       // If context is provided, check if observer is assigned to the team
       if (context?.groupId && personType === PersonType.OBSERVER) {
         return await isObserverAssignedToTeam(personId, context.groupId);
       }
-      
+
       return person.is_admin || person.is_superadmin;
-    
+
     default:
       return false;
   }
@@ -337,7 +353,7 @@ async function isCoachAssignedToTeam(
     .single();
 
   if (error) {
-    console.error('Error checking coach assignment:', error);
+    // console.error('Error checking coach assignment:', error);
     return false;
   }
 
@@ -363,7 +379,7 @@ async function isParentOfPlayer(
     .single();
 
   if (error) {
-    console.error('Error checking parent-player relationship:', error);
+    // console.error('Error checking parent-player relationship:', error);
     return false;
   }
 
@@ -388,7 +404,7 @@ async function isObserverAssignedToTeam(
     .single();
 
   if (error) {
-    console.error('Error checking observer assignment:', error);
+    // console.error('Error checking observer assignment:', error);
     return false;
   }
 
@@ -400,7 +416,7 @@ async function isObserverAssignedToTeam(
  */
 export async function getDataAccessLevel(
   personId: string,
-  entityType: 'player' | 'team' | 'observation' | 'development_plan'
+  _entityType: 'player' | 'team' | 'observation' | 'development_plan'
 ): Promise<AccessLevel> {
   const supabase = createClient();
 
@@ -412,7 +428,7 @@ export async function getDataAccessLevel(
     .single();
 
   if (error || !person) {
-    console.error('Error fetching person data:', error);
+    // console.error('Error fetching person data:', error);
     return AccessLevel.NONE;
   }
 
@@ -469,7 +485,7 @@ export async function getDataAccessConditions(
     .single();
 
   if (error || !person) {
-    console.error('Error fetching person data:', error);
+    // console.error('Error fetching person data:', error);
     return '1=0'; // No access
   }
 
@@ -557,7 +573,7 @@ export async function getPersonsByRole(
     .eq('person_type', role);
 
   if (error) {
-    console.error('Error fetching persons by role:', error);
+    // console.error('Error fetching persons by role:', error);
     return [];
   }
 
@@ -576,7 +592,7 @@ export async function getAvailableRoles(
 
   // Check pack features for additional roles
   const packFeatures = await getPackFeatures(organizationId);
-  
+
   if (packFeatures?.aiEnabled && packFeatures?.advancedConstraints) {
     baseRoles.push(PersonType.OBSERVER);
   }
@@ -600,7 +616,7 @@ export async function getRoleUiConfig(
     .single();
 
   if (error || !person) {
-    console.error('Error fetching person data:', error);
+    // console.error('Error fetching person data:', error);
     return {};
   }
 
@@ -662,7 +678,9 @@ export async function getRoleUiConfig(
     // Adjust based on pack features
     if (!packFeatures?.philosophyOverlay) {
       uiConfig.showAdmin = false;
-      uiConfig.navigationItems = uiConfig.navigationItems.filter((item: string) => item !== 'admin');
+      uiConfig.navigationItems = uiConfig.navigationItems.filter(
+        (item: string) => item !== 'admin'
+      );
     }
 
     return uiConfig;
@@ -733,7 +751,7 @@ export async function getPersonRolesWithContext(
     .single();
 
   if (personError || !personData) {
-    console.error('Error fetching person data:', personError);
+    // console.error('Error fetching person data:', personError);
     return [];
   }
 
@@ -756,7 +774,7 @@ export async function getPersonRolesWithContext(
     .eq('active', true);
 
   if (roleError) {
-    console.error('Error fetching person roles:', roleError);
+    // console.error('Error fetching person roles:', roleError);
     return result;
   }
 
@@ -790,7 +808,7 @@ export async function getPersonRolesWithContext(
     .eq('active', true);
 
   if (bbRoleError) {
-    console.error('Error fetching mpbc person roles:', bbRoleError);
+    // console.error('Error fetching mpbc person roles:', bbRoleError);
   } else if (bbRoleData) {
     bbRoleData.forEach(r => {
       const context: RoleContext = {
@@ -822,7 +840,7 @@ export async function switchActiveRole(
   newRole: string,
   context: RoleContext
 ): Promise<boolean> {
-  const supabase = createClient();
+  // const supabase = createClient();
 
   // Verify the person has this role in this context
   const roles = await getPersonRolesWithContext(personId);
@@ -860,7 +878,7 @@ export async function isFeatureAvailableForRole(
     .single();
 
   if (error || !person) {
-    console.error('Error fetching person data:', error);
+    // console.error('Error fetching person data:', error);
     return false;
   }
 
@@ -872,7 +890,7 @@ export async function isFeatureAvailableForRole(
   // Check if the feature is available in the organization's pack
   const featureAvailable = await isFeatureAvailable(
     person.organization_id,
-    feature as any
+    feature as string
   );
 
   // If feature is not available in the pack, no one gets it
