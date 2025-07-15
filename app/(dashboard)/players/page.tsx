@@ -125,6 +125,9 @@ export default function PlayersPage() {
   // Add state for plan view toggle
   const [planView, setPlanView] = useState<'active' | 'archived'>('active');
 
+  // Add state to prevent multiple fetches
+  const [hasFetchedInitialData, setHasFetchedInitialData] = useState(false);
+
   // Handler for selecting a player
   const handlePlayerSelect = (player: SharedPlayer & { team: string }) => {
     setSelectedPlayer(player);
@@ -247,7 +250,7 @@ export default function PlayersPage() {
     } catch {
       // Error fetching all players
     }
-  }, []);
+  }, []); // Empty dependency array is correct - this function doesn't depend on any state
 
   // Fetch all players for a specific team
   const fetchPlayersForTeam = useCallback(async (teamName: string) => {
@@ -294,7 +297,7 @@ export default function PlayersPage() {
     } finally {
       setLoadingTeamPlayers(false);
     }
-  }, []);
+  }, []); // Empty dependency array is correct - this function doesn't depend on any state
 
   // 2. Fetch all development plans on page load
   useEffect(() => {
@@ -340,9 +343,6 @@ export default function PlayersPage() {
         setTeams([]);
       });
 
-    // Fetch initial players for All Teams
-    fetchAllPlayers();
-
     // Fetch observations
     fetch('/api/observations')
       .then(res => {
@@ -373,7 +373,15 @@ export default function PlayersPage() {
       .catch(() => {
         // console.error('Error fetching observations:', err);
       });
-  }, [fetchAllPlayers]);
+  }, []); // Remove fetchAllPlayers from dependency array to prevent infinite loop
+
+  // Separate useEffect for initial data fetching
+  useEffect(() => {
+    if (!hasFetchedInitialData) {
+      fetchAllPlayers();
+      setHasFetchedInitialData(true);
+    }
+  }, [hasFetchedInitialData, fetchAllPlayers]);
 
   // Handle team filter changes
   useEffect(() => {
@@ -384,7 +392,7 @@ export default function PlayersPage() {
       // Fetch all players for specific team
       fetchPlayersForTeam(teamFilter);
     }
-  }, [teamFilter, fetchAllPlayers, fetchPlayersForTeam]);
+  }, [teamFilter]); // Remove fetchAllPlayers and fetchPlayersForTeam from dependencies to prevent infinite loop
 
   // Reset search when team filter changes
   useEffect(() => {

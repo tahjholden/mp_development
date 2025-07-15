@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -110,30 +110,28 @@ const getNavItems = (userRole?: string): NavItemType[] => {
 
   // Superadmin-only dev links
   if (userRole === 'superadmin') {
-    baseItems.push(
-      {
-        title: '🛠️ Dev Tools',
-        href: '#',
-        icon: <Shield size={20} />,
-        children: [
-          {
-            title: 'Player Portal',
-            href: '/player',
-            icon: <UserCheck size={16} />,
-          },
-          {
-            title: 'Billing',
-            href: '/billing',
-            icon: <CreditCard size={16} />,
-          },
-          {
-            title: 'Audit Logs',
-            href: '/audit-logs',
-            icon: <Shield size={16} />,
-          },
-        ],
-      }
-    );
+    baseItems.push({
+      title: '🛠️ Dev Tools',
+      href: '#',
+      icon: <Shield size={20} />,
+      children: [
+        {
+          title: 'Player Portal',
+          href: '/player',
+          icon: <UserCheck size={16} />,
+        },
+        {
+          title: 'Billing',
+          href: '/billing',
+          icon: <CreditCard size={16} />,
+        },
+        {
+          title: 'Audit Logs',
+          href: '/audit-logs',
+          icon: <Shield size={16} />,
+        },
+      ],
+    });
   }
 
   return baseItems;
@@ -146,7 +144,7 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
     {}
   );
 
-  const navItems = getNavItems(user?.role);
+  const navItems = useMemo(() => getNavItems(user?.role), [user?.role]);
 
   // Close mobile sidebar when pathname changes
   useEffect(() => {
