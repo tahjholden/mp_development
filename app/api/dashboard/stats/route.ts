@@ -38,10 +38,7 @@ export async function GET() {
     const playersResult = await db
       .select({ count: mpbcPerson.id })
       .from(mpbcPerson)
-      .innerJoin(
-        mpbcPersonGroup,
-        eq(mpbcPerson.id, mpbcPersonGroup.personId)
-      )
+      .innerJoin(mpbcPersonGroup, eq(mpbcPerson.id, mpbcPersonGroup.personId))
       .where(
         and(
           eq(mpbcPerson.personType, 'player'),
@@ -54,10 +51,7 @@ export async function GET() {
     const teamsResult = await db
       .select({ groupId: mpbcGroup.id, groupName: mpbcGroup.name })
       .from(mpbcGroup)
-      .innerJoin(
-        mpbcPersonGroup,
-        eq(mpbcGroup.id, mpbcPersonGroup.groupId)
-      )
+      .innerJoin(mpbcPersonGroup, eq(mpbcGroup.id, mpbcPersonGroup.groupId))
       .where(isNotNull(mpbcPersonGroup.groupId))
       .groupBy(mpbcGroup.id, mpbcGroup.name);
     const activeTeams = teamsResult.length;

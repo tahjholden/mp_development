@@ -30,14 +30,9 @@ export async function GET() {
         email: mpbcPerson.email,
       })
       .from(mpbcGroup)
-      .innerJoin(
-        mpbcPersonGroup,
-        eq(mpbcGroup.id, mpbcPersonGroup.groupId)
-      )
+      .innerJoin(mpbcPersonGroup, eq(mpbcGroup.id, mpbcPersonGroup.groupId))
       .innerJoin(mpbcPerson, eq(mpbcPersonGroup.personId, mpbcPerson.id))
-      .where(
-        and(isNotNull(mpbcPersonGroup.groupId), isNotNull(mpbcGroup.name))
-      )
+      .where(and(isNotNull(mpbcPersonGroup.groupId), isNotNull(mpbcGroup.name)))
       .groupBy(
         mpbcGroup.id,
         mpbcGroup.name,

@@ -7,9 +7,12 @@ import { eq } from 'drizzle-orm';
 export async function GET() {
   try {
     console.log('GET /api/development-plans: Starting request');
-    
+
     const user = await getUser();
-    console.log('GET /api/development-plans: User fetched:', user ? 'User found' : 'No user');
+    console.log(
+      'GET /api/development-plans: User fetched:',
+      user ? 'User found' : 'No user'
+    );
 
     if (!db) {
       console.error('GET /api/development-plans: Database not available');
@@ -27,24 +30,36 @@ export async function GET() {
     }
 
     console.log('GET /api/development-plans: Testing database connectivity');
-    
+
     // First, test if we can access the development plans table
     try {
       const testQuery = await db
         .select({ id: mpbcDevelopmentPlan.id })
         .from(mpbcDevelopmentPlan)
         .limit(1);
-      console.log('GET /api/development-plans: Development plans table accessible, count:', testQuery.length);
+      console.log(
+        'GET /api/development-plans: Development plans table accessible, count:',
+        testQuery.length
+      );
     } catch (tableError) {
-      console.error('GET /api/development-plans: Error accessing development plans table:', tableError);
+      console.error(
+        'GET /api/development-plans: Error accessing development plans table:',
+        tableError
+      );
       return NextResponse.json(
-        { error: 'Development plans table not accessible', details: tableError instanceof Error ? tableError.message : String(tableError) },
+        {
+          error: 'Development plans table not accessible',
+          details:
+            tableError instanceof Error
+              ? tableError.message
+              : String(tableError),
+        },
         { status: 500 }
       );
     }
 
     console.log('GET /api/development-plans: Starting database query');
-    
+
     // Fetch development plans and join with player info
     // Use only columns that exist in the real table
     const results = await db
@@ -62,12 +77,12 @@ export async function GET() {
         playerLastName: mpbcPerson.lastName,
       })
       .from(mpbcDevelopmentPlan)
-      .leftJoin(
-        mpbcPerson,
-        eq(mpbcDevelopmentPlan.playerId, mpbcPerson.id)
-      );
+      .leftJoin(mpbcPerson, eq(mpbcDevelopmentPlan.playerId, mpbcPerson.id));
 
-    console.log('GET /api/development-plans: Database query completed, results count:', results.length);
+    console.log(
+      'GET /api/development-plans: Database query completed, results count:',
+      results.length
+    );
 
     // Map to UI shape
     const plans = results.map(plan => ({
@@ -89,12 +104,18 @@ export async function GET() {
       readiness: 'medium', // TODO: calculate if available
     }));
 
-    console.log('GET /api/development-plans: Successfully returning plans, count:', plans.length);
+    console.log(
+      'GET /api/development-plans: Successfully returning plans, count:',
+      plans.length
+    );
     return NextResponse.json(plans);
   } catch (error) {
     console.error('GET /api/development-plans: Error details:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch development plans', details: error instanceof Error ? error.message : String(error) },
+      {
+        error: 'Failed to fetch development plans',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -103,9 +124,12 @@ export async function GET() {
 export async function POST() {
   try {
     console.log('POST /api/development-plans: Starting request');
-    
+
     const user = await getUser();
-    console.log('POST /api/development-plans: User fetched:', user ? 'User found' : 'No user');
+    console.log(
+      'POST /api/development-plans: User fetched:',
+      user ? 'User found' : 'No user'
+    );
 
     if (!user) {
       console.log('POST /api/development-plans: No user found, returning 404');
@@ -114,7 +138,9 @@ export async function POST() {
 
     // In a real implementation, you would save the development plan to the database
     // For now, return a success response
-    console.log('POST /api/development-plans: Successfully created development plan');
+    console.log(
+      'POST /api/development-plans: Successfully created development plan'
+    );
     return NextResponse.json({
       message: 'Development plan created successfully',
       id: 'temp-id-' + Date.now(),
@@ -123,7 +149,7 @@ export async function POST() {
     console.error('POST /api/development-plans: Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      error: error
+      error: error,
     });
     return NextResponse.json(
       { error: 'Failed to create development plan' },

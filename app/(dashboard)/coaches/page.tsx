@@ -76,7 +76,9 @@ export default function CoachesPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
-  const [selectedCoachPlayers, setSelectedCoachPlayers] = useState<Player[]>([]);
+  const [selectedCoachPlayers, setSelectedCoachPlayers] = useState<Player[]>(
+    []
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
@@ -142,7 +144,7 @@ export default function CoachesPage() {
       setSelectedCoachId(coachId);
       const coach = coaches.find(c => c.id === coachId);
       setSelectedCoach(coach || null);
-      
+
       // Fetch players for this coach's team
       if (coach?.teamId) {
         fetchCoachPlayers(coach.teamId);
@@ -534,7 +536,9 @@ export default function CoachesPage() {
               </div>
 
               {/* Players */}
-              <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Players</h2>
+              <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
+                Players
+              </h2>
               <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md">
                 <div className="flex justify-between items-center mb-4">
                   <UniversalButton.Primary size="sm">

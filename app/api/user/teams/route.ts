@@ -36,7 +36,7 @@ export async function GET() {
       .leftJoin(mpbcPerson, eq(mpbcPersonGroup.personId, mpbcPerson.id))
       .where(
         and(
-          isNotNull(mpbcGroup.id), 
+          isNotNull(mpbcGroup.id),
           isNotNull(mpbcGroup.name),
           eq(mpbcPersonGroup.role, 'coach')
         )

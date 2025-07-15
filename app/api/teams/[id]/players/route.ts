@@ -21,7 +21,9 @@ export async function GET(
 
     // If no user session, still fetch data for development
     if (!user) {
-      console.log('No user session found, fetching team players for development');
+      console.log(
+        'No user session found, fetching team players for development'
+      );
     }
 
     // Get all players for the specific team using mpbc_person_group.role = 'player' as source of truth

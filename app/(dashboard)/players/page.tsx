@@ -114,8 +114,7 @@ export default function PlayersPage() {
   >({});
   const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
 
-  // State for specific team (no infinite scroll)
-  const [teamPlayerIds, setTeamPlayerIds] = useState<string[]>([]);
+  // State for loading team players
   const [loadingTeamPlayers, setLoadingTeamPlayers] = useState(false);
 
   // 1. Add state for all development plans
@@ -199,12 +198,18 @@ export default function PlayersPage() {
   const handleArchivePlan = () => {
     // In a real app, this would archive the development plan
     // console.log('Archiving development plan for player:', selectedPlayer);
-
     // For demo purposes, we'll just log it
     // console.log('Plan would be archived');
-
     // Close the modal
     // setShowArchivePlanModal(false); // This state was removed
+  };
+
+  // Handler for deleting a player
+  const handleDeletePlayer = () => {
+    // In a real app, this would delete the player
+    // console.log('Deleting player:', selectedPlayer);
+    // For demo purposes, we'll just log it
+    // console.log('Player would be deleted');
   };
 
   // Fetch all players for All Teams
@@ -215,7 +220,12 @@ export default function PlayersPage() {
       const data = await response.json();
       if (data.players) {
         const transformedPlayers = data.players.map(
-          (player: { id: string; name?: string; team?: string; status?: string }) => ({
+          (player: {
+            id: string;
+            name?: string;
+            team?: string;
+            status?: string;
+          }) => ({
             id: player.id,
             name: player.name || 'Unknown Player',
             team: player.team || 'No Team',
@@ -225,7 +235,7 @@ export default function PlayersPage() {
         // Deduplicate by id
         const playersMap: Record<string, SharedPlayer & { team: string }> = {};
         const ids: string[] = [];
-        transformedPlayers.forEach((player) => {
+        transformedPlayers.forEach(player => {
           if (!playersMap[player.id]) {
             playersMap[player.id] = player;
             ids.push(player.id);
@@ -276,7 +286,8 @@ export default function PlayersPage() {
           ids.push(player.id);
         });
 
-        setTeamPlayerIds(ids);
+        setAllPlayersById(playersMap);
+        setAllPlayerIds(ids);
       }
     } catch {
       // Error fetching team players
@@ -430,56 +441,7 @@ export default function PlayersPage() {
           email: 'coach@example.com',
           role: 'Coach',
         }}
-      >
-        {/* Player List - Fixed height for exactly 10 player cards */}
-        <div
-          className="flex-1 overflow-y-auto space-y-2"
-          style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
-        >
-          {loadingTeamPlayers && allPlayerIds.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
-              <p className="text-zinc-400 text-sm">Loading players...</p>
-            </div>
-          ) : allPlayerIds.length === 0 ? (
-            <div className="text-center py-8">
-              <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
-              <p className="text-zinc-400 text-sm">No players found</p>
-            </div>
-          ) : (
-            <>
-              {allPlayerIds.map((playerId: string) => {
-                const player = allPlayersById[playerId];
-                const hasPlan = hasDevelopmentPlan(player.id);
-                const isSelected = selectedPlayer?.id === player.id;
-                return (
-                  <div
-                    key={player.id}
-                    className={`rounded-lg border-2 mb-2 transition-colors ${hasPlan ? 'border-[#FFD700]' : 'border-red-500'}`}
-                  >
-                    <div
-                      onClick={() => handlePlayerSelect(player)}
-                      className={`p-3 rounded-lg cursor-pointer transition-all bg-zinc-800/50
-                        ${isSelected ? 'bg-[#d8cc97]/20' : ''}
-                        hover:bg-zinc-800
-                      `}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-white">
-                            {player.name}
-                          </p>
-                          <p className="text-sm text-zinc-400">{player.team}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-      </Sidebar>
+      />
 
       {/* Main Content */}
       <div
@@ -578,9 +540,7 @@ export default function PlayersPage() {
                           <p className="font-medium text-white">
                             {player.name}
                           </p>
-                          <p className="text-sm text-zinc-400">
-                            {player.team}
-                          </p>
+                          <p className="text-sm text-zinc-400">{player.team}</p>
                         </div>
                       </div>
                     </div>
@@ -718,7 +678,9 @@ export default function PlayersPage() {
         {/* RIGHT PANE: Observations Panel */}
         <div className="w-1/4 p-6 bg-black flex flex-col min-h-screen">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">Observations</h2>
+            <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">
+              Observations
+            </h2>
             {selectedPlayer && playerObservations.length > 3 && (
               <a
                 href={`/observations?player_id=${selectedPlayer.id}`}
