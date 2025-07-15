@@ -4,14 +4,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
-import {
-  Users,
-  Award,
-  Calendar,
-  BarChart3,
-  TrendingUp,
-  Activity,
-} from 'lucide-react';
+import { Users, Award, Calendar, TrendingUp, Activity } from 'lucide-react';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -33,8 +26,9 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <DashboardLayout title="Dashboard">
-      <div className="space-y-6">
+    <DashboardLayout
+      center={
+        <div className="space-y-6">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <UniversalCard.Default>
@@ -180,6 +174,6 @@ export default function DashboardPage() {
           </div>
         </UniversalCard.Default>
       </div>
-    </DashboardLayout>
+    } />
   );
 }
