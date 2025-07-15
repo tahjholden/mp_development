@@ -45,6 +45,7 @@ export enum Capability {
   VIEW_OWN_DEVELOPMENT_PLANS = 'view_own_development_plans',
   VIEW_OWN_OBSERVATIONS = 'view_own_observations',
   SUBMIT_SELF_REFLECTION = 'submit_self_reflection',
+  ACCESS_PLAYER_PORTAL = 'access_player_portal',
 
   // Coach capabilities
   VIEW_TEAM_PLAYERS = 'view_team_players',
@@ -235,6 +236,7 @@ export async function hasCapability(
     case Capability.VIEW_OWN_DEVELOPMENT_PLANS:
     case Capability.VIEW_OWN_OBSERVATIONS:
     case Capability.SUBMIT_SELF_REFLECTION:
+    case Capability.ACCESS_PLAYER_PORTAL:
       return (
         personType === PersonType.PLAYER ||
         personType === PersonType.COACH ||

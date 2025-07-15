@@ -23,13 +23,14 @@ import {
   Mail,
   UserCheck,
 } from 'lucide-react';
+import PlayerPortalDashboard from '@/components/basketball/PlayerPortalDashboard';
 
 // Mock user context with roles and feature flags
 const createMockUser = (role: string) => {
   const baseUser = {
     id: '1',
-    name: role === 'admin' ? 'Admin' : 'Coach',
-    email: role === 'admin' ? 'admin@example.com' : 'coach@example.com',
+    name: role === 'admin' ? 'Admin' : role === 'player' ? 'Player' : 'Coach',
+    email: role === 'admin' ? 'admin@example.com' : role === 'player' ? 'player@example.com' : 'coach@example.com',
     role: role,
     orgId: 'org_123',
     teamId: 'team_456',
@@ -45,6 +46,7 @@ const createMockUser = (role: string) => {
     systemSettings: role === 'admin',
     auditLogs: role === 'admin',
     dataExport: role === 'admin',
+    playerPortal: role === 'player',
   };
 
   return { ...baseUser, features };
@@ -52,7 +54,7 @@ const createMockUser = (role: string) => {
 
 // Role-aware main component
 export default function DashboardPage() {
-  const [currentRole, setCurrentRole] = useState<'coach' | 'admin'>('coach');
+  const [currentRole, setCurrentRole] = useState<'coach' | 'admin' | 'player'>('coach');
   const [user, setUser] = useState(createMockUser('coach'));
 
   // Update user when role changes
@@ -112,6 +114,16 @@ export default function DashboardPage() {
                 }`}
               >
                 Admin
+              </button>
+              <button
+                onClick={() => setCurrentRole('player')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  currentRole === 'player'
+                    ? 'bg-[#d8cc97] text-black'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                Player
               </button>
             </div>
           </div>
@@ -282,6 +294,11 @@ function DashboardHome({ user }) {
       {/* Always-on widgets */}
       <SystemHealth user={user} />
       <TeamStats user={user} />
+
+      {/* Player Portal - Feature flag controlled */}
+      {user.role === 'player' && user.features.playerPortal && (
+        <PlayerPortalDashboard playerId={user.id} features={user.features} />
+      )}
 
       {/* Org admin tools, only if correct role */}
       {["admin"].includes(user.role) && (

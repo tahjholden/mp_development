@@ -36,6 +36,9 @@ export interface PackFeatures {
   advancedConstraints: boolean;
   drillRecommendations: boolean;
 
+  // Player portal features
+  playerPortal: boolean;
+
   // UI customization
   uiOverrides?: Record<string, string> | null;
 }
@@ -176,16 +179,19 @@ export const getPackFeatures = async (orgId: string): Promise<PackFeatures> => {
       basicObservations: true,
       simplePdp: true,
 
-      // Enhanced features depend on pack configuration
-      aiEnabled: packBehavior.aiEnabled,
-      philosophyOverlay: packBehavior.type === 'enhanced',
-      advancedConstraints: packBehavior.type === 'enhanced',
-      drillRecommendations: packBehavior.type === 'enhanced',
+          // Enhanced features depend on pack configuration
+    aiEnabled: packBehavior.aiEnabled,
+    philosophyOverlay: packBehavior.type === 'enhanced',
+    advancedConstraints: packBehavior.type === 'enhanced',
+    drillRecommendations: packBehavior.type === 'enhanced',
 
-      // UI customization
-      ...(packBehavior.uiOverrides !== undefined
-        ? { uiOverrides: packBehavior.uiOverrides }
-        : {}),
+    // Player portal features (enabled for enhanced packs)
+    playerPortal: packBehavior.type === 'enhanced',
+
+    // UI customization
+    ...(packBehavior.uiOverrides !== undefined
+      ? { uiOverrides: packBehavior.uiOverrides }
+      : {}),
     };
 
     return features;
@@ -201,6 +207,7 @@ export const getPackFeatures = async (orgId: string): Promise<PackFeatures> => {
       philosophyOverlay: false,
       advancedConstraints: false,
       drillRecommendations: false,
+      playerPortal: false,
     };
   }
 };
