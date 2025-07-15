@@ -179,19 +179,19 @@ export const getPackFeatures = async (orgId: string): Promise<PackFeatures> => {
       basicObservations: true,
       simplePdp: true,
 
-          // Enhanced features depend on pack configuration
-    aiEnabled: packBehavior.aiEnabled,
-    philosophyOverlay: packBehavior.type === 'enhanced',
-    advancedConstraints: packBehavior.type === 'enhanced',
-    drillRecommendations: packBehavior.type === 'enhanced',
+      // Enhanced features depend on pack configuration
+      aiEnabled: packBehavior.aiEnabled,
+      philosophyOverlay: packBehavior.type === 'enhanced',
+      advancedConstraints: packBehavior.type === 'enhanced',
+      drillRecommendations: packBehavior.type === 'enhanced',
 
-    // Player portal features (enabled for enhanced packs)
-    playerPortal: packBehavior.type === 'enhanced',
+      // Player portal features (enabled for enhanced packs)
+      playerPortal: packBehavior.type === 'enhanced',
 
-    // UI customization
-    ...(packBehavior.uiOverrides !== undefined
-      ? { uiOverrides: packBehavior.uiOverrides }
-      : {}),
+      // UI customization
+      ...(packBehavior.uiOverrides !== undefined
+        ? { uiOverrides: packBehavior.uiOverrides }
+        : {}),
     };
 
     return features;

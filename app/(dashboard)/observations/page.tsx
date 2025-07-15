@@ -218,7 +218,7 @@ export default function ObservationsPage() {
         }
       }
     },
-    [fetchAllPlayers, allLoadingPlayers, allHasMore, allOffset, teamFilter]
+    [allLoadingPlayers, allHasMore, allOffset, teamFilter] // Remove fetchAllPlayers from dependency array to prevent infinite loop
   );
 
   // Determine which player list to use
@@ -345,7 +345,7 @@ export default function ObservationsPage() {
 
     // Fetch initial players for All Teams
     fetchAllPlayers(0, true);
-  }, [fetchAllPlayers]);
+  }, []); // Remove fetchAllPlayers from dependency array to prevent infinite loop
 
   // Handle team filter changes
   useEffect(() => {
@@ -358,7 +358,7 @@ export default function ObservationsPage() {
       // Fetch all players for specific team
       fetchPlayersForTeam(teamFilter);
     }
-  }, [teamFilter, fetchAllPlayers, fetchPlayersForTeam]);
+  }, [teamFilter]); // Remove fetchAllPlayers and fetchPlayersForTeam from dependency array to prevent infinite loop
 
   // Reset search when team filter changes
   useEffect(() => {

@@ -9,9 +9,9 @@ interface ComingSoonProps {
   description?: string;
 }
 
-export default function ComingSoon({ 
-  title = "Coming Soon", 
-  description = "This feature is currently under development and will be available soon." 
+export default function ComingSoon({
+  title = 'Coming Soon',
+  description = 'This feature is currently under development and will be available soon.',
 }: ComingSoonProps) {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -34,4 +34,4 @@ export default function ComingSoon({
       </UniversalCard.Default>
     </div>
   );
-} 
+}

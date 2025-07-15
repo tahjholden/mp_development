@@ -12,7 +12,10 @@ interface PlayerScheduleProps {
   };
 }
 
-export default function PlayerSchedule({ playerId, features }: PlayerScheduleProps) {
+export default function PlayerSchedule({
+  playerId,
+  features,
+}: PlayerScheduleProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _playerId = playerId;
   if (!features.playerPortal) {
@@ -69,4 +72,4 @@ export default function PlayerSchedule({ playerId, features }: PlayerSchedulePro
       </UniversalCard.Default>
     </div>
   );
-} 
+}

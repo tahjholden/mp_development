@@ -19,9 +19,9 @@ export default function AuditLogsPage() {
     return (
       <DashboardLayout
         center={
-          <ComingSoon 
-            title="Audit Logs" 
-            description="The Audit Logs system is currently under development and will be available to organization admins soon." 
+          <ComingSoon
+            title="Audit Logs"
+            description="The Audit Logs system is currently under development and will be available to organization admins soon."
           />
         }
       />
@@ -33,11 +33,16 @@ export default function AuditLogsPage() {
       center={
         <div className="space-y-6">
           <h1 className="text-2xl font-bold text-[#d8cc97]">Audit Logs</h1>
-          <p className="text-zinc-400">Superadmin-only audit logs interface for testing and development.</p>
+          <p className="text-zinc-400">
+            Superadmin-only audit logs interface for testing and development.
+          </p>
           <div className="p-6 bg-zinc-800/50 rounded-lg">
-            <h2 className="text-lg font-semibold text-white mb-4">Development Mode</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Development Mode
+            </h2>
             <p className="text-sm text-zinc-400">
-              This is the superadmin-only audit logs interface. In production, this would show:
+              This is the superadmin-only audit logs interface. In production,
+              this would show:
             </p>
             <ul className="list-disc list-inside text-sm text-zinc-400 mt-2 space-y-1">
               <li>User activity logs</li>
@@ -51,4 +56,4 @@ export default function AuditLogsPage() {
       }
     />
   );
-} 
+}

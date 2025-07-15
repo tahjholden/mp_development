@@ -29,8 +29,22 @@ import PlayerPortalDashboard from '@/components/basketball/PlayerPortalDashboard
 const createMockUser = (role: string) => {
   const baseUser = {
     id: '1',
-    name: role === 'admin' ? 'Admin' : role === 'player' ? 'Player' : role === 'superadmin' ? 'SuperAdmin' : 'Coach',
-    email: role === 'admin' ? 'admin@example.com' : role === 'player' ? 'player@example.com' : role === 'superadmin' ? 'superadmin@example.com' : 'coach@example.com',
+    name:
+      role === 'admin'
+        ? 'Admin'
+        : role === 'player'
+          ? 'Player'
+          : role === 'superadmin'
+            ? 'SuperAdmin'
+            : 'Coach',
+    email:
+      role === 'admin'
+        ? 'admin@example.com'
+        : role === 'player'
+          ? 'player@example.com'
+          : role === 'superadmin'
+            ? 'superadmin@example.com'
+            : 'coach@example.com',
     role: role,
     orgId: 'org_123',
     teamId: 'team_456',
@@ -54,7 +68,9 @@ const createMockUser = (role: string) => {
 
 // Role-aware main component
 export default function DashboardPage() {
-  const [currentRole, setCurrentRole] = useState<'coach' | 'admin' | 'player' | 'superadmin'>('coach');
+  const [currentRole, setCurrentRole] = useState<
+    'coach' | 'admin' | 'player' | 'superadmin'
+  >('coach');
   const [user, setUser] = useState(createMockUser('coach'));
 
   // Update user when role changes
@@ -66,7 +82,10 @@ export default function DashboardPage() {
     <div className="flex min-h-screen h-full bg-black text-white">
       {/* Header */}
       <header className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between">
-        <span className="text-2xl font-bold tracking-wide text-[#d8cc97]" style={{ letterSpacing: '0.04em' }}>
+        <span
+          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
+          style={{ letterSpacing: '0.04em' }}
+        >
           MP Player Development
         </span>
         <div className="flex flex-col items-end">
@@ -76,24 +95,28 @@ export default function DashboardPage() {
           <span className="text-xs text-[#d8cc97] leading-tight">
             {user.email}
           </span>
-          <span className="text-xs text-white leading-tight capitalize">{user.role}</span>
+          <span className="text-xs text-white leading-tight capitalize">
+            {user.role}
+          </span>
         </div>
       </header>
-      
+
       {/* Sidebar */}
       <Sidebar user={user} onSignOut={() => {}} />
-      
+
       {/* Main Content */}
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen">
         {/* LEFT COLUMN: Entity Panel */}
         <EntityPanel user={user} />
-        
+
         {/* CENTER COLUMN: Main Panel */}
         <MainPanel>
           {/* Demo Mode Toggle */}
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">Demo Mode</h2>
-            <p className="text-sm text-zinc-400 mb-4">Switch between roles to see different views</p>
+            <p className="text-sm text-zinc-400 mb-4">
+              Switch between roles to see different views
+            </p>
             <div className="flex bg-zinc-800 rounded-lg p-1">
               <button
                 onClick={() => setCurrentRole('coach')}
@@ -137,18 +160,18 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-          
+
           {/* Modular Dashboard Home */}
           <DashboardHome user={user} />
         </MainPanel>
-        
+
         {/* RIGHT COLUMN: Right Panel */}
         <RightPanel>
           <RecentActivity user={user} />
           {/* Admin-only tools */}
-          {["admin"].includes(user.role) && <AdminToolsPanel user={user} />}
+          {['admin'].includes(user.role) && <AdminToolsPanel user={user} />}
           {/* Coach quick actions */}
-          {["coach"].includes(user.role) && <CoachQuickActions user={user} />}
+          {['coach'].includes(user.role) && <CoachQuickActions user={user} />}
         </RightPanel>
       </div>
     </div>
@@ -183,7 +206,9 @@ function EntityPanel({ user }) {
     <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen">
       {user.role === 'admin' ? (
         <>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">System Overview</h2>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
+            System Overview
+          </h2>
           <div className="space-y-6">
             <div className="flex items-center mb-4">
               <div className="p-2 rounded-lg bg-blue-500/20">
@@ -191,7 +216,9 @@ function EntityPanel({ user }) {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-zinc-400">Total Users</p>
-                <p className="text-2xl font-bold text-white">{adminStats.totalUsers}</p>
+                <p className="text-2xl font-bold text-white">
+                  {adminStats.totalUsers}
+                </p>
               </div>
             </div>
             <div className="flex items-center mb-4">
@@ -200,7 +227,9 @@ function EntityPanel({ user }) {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-zinc-400">Total Teams</p>
-                <p className="text-2xl font-bold text-white">{adminStats.totalTeams}</p>
+                <p className="text-2xl font-bold text-white">
+                  {adminStats.totalTeams}
+                </p>
               </div>
             </div>
             <div className="flex items-center mb-4">
@@ -208,8 +237,12 @@ function EntityPanel({ user }) {
                 <Calendar className="h-6 w-6 text-purple-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">Active Plans</p>
-                <p className="text-2xl font-bold text-white">{adminStats.activePlans}</p>
+                <p className="text-sm font-medium text-zinc-400">
+                  Active Plans
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {adminStats.activePlans}
+                </p>
               </div>
             </div>
             <div className="flex items-center mb-4">
@@ -217,8 +250,12 @@ function EntityPanel({ user }) {
                 <UserCheck className="h-6 w-6 text-orange-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">Total Coaches</p>
-                <p className="text-2xl font-bold text-white">{adminStats.totalCoaches}</p>
+                <p className="text-sm font-medium text-zinc-400">
+                  Total Coaches
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {adminStats.totalCoaches}
+                </p>
               </div>
             </div>
             <div className="flex items-center mb-4">
@@ -226,15 +263,21 @@ function EntityPanel({ user }) {
                 <AlertTriangle className="h-6 w-6 text-red-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">System Alerts</p>
-                <p className="text-2xl font-bold text-white">{adminStats.systemAlerts}</p>
+                <p className="text-sm font-medium text-zinc-400">
+                  System Alerts
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {adminStats.systemAlerts}
+                </p>
               </div>
             </div>
           </div>
         </>
       ) : (
         <>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">My Stats</h2>
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
+            My Stats
+          </h2>
           <div className="space-y-6">
             <div className="flex items-center mb-4">
               <div className="p-2 rounded-lg bg-blue-500/20">
@@ -242,7 +285,9 @@ function EntityPanel({ user }) {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-zinc-400">My Players</p>
-                <p className="text-2xl font-bold text-white">{coachStats.totalPlayers}</p>
+                <p className="text-2xl font-bold text-white">
+                  {coachStats.totalPlayers}
+                </p>
               </div>
             </div>
             <div className="flex items-center mb-4">
@@ -251,7 +296,9 @@ function EntityPanel({ user }) {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-zinc-400">My Teams</p>
-                <p className="text-2xl font-bold text-white">{coachStats.totalTeams}</p>
+                <p className="text-2xl font-bold text-white">
+                  {coachStats.totalTeams}
+                </p>
               </div>
             </div>
             <div className="flex items-center mb-4">
@@ -259,8 +306,12 @@ function EntityPanel({ user }) {
                 <Calendar className="h-6 w-6 text-purple-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">Active Plans</p>
-                <p className="text-2xl font-bold text-white">{coachStats.activePlans}</p>
+                <p className="text-sm font-medium text-zinc-400">
+                  Active Plans
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {coachStats.activePlans}
+                </p>
               </div>
             </div>
             <div className="flex items-center mb-4">
@@ -268,8 +319,12 @@ function EntityPanel({ user }) {
                 <Activity className="h-6 w-6 text-orange-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">Recent Observations</p>
-                <p className="text-2xl font-bold text-white">{coachStats.recentObservations}</p>
+                <p className="text-sm font-medium text-zinc-400">
+                  Recent Observations
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {coachStats.recentObservations}
+                </p>
               </div>
             </div>
           </div>
@@ -311,20 +366,22 @@ function DashboardHome({ user }) {
       )}
 
       {/* Org admin tools, only if correct role */}
-      {["admin"].includes(user.role) && (
+      {['admin'].includes(user.role) && (
         <>
-          {user.features.userManagement && <UserManagementPanel orgId={user.orgId} />}
+          {user.features.userManagement && (
+            <UserManagementPanel orgId={user.orgId} />
+          )}
           <RosterPanel orgId={user.orgId} />
           {user.features.auditLogs && <AuditLogsPanel orgId={user.orgId} />}
           {user.features.dataExport && <DataExportPanel orgId={user.orgId} />}
-          {user.features.systemSettings && <SystemSettingsPanel orgId={user.orgId} />}
+          {user.features.systemSettings && (
+            <SystemSettingsPanel orgId={user.orgId} />
+          )}
         </>
       )}
 
       {/* Payments/Billing, only if feature enabled */}
-      {user.features.billing && (
-        <BillingPanel orgId={user.orgId} />
-      )}
+      {user.features.billing && <BillingPanel orgId={user.orgId} />}
 
       {/* Advanced analytics, only if feature enabled */}
       {user.features.advancedAnalytics && (
@@ -332,7 +389,7 @@ function DashboardHome({ user }) {
       )}
 
       {/* Coach specific widgets */}
-      {["coach"].includes(user.role) && (
+      {['coach'].includes(user.role) && (
         <>
           <RosterPanel teamId={user.teamId} />
           {user.features.teamFees && <TeamFeesPanel teamId={user.teamId} />}
@@ -354,10 +411,14 @@ function AdminToolsPanel({ user }) {
       <div className="grid gap-2">
         {user.features.userManagement && <ActionButton label="Manage Users" />}
         <ActionButton label="Team Management" />
-        {user.features.advancedAnalytics && <ActionButton label="System Analytics" />}
+        {user.features.advancedAnalytics && (
+          <ActionButton label="System Analytics" />
+        )}
         {user.features.auditLogs && <ActionButton label="Audit Logs" />}
         {user.features.dataExport && <ActionButton label="Data Export" />}
-        {user.features.systemSettings && <ActionButton label="System Settings" />}
+        {user.features.systemSettings && (
+          <ActionButton label="System Settings" />
+        )}
       </div>
     </div>
   );
@@ -383,33 +444,125 @@ function CoachQuickActions({ user }) {
 
 // Recent Activity Component
 function RecentActivity({ user }) {
-  const activities = user.role === 'admin' ? [
-    { id: 1, type: 'system', message: 'System backup completed successfully', time: '2 hours ago', icon: Database, color: 'green', severity: 'success' },
-    { id: 2, type: 'user', message: 'New user invitation sent to coach@team.com', time: '3 hours ago', icon: Mail, color: 'blue', severity: 'info' },
-    { id: 3, type: 'alert', message: 'High CPU usage detected on server', time: '4 hours ago', icon: AlertTriangle, color: 'yellow', severity: 'warning' },
-    { id: 4, type: 'billing', message: 'Monthly subscription payment processed', time: '1 day ago', icon: CreditCard, color: 'green', severity: 'success' },
-    { id: 5, type: 'security', message: 'Failed login attempt from unknown IP', time: '1 day ago', icon: Shield, color: 'red', severity: 'error' },
-  ] : [
-    { id: 1, type: 'user', message: 'New player added to Team Alpha', time: '2 hours ago', icon: UserPlus, color: 'green', severity: 'info' },
-    { id: 2, type: 'plan', message: 'Development plan updated for John Doe', time: '4 hours ago', icon: FileText, color: 'blue', severity: 'info' },
-    { id: 3, type: 'observation', message: 'New observation recorded for Team Beta', time: '6 hours ago', icon: Eye, color: 'purple', severity: 'info' },
-    { id: 4, type: 'team', message: 'Team Gamma created', time: '8 hours ago', icon: Shield, color: 'orange', severity: 'info' },
-    { id: 5, type: 'coach', message: 'Coach Sarah joined the platform', time: '12 hours ago', icon: Users, color: 'cyan', severity: 'info' },
-  ];
+  const activities =
+    user.role === 'admin'
+      ? [
+          {
+            id: 1,
+            type: 'system',
+            message: 'System backup completed successfully',
+            time: '2 hours ago',
+            icon: Database,
+            color: 'green',
+            severity: 'success',
+          },
+          {
+            id: 2,
+            type: 'user',
+            message: 'New user invitation sent to coach@team.com',
+            time: '3 hours ago',
+            icon: Mail,
+            color: 'blue',
+            severity: 'info',
+          },
+          {
+            id: 3,
+            type: 'alert',
+            message: 'High CPU usage detected on server',
+            time: '4 hours ago',
+            icon: AlertTriangle,
+            color: 'yellow',
+            severity: 'warning',
+          },
+          {
+            id: 4,
+            type: 'billing',
+            message: 'Monthly subscription payment processed',
+            time: '1 day ago',
+            icon: CreditCard,
+            color: 'green',
+            severity: 'success',
+          },
+          {
+            id: 5,
+            type: 'security',
+            message: 'Failed login attempt from unknown IP',
+            time: '1 day ago',
+            icon: Shield,
+            color: 'red',
+            severity: 'error',
+          },
+        ]
+      : [
+          {
+            id: 1,
+            type: 'user',
+            message: 'New player added to Team Alpha',
+            time: '2 hours ago',
+            icon: UserPlus,
+            color: 'green',
+            severity: 'info',
+          },
+          {
+            id: 2,
+            type: 'plan',
+            message: 'Development plan updated for John Doe',
+            time: '4 hours ago',
+            icon: FileText,
+            color: 'blue',
+            severity: 'info',
+          },
+          {
+            id: 3,
+            type: 'observation',
+            message: 'New observation recorded for Team Beta',
+            time: '6 hours ago',
+            icon: Eye,
+            color: 'purple',
+            severity: 'info',
+          },
+          {
+            id: 4,
+            type: 'team',
+            message: 'Team Gamma created',
+            time: '8 hours ago',
+            icon: Shield,
+            color: 'orange',
+            severity: 'info',
+          },
+          {
+            id: 5,
+            type: 'coach',
+            message: 'Coach Sarah joined the platform',
+            time: '12 hours ago',
+            icon: Users,
+            color: 'cyan',
+            severity: 'info',
+          },
+        ];
 
   return (
     <>
-      <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Recent Activity</h2>
+      <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
+        Recent Activity
+      </h2>
       <div className="space-y-4">
-        {activities.slice(0, 5).map((activity) => {
+        {activities.slice(0, 5).map(activity => {
           const IconComponent = activity.icon;
           return (
-            <div key={activity.id} className="flex items-center space-x-4 p-3 rounded-lg bg-zinc-800/50">
+            <div
+              key={activity.id}
+              className="flex items-center space-x-4 p-3 rounded-lg bg-zinc-800/50"
+            >
               <div className={`p-2 rounded-lg bg-${activity.color}-500/20`}>
-                <IconComponent className={`h-4 w-4 text-${activity.color}-500`} />
+                <IconComponent
+                  className={`h-4 w-4 text-${activity.color}-500`}
+                />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-white">{activity.message}</p>
+                <p className="text-sm font-medium text-white">
+                  {activity.message}
+                </p>
                 <p className="text-xs text-zinc-400">{activity.time}</p>
               </div>
             </div>
@@ -448,15 +601,19 @@ function SystemHealth({ user }: { user: any }) {
 
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">System Health & Performance</h2>
+      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
+        System Health & Performance
+      </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-zinc-800/50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-zinc-400">CPU Usage</span>
-            <span className="text-sm font-medium text-white">{systemHealth.cpuUsage}%</span>
+            <span className="text-sm font-medium text-white">
+              {systemHealth.cpuUsage}%
+            </span>
           </div>
           <div className="w-full bg-zinc-700 rounded-full h-2">
-            <div 
+            <div
               className={`h-2 rounded-full ${systemHealth.cpuUsage > 80 ? 'bg-red-500' : systemHealth.cpuUsage > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
               style={{ width: `${systemHealth.cpuUsage}%` }}
             ></div>
@@ -465,10 +622,12 @@ function SystemHealth({ user }: { user: any }) {
         <div className="bg-zinc-800/50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-zinc-400">Memory Usage</span>
-            <span className="text-sm font-medium text-white">{systemHealth.memoryUsage}%</span>
+            <span className="text-sm font-medium text-white">
+              {systemHealth.memoryUsage}%
+            </span>
           </div>
           <div className="w-full bg-zinc-700 rounded-full h-2">
-            <div 
+            <div
               className={`h-2 rounded-full ${systemHealth.memoryUsage > 80 ? 'bg-red-500' : systemHealth.memoryUsage > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
               style={{ width: `${systemHealth.memoryUsage}%` }}
             ></div>
@@ -477,10 +636,12 @@ function SystemHealth({ user }: { user: any }) {
         <div className="bg-zinc-800/50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-zinc-400">Disk Usage</span>
-            <span className="text-sm font-medium text-white">{systemHealth.diskUsage}%</span>
+            <span className="text-sm font-medium text-white">
+              {systemHealth.diskUsage}%
+            </span>
           </div>
           <div className="w-full bg-zinc-700 rounded-full h-2">
-            <div 
+            <div
               className={`h-2 rounded-full ${systemHealth.diskUsage > 80 ? 'bg-red-500' : systemHealth.diskUsage > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
               style={{ width: `${systemHealth.diskUsage}%` }}
             ></div>
@@ -489,12 +650,16 @@ function SystemHealth({ user }: { user: any }) {
         <div className="bg-zinc-800/50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-zinc-400">Network Latency</span>
-            <span className="text-sm font-medium text-white">{systemHealth.networkLatency}ms</span>
+            <span className="text-sm font-medium text-white">
+              {systemHealth.networkLatency}ms
+            </span>
           </div>
           <div className="w-full bg-zinc-700 rounded-full h-2">
-            <div 
+            <div
               className={`h-2 rounded-full ${systemHealth.networkLatency > 50 ? 'bg-red-500' : systemHealth.networkLatency > 20 ? 'bg-yellow-500' : 'bg-green-500'}`}
-              style={{ width: `${Math.min((systemHealth.networkLatency / 100) * 100, 100)}%` }}
+              style={{
+                width: `${Math.min((systemHealth.networkLatency / 100) * 100, 100)}%`,
+              }}
             ></div>
           </div>
         </div>
@@ -505,7 +670,6 @@ function SystemHealth({ user }: { user: any }) {
 
 // Team Stats - Always visible
 function TeamStats({ user }: { user: any }) {
-
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
       <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
@@ -514,7 +678,9 @@ function TeamStats({ user }: { user: any }) {
       {user.role === 'admin' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-zinc-800/50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">Platform Overview</h3>
+            <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+              Platform Overview
+            </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
@@ -539,7 +705,9 @@ function TeamStats({ user }: { user: any }) {
             </div>
           </div>
           <div className="bg-zinc-800/50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">Billing & Subscription</h3>
+            <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+              Billing & Subscription
+            </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-zinc-400">Plan</span>
@@ -551,11 +719,15 @@ function TeamStats({ user }: { user: any }) {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-zinc-400">Status</span>
-                <span className="text-sm font-medium text-green-500 capitalize">active</span>
+                <span className="text-sm font-medium text-green-500 capitalize">
+                  active
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-zinc-400">Next Billing</span>
-                <span className="text-sm font-medium text-white">2024-02-15</span>
+                <span className="text-sm font-medium text-white">
+                  2024-02-15
+                </span>
               </div>
             </div>
           </div>
@@ -563,7 +735,9 @@ function TeamStats({ user }: { user: any }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-zinc-800/50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-white">Team Alpha</h3>
+            <h3 className="text-lg font-semibold mb-4 text-white">
+              Team Alpha
+            </h3>
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-zinc-400">Members</span>
               <span className="text-lg font-bold text-white">8</span>
@@ -624,7 +798,9 @@ export function BillingPanel({ orgId }: { orgId: string }) {
   const _orgId = orgId;
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">Billing & Subscription</h3>
+      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+        Billing & Subscription
+      </h3>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-sm text-zinc-400">Plan</span>
@@ -652,7 +828,9 @@ function UserManagementPanel({ orgId }: { orgId: string }) {
   const _orgId = orgId;
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">User Management</h3>
+      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+        User Management
+      </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Primary>
           <UserPlus className="h-4 w-4 mr-2" />
@@ -712,7 +890,9 @@ function TeamFeesPanel({ teamId }: { teamId: string }) {
   const _teamId = teamId;
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">Team Fees Management</h3>
+      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+        Team Fees Management
+      </h3>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-sm text-zinc-400">Total Collected</span>
@@ -740,7 +920,9 @@ function AdvancedAnalyticsPanel({ orgId }: { orgId: string }) {
   const _orgId = orgId;
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">Advanced Analytics</h3>
+      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+        Advanced Analytics
+      </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Secondary>
           <BarChart3 className="h-4 w-4 mr-2" />
@@ -798,7 +980,9 @@ function DataExportPanel({ orgId }: { orgId: string }) {
   const _orgId = orgId;
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">Data Management</h3>
+      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+        Data Management
+      </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Secondary>
           <Download className="h-4 w-4 mr-2" />
@@ -827,7 +1011,9 @@ function SystemSettingsPanel({ orgId }: { orgId: string }) {
   const _orgId = orgId;
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">System Settings</h3>
+      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
+        System Settings
+      </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Secondary>
           <Settings className="h-4 w-4 mr-2" />
@@ -854,11 +1040,15 @@ function SystemSettingsPanel({ orgId }: { orgId: string }) {
 function PracticeScheduleCard() {
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">Practice Schedule</h2>
+      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
+        Practice Schedule
+      </h2>
       <div className="space-y-4">
         <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/50">
           <div>
-            <p className="text-sm font-medium text-white">Team Alpha Practice</p>
+            <p className="text-sm font-medium text-white">
+              Team Alpha Practice
+            </p>
             <p className="text-xs text-zinc-400">Today, 3:00 PM</p>
           </div>
           <UniversalButton.Secondary size="sm">
@@ -884,26 +1074,75 @@ function PracticeScheduleCard() {
 // Recent Team Activity - Coach specific
 function RecentTeamActivity() {
   const activities = [
-    { id: 1, type: 'user', message: 'New player added to Team Alpha', time: '2 hours ago', icon: UserPlus, color: 'green', severity: 'info' },
-    { id: 2, type: 'plan', message: 'Development plan updated for John Doe', time: '4 hours ago', icon: FileText, color: 'blue', severity: 'info' },
-    { id: 3, type: 'observation', message: 'New observation recorded for Team Beta', time: '6 hours ago', icon: Eye, color: 'purple', severity: 'info' },
-    { id: 4, type: 'team', message: 'Team Gamma created', time: '8 hours ago', icon: Shield, color: 'orange', severity: 'info' },
-    { id: 5, type: 'coach', message: 'Coach Sarah joined the platform', time: '12 hours ago', icon: Users, color: 'cyan', severity: 'info' },
+    {
+      id: 1,
+      type: 'user',
+      message: 'New player added to Team Alpha',
+      time: '2 hours ago',
+      icon: UserPlus,
+      color: 'green',
+      severity: 'info',
+    },
+    {
+      id: 2,
+      type: 'plan',
+      message: 'Development plan updated for John Doe',
+      time: '4 hours ago',
+      icon: FileText,
+      color: 'blue',
+      severity: 'info',
+    },
+    {
+      id: 3,
+      type: 'observation',
+      message: 'New observation recorded for Team Beta',
+      time: '6 hours ago',
+      icon: Eye,
+      color: 'purple',
+      severity: 'info',
+    },
+    {
+      id: 4,
+      type: 'team',
+      message: 'Team Gamma created',
+      time: '8 hours ago',
+      icon: Shield,
+      color: 'orange',
+      severity: 'info',
+    },
+    {
+      id: 5,
+      type: 'coach',
+      message: 'Coach Sarah joined the platform',
+      time: '12 hours ago',
+      icon: Users,
+      color: 'cyan',
+      severity: 'info',
+    },
   ];
 
   return (
     <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">Recent Team Activity</h2>
+      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
+        Recent Team Activity
+      </h2>
       <div className="space-y-4">
-        {activities.slice(0, 5).map((activity) => {
+        {activities.slice(0, 5).map(activity => {
           const IconComponent = activity.icon;
           return (
-            <div key={activity.id} className="flex items-center space-x-4 p-3 rounded-lg bg-zinc-900/50">
+            <div
+              key={activity.id}
+              className="flex items-center space-x-4 p-3 rounded-lg bg-zinc-900/50"
+            >
               <div className={`p-2 rounded-lg bg-${activity.color}-500/20`}>
-                <IconComponent className={`h-4 w-4 text-${activity.color}-500`} />
+                <IconComponent
+                  className={`h-4 w-4 text-${activity.color}-500`}
+                />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-white">{activity.message}</p>
+                <p className="text-sm font-medium text-white">
+                  {activity.message}
+                </p>
                 <p className="text-xs text-zinc-400">{activity.time}</p>
               </div>
             </div>

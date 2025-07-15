@@ -304,7 +304,7 @@ export default function DevelopmentPlansPage() {
     if (teamFilter === 'all') {
       fetchAllPlayers(0, true);
     }
-  }, [teamFilter, fetchAllPlayers]);
+  }, [teamFilter]); // Remove fetchAllPlayers from dependency array to prevent infinite loop
 
   // Player list rendering logic
   const sortedAllPlayers = [...allPlayerIds.map(id => allPlayersById[id])]

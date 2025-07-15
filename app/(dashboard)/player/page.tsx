@@ -20,9 +20,9 @@ export default function PlayerPortalPage() {
     return (
       <DashboardLayout
         center={
-          <ComingSoon 
-            title="Player Portal" 
-            description="The Player Portal is currently under development and will be available to players soon." 
+          <ComingSoon
+            title="Player Portal"
+            description="The Player Portal is currently under development and will be available to players soon."
           />
         }
       />
@@ -32,11 +32,11 @@ export default function PlayerPortalPage() {
   return (
     <DashboardLayout
       center={
-        <PlayerPortalDashboard 
-          playerId={mockUser.id} 
-          features={mockUser.features} 
+        <PlayerPortalDashboard
+          playerId={mockUser.id}
+          features={mockUser.features}
         />
       }
     />
   );
-} 
+}

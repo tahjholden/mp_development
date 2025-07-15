@@ -12,7 +12,10 @@ interface PlayerJournalProps {
   };
 }
 
-export default function PlayerJournal({ playerId, features }: PlayerJournalProps) {
+export default function PlayerJournal({
+  playerId,
+  features,
+}: PlayerJournalProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _playerId = playerId;
   if (!features.playerPortal) {
@@ -34,15 +37,17 @@ export default function PlayerJournal({ playerId, features }: PlayerJournalProps
         <div className="space-y-4">
           <div className="p-4 bg-zinc-800/50 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-white">Today's Practice Reflection</h3>
+              <h3 className="text-sm font-medium text-white">
+                Today's Practice Reflection
+              </h3>
               <div className="flex items-center space-x-1">
                 <Star className="h-3 w-3 text-yellow-500" />
                 <span className="text-xs text-zinc-400">4.5</span>
               </div>
             </div>
             <p className="text-xs text-zinc-400 mb-2">
-              Felt good about my shooting today. Made 8/10 free throws in practice. 
-              Need to work on my defensive positioning though.
+              Felt good about my shooting today. Made 8/10 free throws in
+              practice. Need to work on my defensive positioning though.
             </p>
             <div className="flex items-center space-x-2">
               <Calendar className="h-3 w-3 text-zinc-400" />
@@ -52,15 +57,17 @@ export default function PlayerJournal({ playerId, features }: PlayerJournalProps
 
           <div className="p-4 bg-zinc-800/50 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-white">Game Day Thoughts</h3>
+              <h3 className="text-sm font-medium text-white">
+                Game Day Thoughts
+              </h3>
               <div className="flex items-center space-x-1">
                 <Star className="h-3 w-3 text-yellow-500" />
                 <span className="text-xs text-zinc-400">5.0</span>
               </div>
             </div>
             <p className="text-xs text-zinc-400 mb-2">
-              Great game today! Scored 15 points and had 3 assists. 
-              Team played really well together.
+              Great game today! Scored 15 points and had 3 assists. Team played
+              really well together.
             </p>
             <div className="flex items-center space-x-2">
               <Calendar className="h-3 w-3 text-zinc-400" />
@@ -71,4 +78,4 @@ export default function PlayerJournal({ playerId, features }: PlayerJournalProps
       </UniversalCard.Default>
     </div>
   );
-} 
+}
