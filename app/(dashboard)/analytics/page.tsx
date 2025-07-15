@@ -681,6 +681,12 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* Coming Soon Overlay */}
+      <ComingSoonOverlay
+        title="Advanced Analytics Features Coming Soon!"
+        description="We're building comprehensive analytics with advanced reporting, predictive insights, and customizable dashboards. Stay tuned for enhanced data visualization and business intelligence features."
+      />
     </div>
   );
 }

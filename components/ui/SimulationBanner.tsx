@@ -47,7 +47,8 @@ export function SimulationBanner() {
           <div className="flex items-center space-x-3">
             <div className="text-white">
               <span className="font-medium">
-                {simulatedUser.displayName || `${simulatedUser.firstName} ${simulatedUser.lastName}`}
+                {simulatedUser.displayName ||
+                  `${simulatedUser.firstName} ${simulatedUser.lastName}`}
               </span>
               <span className="text-sm opacity-90 ml-2">
                 ({simulatedUser.primaryRole})
@@ -86,10 +87,7 @@ export function SimulationBanner() {
           </UniversalButton.Ghost>
 
           {/* Stop Simulation Button */}
-          <UniversalButton.Danger
-            onClick={stopSimulation}
-            size="sm"
-          >
+          <UniversalButton.Danger onClick={stopSimulation} size="sm">
             <X className="h-4 w-4 mr-1" />
             Exit Simulation
           </UniversalButton.Danger>
@@ -101,11 +99,7 @@ export function SimulationBanner() {
 
 // Compact version for smaller screens
 export function SimulationBannerCompact() {
-  const {
-    isSimulating,
-    simulatedUser,
-    stopSimulation,
-  } = useSimulation();
+  const { isSimulating, simulatedUser, stopSimulation } = useSimulation();
 
   if (!isSimulating || !simulatedUser) {
     return null;
@@ -123,14 +117,13 @@ export function SimulationBannerCompact() {
         <div className="flex items-center space-x-2">
           <User className="h-4 w-4 text-white" />
           <span className="text-white text-sm font-medium">
-            SIM: {simulatedUser.displayName || `${simulatedUser.firstName} ${simulatedUser.lastName}`}
+            SIM:{' '}
+            {simulatedUser.displayName ||
+              `${simulatedUser.firstName} ${simulatedUser.lastName}`}
           </span>
         </div>
 
-        <UniversalButton.Danger
-          onClick={stopSimulation}
-          size="xs"
-        >
+        <UniversalButton.Danger onClick={stopSimulation} size="xs">
           <X className="h-3 w-3" />
         </UniversalButton.Danger>
       </div>
@@ -140,11 +133,7 @@ export function SimulationBannerCompact() {
 
 // Floating simulation indicator
 export function SimulationIndicator() {
-  const {
-    isSimulating,
-    simulatedUser,
-    stopSimulation,
-  } = useSimulation();
+  const { isSimulating, simulatedUser, stopSimulation } = useSimulation();
 
   if (!isSimulating || !simulatedUser) {
     return null;
@@ -171,4 +160,4 @@ export function SimulationIndicator() {
       <User className="h-6 w-6 text-white" />
     </div>
   );
-} 
+}

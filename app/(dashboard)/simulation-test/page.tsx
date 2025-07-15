@@ -117,7 +117,8 @@ export default function SimulationTestPage() {
                 {getRoleIcon(simulatedRole)}
                 <div>
                   <div className="font-medium text-white">
-                    {simulatedRole.charAt(0).toUpperCase() + simulatedRole.slice(1)}
+                    {simulatedRole.charAt(0).toUpperCase() +
+                      simulatedRole.slice(1)}
                   </div>
                   <div className="text-sm text-zinc-400">
                     {getRoleDescription(simulatedRole)}
@@ -182,7 +183,9 @@ export default function SimulationTestPage() {
                       </div>
                       <div className="mt-1 text-sm text-zinc-400">
                         <div>Role: {simulatedUser.primaryRole}</div>
-                        <div>Organization: {simulatedUser.organizationName}</div>
+                        <div>
+                          Organization: {simulatedUser.organizationName}
+                        </div>
                         <div>Admin: {simulatedUser.isAdmin ? 'Yes' : 'No'}</div>
                       </div>
                     </div>
@@ -206,19 +209,23 @@ export default function SimulationTestPage() {
             <h2 className="text-xl font-bold text-[#d8cc97]">
               Role-Based Content Preview
             </h2>
-            
+
             {simulatedRole === 'coach' && (
               <div className="space-y-4">
                 <h4 className="font-medium text-white">Coach Dashboard</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-zinc-800 border border-zinc-700">
-                    <div className="font-medium text-white">Player Management</div>
+                    <div className="font-medium text-white">
+                      Player Management
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       View and manage your players
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-zinc-800 border border-zinc-700">
-                    <div className="font-medium text-white">Development Plans</div>
+                    <div className="font-medium text-white">
+                      Development Plans
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Create and track player development
                     </div>
@@ -244,19 +251,25 @@ export default function SimulationTestPage() {
                 <h4 className="font-medium text-white">Admin Dashboard</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-zinc-800 border border-green-500">
-                    <div className="font-medium text-green-400">Team Settings</div>
+                    <div className="font-medium text-green-400">
+                      Team Settings
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Manage team configuration and permissions
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-zinc-800 border border-[#d8cc97]">
-                    <div className="font-medium text-[#d8cc97]">User Management</div>
+                    <div className="font-medium text-[#d8cc97]">
+                      User Management
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Add, remove, and manage team members
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-zinc-800 border border-red-500">
-                    <div className="font-medium text-red-400">Billing & Subscriptions</div>
+                    <div className="font-medium text-red-400">
+                      Billing & Subscriptions
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Manage team subscriptions and payments
                     </div>
@@ -270,7 +283,9 @@ export default function SimulationTestPage() {
                 <h4 className="font-medium text-white">Superadmin Dashboard</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-4 rounded-lg bg-zinc-800 border border-red-500">
-                    <div className="font-medium text-red-400">System Administration</div>
+                    <div className="font-medium text-red-400">
+                      System Administration
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Full system access and control
                     </div>
@@ -296,25 +311,33 @@ export default function SimulationTestPage() {
                 <h4 className="font-medium text-white">Player Portal</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-zinc-800 border border-purple-500">
-                    <div className="font-medium text-purple-400">My Development Plan</div>
+                    <div className="font-medium text-purple-400">
+                      My Development Plan
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       View your personal development plan
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-zinc-800 border border-purple-500">
-                    <div className="font-medium text-purple-400">My Progress</div>
+                    <div className="font-medium text-purple-400">
+                      My Progress
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Track your development progress
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-zinc-800 border border-purple-500">
-                    <div className="font-medium text-purple-400">My Schedule</div>
+                    <div className="font-medium text-purple-400">
+                      My Schedule
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       View your practice and game schedule
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-zinc-800 border border-purple-500">
-                    <div className="font-medium text-purple-400">My Journal</div>
+                    <div className="font-medium text-purple-400">
+                      My Journal
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Log your personal notes and reflections
                     </div>
@@ -328,13 +351,17 @@ export default function SimulationTestPage() {
                 <h4 className="font-medium text-white">Parent Portal</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-zinc-800 border border-orange-500">
-                    <div className="font-medium text-orange-400">Child Progress</div>
+                    <div className="font-medium text-orange-400">
+                      Child Progress
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Monitor your child's development progress
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-zinc-800 border border-orange-500">
-                    <div className="font-medium text-orange-400">Communication</div>
+                    <div className="font-medium text-orange-400">
+                      Communication
+                    </div>
                     <div className="text-sm mt-1 text-zinc-400">
                       Communicate with coaches and staff
                     </div>
@@ -364,7 +391,8 @@ export default function SimulationTestPage() {
           </h2>
           <div className="space-y-6">
             <div className="text-sm text-zinc-400">
-              This shows how API calls would be made with the current simulation context:
+              This shows how API calls would be made with the current simulation
+              context:
             </div>
             <div className="rounded-lg p-4 font-mono text-sm bg-zinc-800 border border-zinc-700">
               <div className="space-y-2">
@@ -399,25 +427,25 @@ export default function SimulationTestPage() {
                 <span className="text-[#d8cc97]">🔧 Quick Actions</span>
               </div>
               <div className="grid gap-2">
-                <button 
+                <button
                   onClick={() => handleRoleChange('coach')}
                   className="text-left p-2 rounded bg-zinc-800 hover:bg-zinc-700 text-sm text-white transition-colors"
                 >
                   Switch to Coach Role
                 </button>
-                <button 
+                <button
                   onClick={() => handleRoleChange('admin')}
                   className="text-left p-2 rounded bg-zinc-800 hover:bg-zinc-700 text-sm text-white transition-colors"
                 >
                   Switch to Admin Role
                 </button>
-                <button 
+                <button
                   onClick={() => handleRoleChange('player')}
                   className="text-left p-2 rounded bg-zinc-800 hover:bg-zinc-700 text-sm text-white transition-colors"
                 >
                   Switch to Player Role
                 </button>
-                <button 
+                <button
                   onClick={() => handleRoleChange('parent')}
                   className="text-left p-2 rounded bg-zinc-800 hover:bg-zinc-700 text-sm text-white transition-colors"
                 >

@@ -8,22 +8,22 @@ export interface SimulationState {
   // Core simulation state
   isSimulating: boolean;
   simulatedUser: UnifiedUser | null;
-  
+
   // Visual simulation (optional)
   simulatedRole: string;
   enabledFeatures: Record<string, boolean>;
   devToolsOpen: boolean;
-  
+
   // Available users for simulation
   availableUsers: UnifiedUser[];
-  
+
   // Enhanced features
   simulationMetadata: {
     startedAt: Date | null;
     sessionId: string | null;
     source: 'dev-tools' | 'api' | 'url' | null;
   };
-  
+
   // Session persistence
   recentSessions: Array<{
     id: string;
@@ -32,7 +32,7 @@ export interface SimulationState {
     role: string;
     timestamp: Date;
   }>;
-  
+
   // Simulation snapshots
   snapshots: Array<{
     id: string;
@@ -47,33 +47,36 @@ export interface SimulationContextType {
   isSimulating: boolean;
   simulatedUser: UnifiedUser | null;
   availableUsers: UnifiedUser[];
-  
+
   // Visual simulation
   simulatedRole: string;
   enabledFeatures: Record<string, boolean>;
   devToolsOpen: boolean;
-  
+
   // Enhanced features
   simulationMetadata: SimulationState['simulationMetadata'];
   recentSessions: SimulationState['recentSessions'];
   snapshots: SimulationState['snapshots'];
-  
+
   // Core actions
-  startSimulation: (user: UnifiedUser, source?: 'dev-tools' | 'api' | 'url') => void;
+  startSimulation: (
+    user: UnifiedUser,
+    source?: 'dev-tools' | 'api' | 'url'
+  ) => void;
   stopSimulation: () => void;
   setAvailableUsers: (users: UnifiedUser[]) => void;
-  
+
   // Visual actions
   setSimulatedRole: (role: string) => void;
   toggleFeature: (feature: string) => void;
   setDevToolsOpen: (open: boolean) => void;
-  
+
   // Enhanced actions
   createSnapshot: (name: string) => void;
   loadSnapshot: (snapshotId: string) => void;
   deleteSnapshot: (snapshotId: string) => void;
   clearRecentSessions: () => void;
-  
+
   // Helper functions
   getEffectiveUser: () => UnifiedUser | null;
   getEffectiveUserId: () => string | null;
@@ -87,9 +90,15 @@ export interface SimulationContextType {
   };
 }
 
-const SimulationContext = createContext<SimulationContextType | undefined>(undefined);
+const SimulationContext = createContext<SimulationContextType | undefined>(
+  undefined
+);
 
-export function SimulationProvider({ children }: { children: React.ReactNode }) {
+export function SimulationProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [state, setState] = useState<SimulationState>({
     isSimulating: false,
     simulatedUser: null,
@@ -145,12 +154,21 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
       snapshots: state.snapshots,
     };
     localStorage.setItem('dev-simulation-state', JSON.stringify(stateToSave));
-  }, [state.simulatedRole, state.enabledFeatures, state.devToolsOpen, state.recentSessions, state.snapshots]);
+  }, [
+    state.simulatedRole,
+    state.enabledFeatures,
+    state.devToolsOpen,
+    state.recentSessions,
+    state.snapshots,
+  ]);
 
   // Core simulation actions
-  const startSimulation = (user: UnifiedUser, source: 'dev-tools' | 'api' | 'url' = 'dev-tools') => {
+  const startSimulation = (
+    user: UnifiedUser,
+    source: 'dev-tools' | 'api' | 'url' = 'dev-tools'
+  ) => {
     const sessionId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     setState(prev => ({
       ...prev,
       isSimulating: true,
@@ -286,17 +304,17 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     isSimulating: state.isSimulating,
     simulatedUser: state.simulatedUser,
     availableUsers: state.availableUsers,
-    
+
     // Visual simulation
     simulatedRole: state.simulatedRole,
     enabledFeatures: state.enabledFeatures,
     devToolsOpen: state.devToolsOpen,
-    
+
     // Enhanced features
     simulationMetadata: state.simulationMetadata,
     recentSessions: state.recentSessions,
     snapshots: state.snapshots,
-    
+
     // Actions
     startSimulation,
     stopSimulation,
@@ -308,7 +326,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     loadSnapshot,
     deleteSnapshot,
     clearRecentSessions,
-    
+
     // Helpers
     getEffectiveUser,
     getEffectiveUserId,
@@ -334,7 +352,8 @@ export function useSimulation() {
 
 // Convenience hooks for specific simulation aspects
 export function useSimulatedUser() {
-  const { getEffectiveUser, getEffectiveUserId, getEffectiveUserRole } = useSimulation();
+  const { getEffectiveUser, getEffectiveUserId, getEffectiveUserRole } =
+    useSimulation();
   return {
     user: getEffectiveUser(),
     userId: getEffectiveUserId(),

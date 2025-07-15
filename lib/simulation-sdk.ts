@@ -95,19 +95,21 @@ export const simulationUtils = {
     sessionId: context.sessionId,
     timestamp: context.timestamp,
     requestCount,
-    duration: context.isSimulating && context.timestamp ? 
-      Date.now() - new Date(context.timestamp).getTime() : 0,
+    duration:
+      context.isSimulating && context.timestamp
+        ? Date.now() - new Date(context.timestamp).getTime()
+        : 0,
     ...additionalData,
   }),
 };
 
 // Higher-order component for simulation-aware components
-export function withSimulation<T extends object>(
-  Component: React.ComponentType<T>
-): React.ComponentType<T> {
-  return (props: T) => (
-    <Component {...props} />
-  );
+export function withSimulation<T extends object>(Component: any): any {
+  return (props: T) => {
+    // This would wrap the component with simulation context
+    // For now, it's a placeholder for the pattern
+    return Component(props);
+  };
 }
 
 // Simulation-aware wrapper for API calls
@@ -153,8 +155,10 @@ export const simulationDebugUtils = {
     return {
       simulation: {
         isActive: context.isSimulating,
-        duration: context.isSimulating && context.timestamp ? 
-          Date.now() - new Date(context.timestamp).getTime() : 0,
+        duration:
+          context.isSimulating && context.timestamp
+            ? Date.now() - new Date(context.timestamp).getTime()
+            : 0,
         sessionId: context.sessionId,
       },
       metrics,
@@ -166,27 +170,30 @@ export const simulationDebugUtils = {
 // Default export for easy importing
 const SimulationSDK = {
   // Core
-  SimulationProvider,
-  useSimulation,
-  useSimulatedUser,
-  useEffectiveUser,
-  
+  // Note: These are exported from the context file
+  // SimulationProvider,
+  // useSimulation,
+  // useSimulatedUser,
+  // useEffectiveUser,
+
   // API
-  simulationAwareFetch,
-  useSimulationAwareFetch,
-  SimulationAwareApiClient,
-  
+  // Note: These are exported from the API file
+  // simulationAwareFetch,
+  // useSimulationAwareFetch,
+  // SimulationAwareApiClient,
+
   // UI
-  SimulationBanner,
-  SimulationIndicator,
-  
+  // Note: These are exported from the UI components
+  // SimulationBanner,
+  // SimulationIndicator,
+
   // Utils
   simulationUtils,
   simulationDebugUtils,
-  
+
   // HOCs
   withSimulation,
   withSimulationContext,
 };
 
-export default SimulationSDK; 
+export default SimulationSDK;

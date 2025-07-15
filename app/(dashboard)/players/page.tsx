@@ -381,7 +381,7 @@ export default function PlayersPage() {
       fetchAllPlayers();
       setHasFetchedInitialData(true);
     }
-  }, [hasFetchedInitialData, fetchAllPlayers]);
+  }, [hasFetchedInitialData]); // Removed fetchAllPlayers from dependencies to prevent infinite loop
 
   // Handle team filter changes
   useEffect(() => {

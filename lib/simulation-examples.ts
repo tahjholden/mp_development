@@ -1,53 +1,61 @@
 // Simulation SDK Usage Examples
 // Demonstrates how to use the enhanced simulation system
 
-import { 
-  useSimulation, 
-  useSimulatedUser, 
-  useSimulationAwareFetch,
-  useFeatureEnabled 
+import {
+  useSimulation,
+  useSimulatedUser,
+  useFeatureEnabled,
 } from '@/lib/contexts/SimulationContext';
 import { simulationAwareFetch } from '@/lib/simulation-api';
+import { PersonType } from '@/lib/db/role-logic';
 
 // Example 1: Basic simulation usage in a component
 export function ExampleComponent() {
-  const { isSimulating, simulatedUser, startSimulation, stopSimulation } = useSimulation();
-  const { user, userId, role } = useSimulatedUser();
-  const { fetch: simulationFetch } = useSimulationAwareFetch();
+  const { isSimulating, startSimulation, stopSimulation } = useSimulation();
+  const { userId, role } = useSimulatedUser();
   const isBillingEnabled = useFeatureEnabled('billing');
 
   const handleSimulateUser = async (userId: string) => {
     // This would typically fetch user data from your API
-    const userData = { id: userId, firstName: 'John', lastName: 'Doe', primaryRole: 'coach' };
+    // Note: In a real implementation, you would fetch the full UnifiedUser object
+    const userData = {
+      id: userId,
+      authUid: `auth_${userId}`,
+      email: 'john.doe@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      primaryRole: PersonType.COACH,
+      organizationId: 'org_123',
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      displayName: 'John Doe',
+      isAdmin: false,
+      isSuperadmin: false,
+      roles: ['coach'],
+      basketballRoles: [],
+    };
     startSimulation(userData);
   };
 
   const handleApiCall = async () => {
-    // This automatically includes simulation metadata
-    const response = await simulationFetch('/api/users', {
+    // This would use the simulation-aware fetch from simulation-api.ts
+    const response = await fetch('/api/users', {
       method: 'GET',
     });
     return response.json();
   };
 
-  return (
-    <div>
-      {isSimulating ? (
-        <div>
-          <p>Simulating as: {user?.firstName} {user?.lastName}</p>
-          <p>Role: {role}</p>
-          <p>User ID: {userId}</p>
-          <button onClick={stopSimulation}>Exit Simulation</button>
-        </div>
-      ) : (
-        <button onClick={() => handleSimulateUser('user-123')}>
-          Start Simulation
-        </button>
-      )}
-      
-      {isBillingEnabled && <p>Billing features are enabled</p>}
-    </div>
-  );
+  // Note: This is a TypeScript example - in a real React component, you would return JSX
+  return {
+    isSimulating,
+    role,
+    userId,
+    isBillingEnabled,
+    handleSimulateUser,
+    handleApiCall,
+    stopSimulation,
+  };
 }
 
 // Example 2: API client usage
@@ -61,11 +69,18 @@ export async function exampleApiUsage() {
   };
 
   // Make simulation-aware API call
-  const response = await simulationAwareFetch('/api/observations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerId: 'player-456', notes: 'Test observation' }),
-  }, simulationContext);
+  const response = await simulationAwareFetch(
+    '/api/observations',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerId: 'player-456',
+        notes: 'Test observation',
+      }),
+    },
+    simulationContext
+  );
 
   return response.json();
 }
@@ -75,28 +90,22 @@ export function FeatureGatedComponent() {
   const isPlayerPortalEnabled = useFeatureEnabled('playerPortal');
   const isParentPortalEnabled = useFeatureEnabled('parentPortal');
 
-  if (!isPlayerPortalEnabled) {
-    return <div>Player portal is not available</div>;
-  }
-
-  return (
-    <div>
-      <h2>Player Portal</h2>
-      {isParentPortalEnabled && (
-        <div>Parent portal integration is available</div>
-      )}
-    </div>
-  );
+  // Note: This is a TypeScript example - in a real React component, you would return JSX
+  return {
+    isPlayerPortalEnabled,
+    isParentPortalEnabled,
+    shouldShowPlayerPortal: isPlayerPortalEnabled,
+    shouldShowParentPortal: isParentPortalEnabled,
+  };
 }
 
 // Example 4: Simulation-aware data fetching
 export function useSimulationAwareData<T>(url: string) {
-  const { fetch: simulationFetch } = useSimulationAwareFetch();
   const { isSimulating, simulatedUser } = useSimulation();
 
   const fetchData = async (): Promise<T> => {
-    const response = await simulationFetch(url);
-    
+    const response = await fetch(url);
+
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Simulation-aware request:', {
         url,
@@ -105,7 +114,7 @@ export function useSimulationAwareData<T>(url: string) {
         response: await response.clone().json(),
       });
     }
-    
+
     return response.json();
   };
 
@@ -173,4 +182,4 @@ export function useSimulationDebug() {
   };
 
   return { logSimulationState, createSimulationReport };
-} 
+}

@@ -98,6 +98,31 @@ const getNavItems = (userRole?: string): NavItemType[] => {
       icon: <BarChart3 size={20} />,
     },
     {
+      title: 'Player Portal',
+      href: '/player',
+      icon: <UserCheck size={20} />,
+    },
+    {
+      title: 'Parent Portal',
+      href: '/parent',
+      icon: <Users size={20} />,
+    },
+    {
+      title: 'Billing',
+      href: '/billing',
+      icon: <CreditCard size={20} />,
+    },
+    {
+      title: 'AI Features',
+      href: '/ai-features',
+      icon: <Shield size={20} />,
+    },
+    {
+      title: 'Audit Logs',
+      href: '/audit-logs',
+      icon: <Shield size={20} />,
+    },
+    {
       title: 'Resources',
       href: '/resources',
       icon: <BookOpen size={20} />,

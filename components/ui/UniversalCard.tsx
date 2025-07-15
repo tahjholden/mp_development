@@ -153,7 +153,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
             {header || (
               <>
                 {title && (
-                  <h3 
+                  <h3
                     className="text-lg font-semibold leading-none tracking-tight"
                     style={{ color: 'white' }}
                   >
@@ -161,10 +161,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
                   </h3>
                 )}
                 {subtitle && (
-                  <p 
-                    className="text-sm"
-                    style={{ color: '#A1A1AA' }}
-                  >
+                  <p className="text-sm" style={{ color: '#A1A1AA' }}>
                     {subtitle}
                   </p>
                 )}

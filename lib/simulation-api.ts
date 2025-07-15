@@ -3,6 +3,14 @@
 
 import { useSimulationContext } from '@/lib/contexts/SimulationContext';
 
+// Type for fetch options
+type RequestInit = {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: any;
+  [key: string]: any;
+};
+
 export interface SimulationMetadata {
   isSimulating: boolean;
   simulatedUserId: string | null;
@@ -22,7 +30,7 @@ export interface SimulationAwareRequest {
 // Enhanced fetch function that includes simulation metadata
 export async function simulationAwareFetch(
   url: string,
-  options: RequestInit = {},
+  options: any = {},
   simulationContext: SimulationMetadata
 ): Promise<Response> {
   const enhancedOptions: RequestInit = {
@@ -39,7 +47,9 @@ export async function simulationAwareFetch(
 
   // Log simulation-aware requests in development
   if (process.env.NODE_ENV === 'development') {
-    console.group(`🔍 Simulation API Request: ${options.method || 'GET'} ${url}`);
+    console.group(
+      `🔍 Simulation API Request: ${options.method || 'GET'} ${url}`
+    );
     console.log('Simulation Context:', simulationContext);
     console.log('Enhanced Headers:', enhancedOptions.headers);
     console.groupEnd();
@@ -51,16 +61,16 @@ export async function simulationAwareFetch(
 // Hook for making simulation-aware API calls
 export function useSimulationAwareFetch() {
   const simulationContext = useSimulationContext();
-  
+
   const fetchWithSimulation = async (
     url: string,
-    options: RequestInit = {}
+    options: any = {}
   ): Promise<Response> => {
     const metadata: SimulationMetadata = {
       ...simulationContext,
       timestamp: new Date().toISOString(),
     };
-    
+
     return simulationAwareFetch(url, options, metadata);
   };
 
@@ -108,17 +118,20 @@ export class SimulationAwareApiClient {
     this.simulationContext = simulationContext;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: any = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const response = await simulationAwareFetch(url, options, this.simulationContext);
-    
+    const response = await simulationAwareFetch(
+      url,
+      options,
+      this.simulationContext
+    );
+
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}`
+      );
     }
-    
+
     return response.json();
   }
 
@@ -155,12 +168,12 @@ export class SimulationAwareApiClient {
 // Hook to create a simulation-aware API client
 export function useSimulationAwareApiClient(baseUrl: string) {
   const simulationContext = useSimulationContext();
-  
+
   const metadata: SimulationMetadata = {
     ...simulationContext,
     timestamp: new Date().toISOString(),
   };
-  
+
   return new SimulationAwareApiClient(baseUrl, metadata);
 }
 
@@ -180,7 +193,10 @@ export const simulationDebug = {
   },
 
   // Create simulation report
-  createSimulationReport(context: SimulationMetadata, requestCount: number = 0) {
+  createSimulationReport(
+    context: SimulationMetadata,
+    requestCount: number = 0
+  ) {
     return {
       isSimulating: context.isSimulating,
       simulatedUserId: context.simulatedUserId,
@@ -188,8 +204,9 @@ export const simulationDebug = {
       sessionId: context.sessionId,
       timestamp: context.timestamp,
       requestCount,
-      duration: context.isSimulating ? 
-        Date.now() - new Date(context.timestamp).getTime() : 0,
+      duration: context.isSimulating
+        ? Date.now() - new Date(context.timestamp).getTime()
+        : 0,
     };
   },
 
@@ -200,4 +217,4 @@ export const simulationDebug = {
     }
     return true;
   },
-}; 
+};
