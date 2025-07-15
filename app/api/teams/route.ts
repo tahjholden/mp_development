@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson, mpCorePersonGroup, mpCoreGroup } from '@/lib/db/schema';
+import { mpbcPerson, mpbcPersonGroup, mpbcGroup } from '@/lib/db/schema';
 import { and, isNotNull, eq } from 'drizzle-orm';
 
 export async function GET() {
@@ -18,34 +18,34 @@ export async function GET() {
       );
     }
 
-    // Get all teams from the normalized schema
+    // Get all teams from the normalized schema using correct mpbc tables
     const teams = await db
       .select({
-        id: mpCoreGroup.id,
-        name: mpCoreGroup.name,
-        coachFirstName: mpCorePerson.firstName,
-        coachLastName: mpCorePerson.lastName,
-        role: mpCorePersonGroup.role,
-        personType: mpCorePerson.personType,
-        email: mpCorePerson.email,
+        id: mpbcGroup.id,
+        name: mpbcGroup.name,
+        coachFirstName: mpbcPerson.firstName,
+        coachLastName: mpbcPerson.lastName,
+        role: mpbcPersonGroup.role,
+        personType: mpbcPerson.personType,
+        email: mpbcPerson.email,
       })
-      .from(mpCoreGroup)
+      .from(mpbcGroup)
       .innerJoin(
-        mpCorePersonGroup,
-        eq(mpCoreGroup.id, mpCorePersonGroup.groupId)
+        mpbcPersonGroup,
+        eq(mpbcGroup.id, mpbcPersonGroup.groupId)
       )
-      .innerJoin(mpCorePerson, eq(mpCorePersonGroup.personId, mpCorePerson.id))
+      .innerJoin(mpbcPerson, eq(mpbcPersonGroup.personId, mpbcPerson.id))
       .where(
-        and(isNotNull(mpCorePersonGroup.groupId), isNotNull(mpCoreGroup.name))
+        and(isNotNull(mpbcPersonGroup.groupId), isNotNull(mpbcGroup.name))
       )
       .groupBy(
-        mpCoreGroup.id,
-        mpCoreGroup.name,
-        mpCorePerson.firstName,
-        mpCorePerson.lastName,
-        mpCorePersonGroup.role,
-        mpCorePerson.personType,
-        mpCorePerson.email
+        mpbcGroup.id,
+        mpbcGroup.name,
+        mpbcPerson.firstName,
+        mpbcPerson.lastName,
+        mpbcPersonGroup.role,
+        mpbcPerson.personType,
+        mpbcPerson.email
       );
 
     // Transform the data to match the expected format
@@ -56,11 +56,9 @@ export async function GET() {
         team.coachFirstName && team.coachLastName
           ? `${team.coachFirstName} ${team.coachLastName}`.trim()
           : team.coachFirstName || team.coachLastName || 'Unknown Coach',
-      role: team.role || 'member',
-      personType: team.personType || 'player',
+      role: team.role || 'Coach',
+      personType: team.personType || 'coach',
       email: team.email,
-      createdAt: new Date().toISOString(), // Since we don't have this in the current schema
-      updatedAt: new Date().toISOString(), // Since we don't have this in the current schema
     }));
 
     return Response.json(formattedTeams);

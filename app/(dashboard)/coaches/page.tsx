@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
+import UniversalButton from '@/components/ui/UniversalButton';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -11,10 +12,11 @@ const CoachSchema = z.object({
   name: z.string(),
   email: z.string(),
   team: z.string(),
-  playersCount: z.number(),
+  teamId: z.string().optional(),
   status: z.enum(['active', 'inactive']),
   role: z.string(),
   experience: z.number(),
+  playerCount: z.number().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -22,9 +24,10 @@ const CoachesArraySchema = z.array(CoachSchema);
 
 const PlayerSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  team: z.string(),
-  status: z.string(),
+  name: z.string().optional(),
+  displayName: z.string().optional(),
+  team: z.string().optional(),
+  status: z.string().optional(),
 });
 const PlayersArraySchema = z.array(PlayerSchema);
 
@@ -40,19 +43,21 @@ interface Coach {
   name: string;
   email: string;
   team: string;
-  playersCount: number;
+  teamId?: string;
   status: 'active' | 'inactive';
   role: string;
   experience: number;
+  playerCount?: number;
   createdAt: string;
   updatedAt: string;
 }
 
 interface Player {
   id: string;
-  name: string;
-  team: string;
-  status: string;
+  name?: string;
+  displayName?: string;
+  team?: string;
+  status?: string;
 }
 
 interface Team {
@@ -71,6 +76,7 @@ export default function CoachesPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
+  const [selectedCoachPlayers, setSelectedCoachPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
@@ -88,14 +94,61 @@ export default function CoachesPage() {
     return matchesSearch && matchesTeam;
   });
 
+  // Fetch coach players with validation (same pattern as teams page)
+  const fetchCoachPlayers = async (teamId: string) => {
+    try {
+      const response = await fetch(`/api/teams/${teamId}/players`);
+      if (!response.ok) throw new Error('Failed to fetch team players');
+      const rawPlayersData = await response.json();
+
+      // Validate players data
+      const validatedPlayers = PlayersArraySchema.safeParse(rawPlayersData);
+      if (!validatedPlayers.success) {
+        console.error('Invalid players data:', validatedPlayers.error);
+        throw new Error('Invalid players data received');
+      }
+
+      // Filter out any invalid players
+      const validPlayers = validatedPlayers.data.filter(
+        (player): player is Player =>
+          player &&
+          typeof player === 'object' &&
+          typeof player.id === 'string' &&
+          typeof player.displayName === 'string' &&
+          player.id.trim() !== '' &&
+          player.displayName.trim() !== ''
+      );
+
+      // Deduplicate players by id
+      const uniquePlayers = Array.from(
+        new Map(validPlayers.map(player => [player.id, player])).values()
+      );
+      setSelectedCoachPlayers(uniquePlayers);
+    } catch (error) {
+      console.error('Error fetching team players:', error);
+      setSelectedCoachPlayers([]);
+    }
+  };
+
   // Handle coach selection with toggle functionality
-  const handleCoachSelect = (coachId: string) => {
+  const handleCoachSelect = async (coachId: string) => {
     if (selectedCoachId === coachId) {
       // Clicking the same coach again - show all coaches
       setSelectedCoachId(null);
+      setSelectedCoach(null);
+      setSelectedCoachPlayers([]);
     } else {
       // Clicking a different coach - filter to their details
       setSelectedCoachId(coachId);
+      const coach = coaches.find(c => c.id === coachId);
+      setSelectedCoach(coach || null);
+      
+      // Fetch players for this coach's team
+      if (coach?.teamId) {
+        fetchCoachPlayers(coach.teamId);
+      } else {
+        setSelectedCoachPlayers([]);
+      }
     }
   };
 
@@ -106,50 +159,14 @@ export default function CoachesPage() {
         setLoading(true);
         setError(null);
 
-        // Mock coaches data with validation - in real app, this would come from API
-        const mockCoaches: Coach[] = [
-          {
-            id: '1',
-            name: 'Coach Johnson',
-            email: 'coach.johnson@example.com',
-            team: 'Varsity Boys',
-            playersCount: 12,
-            status: 'active',
-            role: 'Head Coach',
-            experience: 8,
-            createdAt: '2024-01-01',
-            updatedAt: '2024-01-15',
-          },
-          {
-            id: '2',
-            name: 'Coach Smith',
-            email: 'coach.smith@example.com',
-            team: 'JV Girls',
-            playersCount: 15,
-            status: 'active',
-            role: 'Assistant Coach',
-            experience: 5,
-            createdAt: '2024-01-01',
-            updatedAt: '2024-01-15',
-          },
-          {
-            id: '3',
-            name: 'Coach Davis',
-            email: 'coach.davis@example.com',
-            team: 'Freshman Boys',
-            playersCount: 18,
-            status: 'inactive',
-            role: 'Head Coach',
-            experience: 3,
-            createdAt: '2024-01-01',
-            updatedAt: '2024-01-15',
-          },
-        ];
+        // Fetch coaches from live API
+        const coachesResponse = await fetch('/api/coaches');
+        if (!coachesResponse.ok) throw new Error('Failed to fetch coaches');
+        const rawCoachesData = await coachesResponse.json();
 
         // Validate coaches data
-        const validatedCoaches = CoachesArraySchema.safeParse(mockCoaches);
+        const validatedCoaches = CoachesArraySchema.safeParse(rawCoachesData);
         if (!validatedCoaches.success) {
-          // console.error('Invalid coaches data:', validatedCoaches.error);
           throw new Error('Invalid coaches data received');
         }
 
@@ -178,11 +195,15 @@ export default function CoachesPage() {
         const uniqueCoaches = Array.from(
           new Map(validCoaches.map(coach => [coach.id, coach])).values()
         );
-        setCoaches(uniqueCoaches);
+        // Sort coaches alphabetically by name
+        const sortedCoaches = uniqueCoaches.sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+        setCoaches(sortedCoaches);
 
-        // Fetch players with validation
+        // Fetch players with validation - get all players to ensure accurate counts
         const playersResponse = await fetch(
-          '/api/dashboard/players?offset=0&limit=10'
+          '/api/dashboard/players?offset=0&limit=1000'
         );
         if (playersResponse.ok) {
           const rawPlayersData = await playersResponse.json();
@@ -271,8 +292,8 @@ export default function CoachesPage() {
           setTeams(uniqueTeams);
         }
 
-        if (uniqueCoaches.length > 0 && uniqueCoaches[0]) {
-          setSelectedCoach(uniqueCoaches[0]);
+        if (sortedCoaches.length > 0 && sortedCoaches[0]) {
+          setSelectedCoach(sortedCoaches[0]);
         }
       } catch (err) {
         // console.error('Error fetching data:', err);
@@ -436,7 +457,7 @@ export default function CoachesPage() {
                 >
                   <p className="font-medium">{coach.name}</p>
                   <p className="text-xs text-gray-400">
-                    {coach.playersCount} players • {coach.team}
+                    {coach.playerCount || 0} players • {coach.team}
                   </p>
                 </div>
               ))
@@ -512,30 +533,31 @@ export default function CoachesPage() {
                 </div>
               </div>
 
-              {/* Assigned Players */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
-              >
-                <h4 className="text-base font-bold text-[#d8cc97] mb-4">
-                  Assigned Players ({selectedCoach.playersCount})
-                </h4>
-                <div className="space-y-2">
-                  {players
-                    .filter(p => p.team === selectedCoach.team)
-                    .slice(0, 5)
+              {/* Players */}
+              <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Players</h2>
+              <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md">
+                <div className="flex justify-between items-center mb-4">
+                  <UniversalButton.Primary size="sm">
+                    Add Player to Team
+                  </UniversalButton.Primary>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedCoachPlayers
+                    .map((p: any) => ({
+                      id: p.id,
+                      name: p.displayName || p.name || 'Unknown Player',
+                      status: p.status || 'active',
+                    }))
+                    .sort((a, b) => a.name.localeCompare(b.name))
                     .map(player => (
-                      <div
+                      <button
                         key={player.id}
-                        className="flex justify-between items-center p-2 bg-zinc-700 rounded"
+                        className={`w-full text-sm font-medium py-2 px-3 border rounded-md bg-neutral-800 hover:bg-neutral-700 transition-all whitespace-nowrap overflow-hidden text-ellipsis
+                          ${player.status === 'active' ? 'border-yellow-500 text-yellow-200' : player.status === 'archived' ? 'border-red-500 text-red-400' : 'border-neutral-700 text-white'}`}
+                        title={player.name}
                       >
-                        <span className="text-sm text-white">
-                          {player.name}
-                        </span>
-                        <span className="text-xs text-zinc-400">
-                          {player.status}
-                        </span>
-                      </div>
+                        {player.name}
+                      </button>
                     ))}
                 </div>
               </div>
@@ -565,7 +587,7 @@ export default function CoachesPage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-zinc-400">Total Players</span>
                 <span className="text-sm text-white font-semibold">
-                  {coaches.reduce((sum, coach) => sum + coach.playersCount, 0)}
+                  {players.length}
                 </span>
               </div>
               <div className="flex justify-between items-center">

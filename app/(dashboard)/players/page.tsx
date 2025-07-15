@@ -1,12 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Eye, Search, Filter } from 'lucide-react';
+import { Shield, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import UniversalButton from '@/components/ui/UniversalButton';
-import UniversalModal from '@/components/ui/UniversalModal';
-import AddPlayerModal from '@/components/basketball/AddPlayerModal';
-import ArchivePlanModal from '@/components/basketball/ArchivePlanModal';
+
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
 import { z } from 'zod';
 import type { Player as SharedPlayer } from '@/components/basketball/PlayerListCard';
 
@@ -91,9 +97,7 @@ export default function PlayersPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<
     (SharedPlayer & { team: string }) | null
   >(null);
-  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
-  const [showDeletePlayerModal, setShowDeletePlayerModal] = useState(false);
-  const [showArchivePlanModal, setShowArchivePlanModal] = useState(false);
+
   const [observations, setObservations] = useState<Observation[]>([]);
   const [developmentPlan, setDevelopmentPlan] =
     useState<DevelopmentPlan | null>(null);
@@ -104,21 +108,23 @@ export default function PlayersPage() {
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
 
-  // State for infinite scroll (All Teams)
+  // State for all players (no infinite scroll)
   const [allPlayersById, setAllPlayersById] = useState<
     Record<string, SharedPlayer & { team: string }>
   >({});
   const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
-  const [allOffset, setAllOffset] = useState(0);
-  const [allHasMore, setAllHasMore] = useState(true);
-  const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
 
   // State for specific team (no infinite scroll)
-  const [teamPlayersById, setTeamPlayersById] = useState<
-    Record<string, SharedPlayer & { team: string }>
-  >({});
   const [teamPlayerIds, setTeamPlayerIds] = useState<string[]>([]);
   const [loadingTeamPlayers, setLoadingTeamPlayers] = useState(false);
+
+  // 1. Add state for all development plans
+  const [allDevelopmentPlans, setAllDevelopmentPlans] = useState<
+    DevelopmentPlan[]
+  >([]);
+
+  // Add state for plan view toggle
+  const [planView, setPlanView] = useState<'active' | 'archived'>('active');
 
   // Handler for selecting a player
   const handlePlayerSelect = (player: SharedPlayer & { team: string }) => {
@@ -189,42 +195,8 @@ export default function PlayersPage() {
     }
   };
 
-  // Handler for deleting a player
-  const handleDeletePlayer = () => {
-    setShowDeletePlayerModal(true);
-  };
-
   // Handler for archiving a development plan
   const handleArchivePlan = () => {
-    setShowArchivePlanModal(true);
-  };
-
-  // Handler for add player form submission
-  const handleAddPlayerSubmit = () => {
-    // In a real app, this would add the player to the database
-    // console.log('Adding player:', data);
-
-    // For demo purposes, we'll just log it
-    // console.log('New player would be added:', newPlayer);
-
-    // Close the modal
-    setShowAddPlayerModal(false);
-  };
-
-  // Handler for delete player confirmation
-  const handleDeletePlayerConfirm = () => {
-    // In a real app, this would delete the player from the database
-    // console.log('Deleting player:', selectedPlayer);
-
-    // For demo purposes, we'll just log it and clear the selection
-    setSelectedPlayer(null);
-
-    // Close the modal
-    setShowDeletePlayerModal(false);
-  };
-
-  // Handler for archive plan confirmation
-  const handleArchivePlanConfirm = () => {
     // In a real app, this would archive the development plan
     // console.log('Archiving development plan for player:', selectedPlayer);
 
@@ -232,83 +204,40 @@ export default function PlayersPage() {
     // console.log('Plan would be archived');
 
     // Close the modal
-    setShowArchivePlanModal(false);
+    // setShowArchivePlanModal(false); // This state was removed
   };
 
-  // Infinite scroll fetch for All Teams
-  const fetchAllPlayers = useCallback(
-    async (currentOffset: number = 0, reset: boolean = false) => {
-      setAllLoadingPlayers(true);
-      try {
-        const response = await fetch(
-          `/api/dashboard/players?offset=${currentOffset}&limit=20`
-        );
-        const data = await response.json();
-
-        if (data.players) {
-          const transformedPlayers = data.players.map(
-            (player: {
-              id: string;
-              name?: string;
-              team?: string;
-              status?: string;
-            }) => ({
-              id: player.id,
-              name: player.name || 'Unknown Player',
-              team: player.team || 'No Team',
-              status: player.status || 'active',
-            })
-          ) as (SharedPlayer & { team: string })[];
-
-          if (reset) {
-            // Reset the list with normalized state
-            const playersMap: Record<string, SharedPlayer & { team: string }> =
-              {};
-            const ids: string[] = [];
-
-            transformedPlayers.forEach(
-              (player: SharedPlayer & { team: string }) => {
-                if (!playersMap[player.id]) {
-                  playersMap[player.id] = player;
-                  ids.push(player.id);
-                }
-              }
-            );
-
-            setAllPlayersById(playersMap);
-            setAllPlayerIds(ids);
-            setAllOffset(20);
-          } else {
-            // Append to existing list with normalized state
-            setAllPlayersById(prevPlayersById => {
-              const newPlayersById = { ...prevPlayersById };
-              const newIds: string[] = [];
-
-              transformedPlayers.forEach(
-                (player: SharedPlayer & { team: string }) => {
-                  if (!newPlayersById[player.id]) {
-                    newPlayersById[player.id] = player;
-                    newIds.push(player.id);
-                  }
-                }
-              );
-
-              setAllPlayerIds(prevIds => [...prevIds, ...newIds]);
-              return newPlayersById;
-            });
-            setAllOffset(prev => prev + 20);
+  // Fetch all players for All Teams
+  const fetchAllPlayers = useCallback(async () => {
+    try {
+      // Fetch all players with a very high limit to ensure all are returned
+      const response = await fetch(`/api/dashboard/players?limit=10000`);
+      const data = await response.json();
+      if (data.players) {
+        const transformedPlayers = data.players.map(
+          (player: { id: string; name?: string; team?: string; status?: string }) => ({
+            id: player.id,
+            name: player.name || 'Unknown Player',
+            team: player.team || 'No Team',
+            status: player.status || 'active',
+          })
+        ) as (SharedPlayer & { team: string })[];
+        // Deduplicate by id
+        const playersMap: Record<string, SharedPlayer & { team: string }> = {};
+        const ids: string[] = [];
+        transformedPlayers.forEach((player) => {
+          if (!playersMap[player.id]) {
+            playersMap[player.id] = player;
+            ids.push(player.id);
           }
-
-          setAllHasMore(data.players.length === 20);
-        }
-      } catch {
-        // Error fetching all players
-      } finally {
-        setAllLoadingPlayers(false);
+        });
+        setAllPlayersById(playersMap);
+        setAllPlayerIds(ids);
       }
-    },
-    []
-  );
+    } catch {
+      // Error fetching all players
+    }
+  }, []);
 
   // Fetch all players for a specific team
   const fetchPlayersForTeam = useCallback(async (teamName: string) => {
@@ -347,7 +276,6 @@ export default function PlayersPage() {
           ids.push(player.id);
         });
 
-        setTeamPlayersById(playersMap);
         setTeamPlayerIds(ids);
       }
     } catch {
@@ -357,62 +285,13 @@ export default function PlayersPage() {
     }
   }, []);
 
-  // Load more players when scrolling (All Teams only)
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      if (teamFilter === 'all') {
-        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-        if (
-          scrollHeight - scrollTop <= clientHeight * 1.5 &&
-          !allLoadingPlayers &&
-          allHasMore
-        ) {
-          fetchAllPlayers(allOffset);
-        }
-      }
-    },
-    [fetchAllPlayers, allLoadingPlayers, allHasMore, allOffset, teamFilter]
-  );
-
-  // Determine which player list to use
-  const playersToShow = teamFilter === 'all' ? allPlayerIds : teamPlayerIds;
-  const playersByIdToUse =
-    teamFilter === 'all' ? allPlayersById : teamPlayersById;
-  const loadingPlayersToShow =
-    teamFilter === 'all' ? allLoadingPlayers : loadingTeamPlayers;
-
-  // Filter players based on search and team filter
-  const filteredPlayers = playersToShow
-    .map(id => playersByIdToUse[id])
-    .filter(
-      (
-        player: (SharedPlayer & { team: string }) | undefined
-      ): player is SharedPlayer & { team: string } => !!player && !!player.id
-    )
-    .filter(player => {
-      const matchesSearch = player.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      return matchesSearch; // Team filter is already applied by the data source
-    });
-
-  // Sort players alphabetically
-  const sortedPlayers = [...filteredPlayers].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
-  // Debug: log duplicate IDs or undefined/null
-  if (typeof window !== 'undefined') {
-    const idSet = new Set();
-    for (const p of sortedPlayers) {
-      if (idSet.has(p.id)) {
-        // console.error('DUPLICATE ID:', p.id);
-      }
-      idSet.add(p.id);
-    }
-    if (sortedPlayers.some(p => !p || !p.id)) {
-      // console.error('Undefined or null player in sortedPlayers', sortedPlayers);
-    }
-  }
+  // 2. Fetch all development plans on page load
+  useEffect(() => {
+    fetch('/api/development-plans')
+      .then(res => (res.ok ? res.json() : []))
+      .then((plans: DevelopmentPlan[]) => setAllDevelopmentPlans(plans))
+      .catch(() => setAllDevelopmentPlans([]));
+  }, []);
 
   useEffect(() => {
     // Fetch teams
@@ -451,7 +330,7 @@ export default function PlayersPage() {
       });
 
     // Fetch initial players for All Teams
-    fetchAllPlayers(0, true);
+    fetchAllPlayers();
 
     // Fetch observations
     fetch('/api/observations')
@@ -488,10 +367,8 @@ export default function PlayersPage() {
   // Handle team filter changes
   useEffect(() => {
     if (teamFilter === 'all') {
-      // Reset and fetch all players with infinite scroll
-      setAllOffset(0);
-      setAllHasMore(true);
-      fetchAllPlayers(0, true);
+      // Reset and fetch all players
+      fetchAllPlayers();
     } else {
       // Fetch all players for specific team
       fetchPlayersForTeam(teamFilter);
@@ -502,44 +379,6 @@ export default function PlayersPage() {
   useEffect(() => {
     setSearchTerm('');
   }, [teamFilter]);
-
-  // Helper to get rating stars
-  const getRatingStars = (rating: number | undefined): React.ReactElement[] => {
-    const safeRating = typeof rating === 'number' ? rating : 0;
-    return Array.from({ length: 5 }, (_, i) => (
-      <Shield
-        key={i}
-        className={`h-4 w-4 ${i < safeRating ? 'text-yellow-500 fill-current' : 'text-zinc-600'}`}
-      />
-    ));
-  };
-
-  // Helper functions for development plan display
-  const getReadinessColor = (readiness: string) => {
-    switch (readiness) {
-      case 'high':
-        return 'bg-green-500';
-      case 'medium':
-        return 'bg-yellow-500';
-      case 'low':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const getGoalStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Shield className="h-4 w-4 text-green-500" />;
-      case 'in_progress':
-        return <Shield className="h-4 w-4 text-yellow-500" />;
-      case 'not_started':
-        return <Shield className="h-4 w-4 text-gray-500" />;
-      default:
-        return <Shield className="h-4 w-4 text-gray-500" />;
-    }
-  };
 
   // Defensive: always check Array.isArray before .filter
   const safeObservations = Array.isArray(observations)
@@ -552,6 +391,10 @@ export default function PlayersPage() {
         )
         .filter(obs => obs.playerId === selectedPlayer.id)
     : [];
+
+  // 1. Add a function to check if a player has a development plan
+  const hasDevelopmentPlan = (playerId: string) =>
+    allDevelopmentPlans.some(plan => plan.playerId === playerId);
 
   return (
     <div
@@ -587,7 +430,56 @@ export default function PlayersPage() {
           email: 'coach@example.com',
           role: 'Coach',
         }}
-      />
+      >
+        {/* Player List - Fixed height for exactly 10 player cards */}
+        <div
+          className="flex-1 overflow-y-auto space-y-2"
+          style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
+        >
+          {loadingTeamPlayers && allPlayerIds.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
+              <p className="text-zinc-400 text-sm">Loading players...</p>
+            </div>
+          ) : allPlayerIds.length === 0 ? (
+            <div className="text-center py-8">
+              <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
+              <p className="text-zinc-400 text-sm">No players found</p>
+            </div>
+          ) : (
+            <>
+              {allPlayerIds.map((playerId: string) => {
+                const player = allPlayersById[playerId];
+                const hasPlan = hasDevelopmentPlan(player.id);
+                const isSelected = selectedPlayer?.id === player.id;
+                return (
+                  <div
+                    key={player.id}
+                    className={`rounded-lg border-2 mb-2 transition-colors ${hasPlan ? 'border-[#FFD700]' : 'border-red-500'}`}
+                  >
+                    <div
+                      onClick={() => handlePlayerSelect(player)}
+                      className={`p-3 rounded-lg cursor-pointer transition-all bg-zinc-800/50
+                        ${isSelected ? 'bg-[#d8cc97]/20' : ''}
+                        hover:bg-zinc-800
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-white">
+                            {player.name}
+                          </p>
+                          <p className="text-sm text-zinc-400">{player.team}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      </Sidebar>
 
       {/* Main Content */}
       <div
@@ -655,58 +547,45 @@ export default function PlayersPage() {
           <div
             className="flex-1 overflow-y-auto space-y-2"
             style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
-            onScroll={handleScroll}
           >
-            {loadingPlayersToShow && sortedPlayers.length === 0 ? (
+            {loadingTeamPlayers && allPlayerIds.length === 0 ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
                 <p className="text-zinc-400 text-sm">Loading players...</p>
               </div>
-            ) : sortedPlayers.length === 0 ? (
+            ) : allPlayerIds.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
                 <p className="text-zinc-400 text-sm">No players found</p>
               </div>
             ) : (
               <>
-                {sortedPlayers.map(
-                  (player: SharedPlayer & { team: string }) => (
+                {allPlayerIds.map((playerId: string) => {
+                  const player = allPlayersById[playerId];
+                  if (!player) return null;
+                  const hasPlan = hasDevelopmentPlan(player.id);
+                  const isSelected = selectedPlayer?.id === player.id;
+                  return (
                     <div
                       key={player.id}
                       onClick={() => handlePlayerSelect(player)}
-                      className={`p-3 rounded-lg cursor-pointer transition-all ${
-                        selectedPlayer?.id === player.id
-                          ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
-                          : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
-                      }`}
+                      className={`p-3 rounded-lg cursor-pointer transition-all border-2 ${
+                        hasPlan ? 'border-[#d8cc97]' : 'border-red-500'
+                      } ${isSelected ? 'bg-zinc-800' : 'bg-zinc-800/50 hover:bg-zinc-800'}`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-white">
                             {player.name}
                           </p>
-                          <p className="text-sm text-zinc-400">{player.team}</p>
+                          <p className="text-sm text-zinc-400">
+                            {player.team}
+                          </p>
                         </div>
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            player.status === 'active'
-                              ? 'bg-green-500'
-                              : 'bg-zinc-500'
-                          }`}
-                        />
                       </div>
                     </div>
-                  )
-                )}
-                {/* Loading indicator for infinite scroll */}
-                {teamFilter === 'all' && allLoadingPlayers && allHasMore && (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#d8cc97] mx-auto"></div>
-                    <p className="text-zinc-400 text-xs mt-2">
-                      Loading more...
-                    </p>
-                  </div>
-                )}
+                  );
+                })}
               </>
             )}
           </div>
@@ -716,193 +595,107 @@ export default function PlayersPage() {
         <div className="flex-1 p-6 bg-black">
           {selectedPlayer ? (
             <div className="space-y-6">
-              {/* Player Profile Section */}
+              {/* Player Profile Header */}
+              <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">
+                Profile
+              </h2>
+              {/* Player Profile Card */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-[#d8cc97]">
-                    Player Profile
-                  </h3>
-                  <div className="flex gap-2">
-                    <UniversalButton.Secondary
-                      size="sm"
-                      onClick={() => {
-                        /* Edit player logic */
-                      }}
-                    >
-                      Edit Player
-                    </UniversalButton.Secondary>
-
-                    <UniversalButton.Danger
-                      size="sm"
-                      onClick={handleDeletePlayer}
-                    >
-                      Delete Player
-                    </UniversalButton.Danger>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-zinc-400">Name</p>
-                      <p className="text-white">{selectedPlayer.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-400">Team</p>
-                      <p className="text-white">{selectedPlayer.team}</p>
-                    </div>
-                  </div>
-
                   <div>
-                    <p className="text-sm text-zinc-400">Status</p>
-                    <div
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                        selectedPlayer.status === 'active'
-                          ? 'bg-gold-500/20 text-gold-500'
-                          : 'bg-danger-500/20 text-danger-500'
-                      }`}
-                    >
-                      {selectedPlayer.status === 'active'
-                        ? 'Active'
-                        : 'Archived'}
-                    </div>
+                    <p className="text-2xl font-bold text-white mb-1">
+                      {selectedPlayer.name}
+                    </p>
+                    <p className="text-md text-zinc-400">
+                      {selectedPlayer.team}
+                    </p>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-2 rounded-full hover:bg-zinc-800 focus:outline-none">
+                        <MoreHorizontal className="w-5 h-5 text-zinc-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          /* Edit player logic */
+                        }}
+                      >
+                        Edit Player
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={handleDeletePlayer}
+                      >
+                        Delete Player
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
+                {/* No status for now */}
               </div>
 
               {/* Development Plan Section */}
               <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-[#d8cc97]">
-                    Development Plan
-                  </h3>
+                <div className="flex justify-between items-center mb-4">
+                  {/* Segmented control for Active/Archived plans */}
                   <div className="flex gap-2">
-                    <UniversalButton.Primary size="sm">
-                      Create Plan
-                    </UniversalButton.Primary>
-                    <UniversalButton.Secondary
-                      size="sm"
-                      onClick={handleArchivePlan}
+                    <button
+                      className={`px-4 py-1 rounded-full text-sm font-medium transition-colors ${planView === 'active' ? 'bg-gold-500/20 text-gold-500' : 'bg-zinc-800 text-zinc-400 hover:text-gold-500'}`}
+                      onClick={() => setPlanView('active')}
                     >
-                      Archive Plan
-                    </UniversalButton.Secondary>
+                      Active Plans
+                    </button>
+                    <button
+                      className={`px-4 py-1 rounded-full text-sm font-medium transition-colors ${planView === 'archived' ? 'bg-gold-500/20 text-gold-500' : 'bg-zinc-800 text-zinc-400 hover:text-gold-500'}`}
+                      onClick={() => setPlanView('archived')}
+                    >
+                      Archived Plans
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    {planView === 'active' && (
+                      <UniversalButton.Secondary
+                        size="sm"
+                        onClick={handleArchivePlan}
+                      >
+                        Move to Archive
+                      </UniversalButton.Secondary>
+                    )}
                   </div>
                 </div>
-
-                {loadingDevelopmentPlan ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
-                    <p className="text-zinc-400 text-sm">
-                      Loading development plan...
-                    </p>
-                  </div>
-                ) : developmentPlan ? (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-lg font-bold text-[#d8cc97]">
-                          {developmentPlan.title
-                            ? developmentPlan.title
-                            : 'Untitled Plan'}
-                        </h4>
-                        <p className="text-sm text-zinc-300 mb-2">
-                          {developmentPlan.objective
-                            ? developmentPlan.objective
-                            : 'No objective provided'}
-                        </p>
-                        <p className="text-sm text-zinc-400">
-                          Player: {developmentPlan.playerName}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={
-                            developmentPlan.status === 'active'
-                              ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-500'
-                              : developmentPlan.status === 'completed'
-                                ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-500'
-                                : 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-500'
-                          }
-                        >
-                          {(developmentPlan.status || 'draft')
-                            .charAt(0)
-                            .toUpperCase() +
-                            (developmentPlan.status || 'draft').slice(1)}
-                        </span>
-                        <div
-                          className={`w-2 h-2 rounded-full ${getReadinessColor(developmentPlan.readiness || 'medium')}`}
-                        />
-                      </div>
+                {/* Show active or archived plan(s) based on toggle */}
+                {planView === 'active' ? (
+                  loadingDevelopmentPlan ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
+                      <p className="text-zinc-400 text-sm">
+                        Loading development plan...
+                      </p>
                     </div>
+                  ) : developmentPlan ? (
                     <div className="space-y-4">
-                      <div>
-                        <h5 className="text-sm font-medium text-zinc-400 mb-2">
-                          Focus Areas
-                        </h5>
-                        <div className="flex flex-wrap gap-2">
-                          {(developmentPlan.tags || []).map((tag, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-zinc-800 text-zinc-300"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                          {(developmentPlan.tags || []).length === 0 && (
-                            <span className="text-xs text-zinc-500">
-                              No focus areas defined
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <h5 className="text-sm font-medium text-zinc-400 mb-2">
-                          Active Goals
-                        </h5>
-                        <div className="space-y-2">
-                          {(developmentPlan.goals || [])
-                            .filter(g => g.status !== 'completed')
-                            .slice(0, 3)
-                            .map(goal => (
-                              <div
-                                key={goal.id}
-                                className="flex items-center space-x-2 p-2 bg-zinc-800/50 rounded"
-                              >
-                                {getGoalStatusIcon(goal.status)}
-                                <span className="text-sm text-white">
-                                  {goal.title}
-                                </span>
-                              </div>
-                            ))}
-                          {(developmentPlan.goals || []).filter(
-                            g => g.status !== 'completed'
-                          ).length === 0 && (
-                            <span className="text-xs text-zinc-500">
-                              No active goals
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {developmentPlan.description && (
-                        <div>
-                          <h5 className="text-sm font-medium text-zinc-400 mb-2">
-                            Description
-                          </h5>
-                          <p className="text-sm text-zinc-300">
-                            {developmentPlan.description}
-                          </p>
-                        </div>
-                      )}
+                      <p className="text-sm text-zinc-300">
+                        {developmentPlan.description}
+                      </p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Shield className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
+                      <p className="text-zinc-400 mb-2">
+                        No development plan created yet
+                      </p>
+                    </div>
+                  )
                 ) : (
+                  // Placeholder for archived plans (future: map over archived plans)
                   <div className="text-center py-8">
                     <Shield className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
-                    <p className="text-zinc-400 mb-2">
-                      No development plan created yet
-                    </p>
+                    <p className="text-zinc-400 mb-2">No archived plans yet</p>
                     <p className="text-sm text-zinc-500">
-                      Create a development plan to track this player's progress
+                      Archived plans will appear here when available
                     </p>
                   </div>
                 )}
@@ -922,92 +715,54 @@ export default function PlayersPage() {
           )}
         </div>
 
-        {/* RIGHT PANE: Recent Observations */}
-        <div
-          className="w-1/3 border-l border-zinc-800 p-6 bg-black flex flex-col min-h-screen"
-          style={{ background: 'black' }}
-        >
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97]">
-            Recent Observations
-          </h2>
-
+        {/* RIGHT PANE: Observations Panel */}
+        <div className="w-1/4 p-6 bg-black flex flex-col min-h-screen">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">Observations</h2>
+            {selectedPlayer && playerObservations.length > 3 && (
+              <a
+                href={`/observations?player_id=${selectedPlayer.id}`}
+                className="text-gold-500 text-sm hover:underline"
+              >
+                View All
+              </a>
+            )}
+          </div>
           {selectedPlayer ? (
-            <div className="flex-1 overflow-y-auto space-y-4">
-              {playerObservations.length === 0 ? (
-                <div className="text-center py-8">
-                  <Eye className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
-                  <p className="text-zinc-400 text-sm">No observations yet</p>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    Observations will appear here
-                  </p>
-                </div>
-              ) : (
-                playerObservations.slice(0, 5).map(observation => (
+            playerObservations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full">
+                <Shield className="text-zinc-700 w-16 h-16 mb-4" />
+                <p className="text-zinc-400 text-sm">No observations yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {playerObservations.slice(0, 3).map(obs => (
                   <div
-                    key={observation.id}
-                    className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4"
+                    key={obs.id}
+                    className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-white text-sm">
-                        {observation.title}
-                      </h4>
-                      <div className="flex items-center gap-1">
-                        {getRatingStars(observation.rating)}
-                      </div>
-                    </div>
-                    <p className="text-zinc-400 text-xs mb-2 line-clamp-2">
-                      {observation.description}
+                    <p className="text-xs text-zinc-500 mb-2">
+                      {new Date(obs.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-zinc-500">
-                        {new Date(observation.date).toLocaleDateString()}
-                      </span>
-                    </div>
+                    <p className="text-sm text-zinc-400 line-clamp-2">
+                      {obs.description}
+                    </p>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )
           ) : (
-            <div className="text-center py-8">
-              <Eye className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
-              <p className="text-zinc-400 text-sm">
-                Select a player to view their observations
-              </p>
+            <div className="flex flex-col items-center justify-center h-full">
+              <Shield className="text-zinc-700 w-16 h-16 mb-4" />
+              <p className="text-zinc-400 text-sm">No observations yet</p>
             </div>
           )}
         </div>
       </div>
-
-      {/* Modals */}
-      {showAddPlayerModal && (
-        <AddPlayerModal
-          isOpen={showAddPlayerModal}
-          onClose={() => setShowAddPlayerModal(false)}
-          onSubmit={handleAddPlayerSubmit}
-          teams={teams}
-        />
-      )}
-
-      {showDeletePlayerModal && (
-        <UniversalModal.Confirm
-          open={showDeletePlayerModal}
-          onOpenChange={setShowDeletePlayerModal}
-          title="Delete Player"
-          description={`Are you sure you want to delete ${selectedPlayer?.name}? This action cannot be undone.`}
-          confirmText="Delete Player"
-          onConfirm={handleDeletePlayerConfirm}
-          onCancel={() => setShowDeletePlayerModal(false)}
-          variant="danger"
-        />
-      )}
-
-      {showArchivePlanModal && (
-        <ArchivePlanModal
-          isOpen={showArchivePlanModal}
-          onClose={() => setShowArchivePlanModal(false)}
-          onConfirm={handleArchivePlanConfirm}
-        />
-      )}
     </div>
   );
 }

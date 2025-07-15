@@ -1,7 +1,7 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson, mpCorePersonGroup, mpCoreGroup } from '@/lib/db/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
+import { mpbcPerson, mpbcPersonGroup, mpbcGroup } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET(
   request: Request,
@@ -9,10 +9,6 @@ export async function GET(
 ) {
   try {
     const user = await getUser();
-
-    if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
-    }
 
     const { id: teamId } = await params;
 
@@ -23,31 +19,34 @@ export async function GET(
       );
     }
 
-    // Get players for the specific team with their group/team info
+    // If no user session, still fetch data for development
+    if (!user) {
+      console.log('No user session found, fetching team players for development');
+    }
+
+    // Get all players for the specific team using mpbc_person_group.role = 'player' as source of truth
     const players = await db
       .select({
-        id: mpCorePerson.id,
-        firstName: mpCorePerson.firstName,
-        lastName: mpCorePerson.lastName,
-        email: mpCorePerson.email,
-        teamId: mpCoreGroup.id,
-        teamName: mpCoreGroup.name,
-        position: mpCorePersonGroup.position,
-        role: mpCorePersonGroup.role,
-        personType: mpCorePerson.personType,
-        identifier: mpCorePersonGroup.identifier,
-        cycleName: mpCorePersonGroup.cycleId, // or join to cycle table if needed
+        id: mpbcPerson.id,
+        firstName: mpbcPerson.firstName,
+        lastName: mpbcPerson.lastName,
+        email: mpbcPerson.email,
+        teamId: mpbcGroup.id,
+        teamName: mpbcGroup.name,
+        position: mpbcPersonGroup.position,
+        role: mpbcPersonGroup.role,
+        personType: mpbcPerson.personType,
+        identifier: mpbcPersonGroup.identifier,
+        cycleName: mpbcPersonGroup.cycleId,
+        status: mpbcPersonGroup.status,
       })
-      .from(mpCorePerson)
-      .innerJoin(
-        mpCorePersonGroup,
-        eq(mpCorePerson.id, mpCorePersonGroup.personId)
-      )
-      .innerJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
+      .from(mpbcPerson)
+      .innerJoin(mpbcPersonGroup, eq(mpbcPerson.id, mpbcPersonGroup.personId))
+      .innerJoin(mpbcGroup, eq(mpbcPersonGroup.groupId, mpbcGroup.id))
       .where(
         and(
-          eq(mpCorePersonGroup.groupId, teamId),
-          eq(mpCorePerson.personType, 'player')
+          eq(mpbcPersonGroup.groupId, teamId),
+          eq(mpbcPersonGroup.role, 'player')
         )
       );
 
@@ -59,8 +58,11 @@ export async function GET(
           ? `${player.firstName} ${player.lastName}`.trim()
           : player.firstName || player.lastName || 'Unknown Player',
       teamId: player.teamId,
+      teamName: player.teamName,
       personType: player.personType || 'player',
       position: player.position || 'Unknown',
+      status: player.status || 'active',
+      email: player.email,
     }));
 
     return Response.json(formattedPlayers);

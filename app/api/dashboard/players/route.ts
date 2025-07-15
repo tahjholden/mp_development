@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson, mpCorePersonGroup, mpCoreGroup } from '@/lib/db/schema';
+import { mpbcPerson, mpbcPersonGroup, mpbcGroup } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET(req: Request) {
@@ -95,31 +95,28 @@ export async function GET(req: Request) {
       );
     }
 
-    // Get all players with their group/team info
+    // Get all players using mpbc_person.person_type = 'player' as source of truth
     const players = await db
       .select({
-        id: mpCorePerson.id,
-        firstName: mpCorePerson.firstName,
-        lastName: mpCorePerson.lastName,
-        email: mpCorePerson.email,
-        teamId: mpCoreGroup.id,
-        teamName: mpCoreGroup.name,
-        position: mpCorePersonGroup.position,
-        role: mpCorePersonGroup.role,
-        personType: mpCorePerson.personType,
-        identifier: mpCorePersonGroup.identifier,
-        cycleName: mpCorePersonGroup.cycleId, // or join to cycle table if needed
+        id: mpbcPerson.id,
+        firstName: mpbcPerson.firstName,
+        lastName: mpbcPerson.lastName,
+        email: mpbcPerson.email,
+        teamId: mpbcGroup.id,
+        teamName: mpbcGroup.name,
+        position: mpbcPersonGroup.position,
+        role: mpbcPersonGroup.role,
+        personType: mpbcPerson.personType,
+        identifier: mpbcPersonGroup.identifier,
+        cycleName: mpbcPersonGroup.cycleId,
       })
-      .from(mpCorePerson)
-      .innerJoin(
-        mpCorePersonGroup,
-        eq(mpCorePerson.id, mpCorePersonGroup.personId)
-      )
-      .innerJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
+      .from(mpbcPerson)
+      .innerJoin(mpbcPersonGroup, eq(mpbcPerson.id, mpbcPersonGroup.personId))
+      .innerJoin(mpbcGroup, eq(mpbcPersonGroup.groupId, mpbcGroup.id))
       .where(
         and(
-          eq(mpCorePerson.personType, 'player'),
-          isNotNull(mpCorePersonGroup.groupId)
+          eq(mpbcPerson.personType, 'player'),
+          isNotNull(mpbcPersonGroup.groupId)
         )
       );
 

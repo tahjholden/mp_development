@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson, mpCorePersonGroup, mpCoreGroup } from '@/lib/db/schema';
+import { mpbcPerson, mpbcPersonGroup, mpbcGroup } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET() {
@@ -34,32 +34,32 @@ export async function GET() {
       );
     }
 
-    // Get players count (players with a group membership)
+    // Get players count using mpbc_person.person_type = 'player' as source of truth
     const playersResult = await db
-      .select({ count: mpCorePerson.id })
-      .from(mpCorePerson)
+      .select({ count: mpbcPerson.id })
+      .from(mpbcPerson)
       .innerJoin(
-        mpCorePersonGroup,
-        eq(mpCorePerson.id, mpCorePersonGroup.personId)
+        mpbcPersonGroup,
+        eq(mpbcPerson.id, mpbcPersonGroup.personId)
       )
       .where(
         and(
-          eq(mpCorePerson.personType, 'player'),
-          isNotNull(mpCorePersonGroup.groupId)
+          eq(mpbcPerson.personType, 'player'),
+          isNotNull(mpbcPersonGroup.groupId)
         )
       );
     const totalPlayers = playersResult.length;
 
-    // Get teams count (unique group IDs from mpCoreGroup)
+    // Get teams count using mpbc_group
     const teamsResult = await db
-      .select({ groupId: mpCoreGroup.id, groupName: mpCoreGroup.name })
-      .from(mpCoreGroup)
+      .select({ groupId: mpbcGroup.id, groupName: mpbcGroup.name })
+      .from(mpbcGroup)
       .innerJoin(
-        mpCorePersonGroup,
-        eq(mpCoreGroup.id, mpCorePersonGroup.groupId)
+        mpbcPersonGroup,
+        eq(mpbcGroup.id, mpbcPersonGroup.groupId)
       )
-      .where(isNotNull(mpCorePersonGroup.groupId))
-      .groupBy(mpCoreGroup.id, mpCoreGroup.name);
+      .where(isNotNull(mpbcPersonGroup.groupId))
+      .groupBy(mpbcGroup.id, mpbcGroup.name);
     const activeTeams = teamsResult.length;
 
     // For now, return mock data for sessions and drills since we don't have those tables yet

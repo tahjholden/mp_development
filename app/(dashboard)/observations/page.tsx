@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Shield, Plus } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -48,24 +48,27 @@ export default function ObservationsPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Player/team data for left column - EXACT SAME AS PLAYERS PAGE
-  const [playersById, setPlayersById] = useState<
-    Record<string, SharedPlayer & { team: string }>
-  >({});
-  const [playerIds, setPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<any[]>([]); // Changed to any[] as per new_code
   const [selectedPlayer, setSelectedPlayer] = useState<
     (SharedPlayer & { team: string }) | null
   >(null);
 
-  // Infinite scroll state - EXACT SAME AS PLAYERS PAGE
-  const [loadingPlayers, setLoadingPlayers] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
-
   // Search and filter state - EXACT SAME AS PLAYERS PAGE
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+
+  // State for infinite scroll (All Teams)
+  const [allPlayersById, setAllPlayersById] = useState<Record<string, SharedPlayer & { team: string }>>({});
+  const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
+  const [allOffset, setAllOffset] = useState(0);
+  const [allHasMore, setAllHasMore] = useState(true);
+  const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
+
+  // State for specific team (no infinite scroll)
+  const [teamPlayersById, setTeamPlayersById] = useState<Record<string, SharedPlayer & { team: string }>>({});
+  const [teamPlayerIds, setTeamPlayerIds] = useState<string[]>([]);
+  const [loadingTeamPlayers, setLoadingTeamPlayers] = useState(false);
 
   // Date range filter logic
   const filteredByDate = observations.filter(obs => {
@@ -89,111 +92,130 @@ export default function ObservationsPage() {
     setSelectedPlayer(player);
   };
 
-  // Fetch players with pagination - EXACT SAME AS PLAYERS PAGE
-  const fetchPlayers = useCallback(
-    async (currentOffset: number = 0, reset: boolean = false) => {
-      setLoadingPlayers(true);
-      try {
-        const response = await fetch(
-          `/api/dashboard/players?offset=${currentOffset}&limit=10`
-        );
-        const data = await response.json();
+  // Infinite scroll fetch for All Teams
+  const fetchAllPlayers = useCallback(async (currentOffset: number = 0, reset: boolean = false) => {
+    setAllLoadingPlayers(true);
+    try {
+      const response = await fetch(`/api/dashboard/players?offset=${currentOffset}&limit=20`);
+      const data = await response.json();
 
-        if (data.players) {
-          const transformedPlayers = data.players.map((player: any) => ({
+      if (data.players) {
+        const transformedPlayers = data.players.map((player: any) => ({
+          id: player.id,
+          name: player.name || 'Unknown Player',
+          team: player.team || 'No Team',
+          status: player.status || 'active',
+        })) as (SharedPlayer & { team: string })[];
+
+        if (reset) {
+          // Reset the list with normalized state
+          const playersMap: Record<string, SharedPlayer & { team: string }> = {};
+          const ids: string[] = [];
+
+          transformedPlayers.forEach((player: SharedPlayer & { team: string }) => {
+            if (!playersMap[player.id]) {
+              playersMap[player.id] = player;
+              ids.push(player.id);
+            }
+          });
+
+          setAllPlayersById(playersMap);
+          setAllPlayerIds(ids);
+          setAllOffset(20);
+        } else {
+          // Append to existing list with normalized state
+          setAllPlayersById(prevPlayersById => {
+            const newPlayersById = { ...prevPlayersById };
+            const newIds: string[] = [];
+
+            transformedPlayers.forEach((player: SharedPlayer & { team: string }) => {
+              if (!newPlayersById[player.id]) {
+                newPlayersById[player.id] = player;
+                newIds.push(player.id);
+              }
+            });
+
+            setAllPlayerIds(prevIds => [...prevIds, ...newIds]);
+            return newPlayersById;
+          });
+          setAllOffset(prev => prev + 20);
+        }
+
+        setAllHasMore(data.players.length === 20);
+      }
+    } catch (error) {
+      console.error('Error fetching all players:', error);
+    } finally {
+      setAllLoadingPlayers(false);
+    }
+  }, []);
+
+  // Fetch all players for a specific team
+  const fetchPlayersForTeam = useCallback(async (teamName: string) => {
+    setLoadingTeamPlayers(true);
+    try {
+      // Fetch all players (no offset/limit) and filter by team on the frontend
+      const response = await fetch(`/api/dashboard/players?limit=1000`); // Large limit to get all
+      const data = await response.json();
+      if (data.players) {
+        const filtered = data.players
+          .filter((player: any) => player.team === teamName)
+          .map((player: any) => ({
             id: player.id,
             name: player.name || 'Unknown Player',
             team: player.team || 'No Team',
             status: player.status || 'active',
           })) as (SharedPlayer & { team: string })[];
 
-          if (reset) {
-            // Reset the list with normalized state
-            const playersMap: Record<string, SharedPlayer & { team: string }> =
-              {};
-            const ids: string[] = [];
+        // Sort alphabetically
+        const sortedPlayers = filtered.sort((a, b) => a.name.localeCompare(b.name));
 
-            transformedPlayers.forEach(
-              (player: SharedPlayer & { team: string }) => {
-                if (!playersMap[player.id]) {
-                  playersMap[player.id] = player;
-                  ids.push(player.id);
-                }
-              }
-            );
+        const playersMap: Record<string, SharedPlayer & { team: string }> = {};
+        const ids: string[] = [];
 
-            setPlayersById(playersMap);
-            setPlayerIds(ids);
-            setOffset(10);
-          } else {
-            // Append to existing list with normalized state
-            setPlayersById(prevPlayersById => {
-              const newPlayersById = { ...prevPlayersById };
-              const newIds: string[] = [];
+        sortedPlayers.forEach((player: SharedPlayer & { team: string }) => {
+          playersMap[player.id] = player;
+          ids.push(player.id);
+        });
 
-              transformedPlayers.forEach(
-                (player: SharedPlayer & { team: string }) => {
-                  if (!newPlayersById[player.id]) {
-                    newPlayersById[player.id] = player;
-                    newIds.push(player.id);
-                  }
-                }
-              );
-
-              setPlayerIds(prevIds => [...prevIds, ...newIds]);
-              return newPlayersById;
-            });
-            setOffset(prev => prev + 10);
-          }
-
-          setHasMore(data.players.length === 10);
-        }
-      } catch (error) {
-        console.error('Error fetching players:', error);
-      } finally {
-        setLoadingPlayers(false);
+        setTeamPlayersById(playersMap);
+        setTeamPlayerIds(ids);
       }
-    },
-    []
-  );
+    } catch (error) {
+      console.error('Error fetching team players:', error);
+    } finally {
+      setLoadingTeamPlayers(false);
+    }
+  }, []);
 
-  // Load more players when scrolling - EXACT SAME AS PLAYERS PAGE
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
+  // Load more players when scrolling (All Teams only)
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    if (teamFilter === 'all') {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-      if (
-        scrollHeight - scrollTop <= clientHeight * 1.5 &&
-        !loadingPlayers &&
-        hasMore
-      ) {
-        fetchPlayers(offset);
+      if (scrollHeight - scrollTop <= clientHeight * 1.5 && !allLoadingPlayers && allHasMore) {
+        fetchAllPlayers(allOffset);
       }
-    },
-    [fetchPlayers, loadingPlayers, hasMore, offset]
-  );
+    }
+  }, [fetchAllPlayers, allLoadingPlayers, allHasMore, allOffset, teamFilter]);
 
-  // Filter players based on search and team filter - EXACT SAME AS PLAYERS PAGE
-  const filteredPlayers = playerIds
-    .map(id => playersById[id])
-    .filter(
-      (
-        player: (SharedPlayer & { team: string }) | undefined
-      ): player is SharedPlayer & { team: string } => !!player && !!player.id
+  // Determine which player list to use
+  const playersToShow = teamFilter === 'all' ? allPlayerIds : teamPlayerIds;
+  const playersByIdToUse = teamFilter === 'all' ? allPlayersById : teamPlayersById;
+  const loadingPlayersToShow = teamFilter === 'all' ? allLoadingPlayers : loadingTeamPlayers;
+
+  // Filter players based on search and team filter
+  const filteredPlayers = playersToShow
+    .map(id => playersByIdToUse[id])
+    .filter((player: (SharedPlayer & { team: string }) | undefined): player is SharedPlayer & { team: string } => 
+      !!player && !!player.id
     )
     .filter(player => {
-      const matchesSearch = player.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesTeam = teamFilter === 'all' || player.team === teamFilter;
-      return matchesSearch && matchesTeam;
+      const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch; // Team filter is already applied by the data source
     });
-  // Deduplicate by player.id before sorting and rendering
-  const dedupedPlayers = Array.from(
-    new Map(filteredPlayers.map(p => [p.id, p])).values()
-  );
-  const sortedPlayers = [...dedupedPlayers].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+
+  // Sort players alphabetically
+  const sortedPlayers = [...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name));
 
   // Load more observations when scrolling
   const handleObsScroll = async () => {
@@ -290,61 +312,27 @@ export default function ObservationsPage() {
         setTeams([]);
       });
 
-    // Fetch initial players
-    setLoadingPlayers(true);
-    fetch('/api/dashboard/players?offset=0&limit=10')
-      .then(res => {
-        if (!res.ok) {
-          console.log('Players API returned error status:', res.status);
-          return null;
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (!data) return; // Skip if no data (error case)
+    // Fetch initial players for All Teams
+    fetchAllPlayers(0, true);
+  }, [fetchAllPlayers]);
 
-        if (data.players) {
-          const transformedPlayers = data.players.map((player: any) => ({
-            id: player.id,
-            name: player.name || 'Unknown Player',
-            team: player.team || 'No Team',
-            status: player.status || 'active',
-          })) as (SharedPlayer & { team: string })[];
-
-          // Reset the list with normalized state
-          const playersMap: Record<string, SharedPlayer & { team: string }> =
-            {};
-          const ids: string[] = [];
-
-          transformedPlayers.forEach(
-            (player: SharedPlayer & { team: string }) => {
-              if (!playersMap[player.id]) {
-                playersMap[player.id] = player;
-                ids.push(player.id);
-              }
-            }
-          );
-
-          setPlayersById(playersMap);
-          setPlayerIds(ids);
-          setOffset(10);
-          setHasMore(data.players.length === 10);
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching players:', error);
-      })
-      .finally(() => {
-        setLoadingPlayers(false);
-      });
-  }, []);
-
-  // Reset pagination when search or filter changes - EXACT SAME AS PLAYERS PAGE
+  // Handle team filter changes
   useEffect(() => {
-    setOffset(0);
-    setHasMore(true);
-    fetchPlayers(0, true);
-  }, [searchTerm, teamFilter]);
+    if (teamFilter === 'all') {
+      // Reset and fetch all players with infinite scroll
+      setAllOffset(0);
+      setAllHasMore(true);
+      fetchAllPlayers(0, true);
+    } else {
+      // Fetch all players for specific team
+      fetchPlayersForTeam(teamFilter);
+    }
+  }, [teamFilter, fetchAllPlayers, fetchPlayersForTeam]);
+
+  // Reset search when team filter changes
+  useEffect(() => {
+    setSearchTerm('');
+  }, [teamFilter]);
 
   // Reset page when player selection changes
   useEffect(() => {
@@ -432,14 +420,6 @@ export default function ObservationsPage() {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
-            <Button
-              size="sm"
-              onClick={() => {}}
-              className="bg-[#d8cc97] text-black hover:bg-[#d8cc97]/80"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Player
-            </Button>
           </div>
           {/* Search Input */}
           <div className="relative mb-6">
@@ -494,39 +474,53 @@ export default function ObservationsPage() {
             style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
             onScroll={handleScroll}
           >
-            {sortedPlayers.length === 0 ? (
+            {loadingPlayersToShow && sortedPlayers.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
+                <p className="text-zinc-400 text-sm">Loading players...</p>
+              </div>
+            ) : sortedPlayers.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
                 <p className="text-zinc-400 text-sm">No players found</p>
               </div>
             ) : (
-              sortedPlayers.map((player: SharedPlayer & { team: string }) => (
-                <div
-                  key={player.id}
-                  onClick={() => handlePlayerSelect(player)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all ${
-                    selectedPlayer?.id === player.id
-                      ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
-                      : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-white">{player.name}</p>
-                      <p className="text-sm text-zinc-400">
-                        {String(player.team)}
-                      </p>
+              <>
+                {sortedPlayers.map((player: SharedPlayer & { team: string }) => (
+                  <div
+                    key={player.id}
+                    onClick={() => handlePlayerSelect(player)}
+                    className={`p-3 rounded-lg cursor-pointer transition-all ${
+                      selectedPlayer?.id === player.id
+                        ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
+                        : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-white">{player.name}</p>
+                        <p className="text-sm text-zinc-400">
+                          {String(player.team)}
+                        </p>
+                      </div>
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          player.status === 'active'
+                            ? 'bg-green-500'
+                            : 'bg-zinc-500'
+                        }`}
+                      />
                     </div>
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        player.status === 'active'
-                          ? 'bg-green-500'
-                          : 'bg-zinc-500'
-                      }`}
-                    />
                   </div>
-                </div>
-              ))
+                ))}
+                {/* Loading indicator for infinite scroll */}
+                {teamFilter === 'all' && allLoadingPlayers && allHasMore && (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#d8cc97] mx-auto"></div>
+                    <p className="text-zinc-400 text-xs mt-2">Loading more...</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

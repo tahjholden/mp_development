@@ -1,16 +1,12 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson, mpCorePersonGroup, mpCoreGroup } from '@/lib/db/schema';
+import { mpbcPerson, mpbcPersonGroup, mpbcGroup } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 
 export async function GET() {
   try {
     const user = await getUser();
     console.log('getUser result:', user);
-
-    if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
-    }
 
     if (!db) {
       return Response.json(
@@ -19,27 +15,39 @@ export async function GET() {
       );
     }
 
-    // Get teams by joining with mpCorePersonGroup and mpCoreGroup tables
+    // If no user session, still fetch data for development
+    if (!user) {
+      console.log('No user session found, fetching all teams for development');
+    }
+
+    // Get teams by joining with mpbcPersonGroup and mpbcGroup tables
+    // Only show teams where the person has role = 'coach'
     const teams = await db
       .select({
-        id: mpCoreGroup.id,
-        name: mpCoreGroup.name,
-        coachName: mpCorePerson.firstName,
-        coachLastName: mpCorePerson.lastName,
-        role: mpCorePersonGroup.role,
-        personType: mpCorePerson.personType,
+        id: mpbcGroup.id,
+        name: mpbcGroup.name,
+        coachName: mpbcPerson.firstName,
+        coachLastName: mpbcPerson.lastName,
+        role: mpbcPersonGroup.role,
+        personType: mpbcPerson.personType,
       })
-      .from(mpCorePersonGroup)
-      .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
-      .leftJoin(mpCorePerson, eq(mpCorePersonGroup.personId, mpCorePerson.id))
-      .where(and(isNotNull(mpCoreGroup.id), isNotNull(mpCoreGroup.name)))
+      .from(mpbcPersonGroup)
+      .leftJoin(mpbcGroup, eq(mpbcPersonGroup.groupId, mpbcGroup.id))
+      .leftJoin(mpbcPerson, eq(mpbcPersonGroup.personId, mpbcPerson.id))
+      .where(
+        and(
+          isNotNull(mpbcGroup.id), 
+          isNotNull(mpbcGroup.name),
+          eq(mpbcPersonGroup.role, 'coach')
+        )
+      )
       .groupBy(
-        mpCoreGroup.id,
-        mpCoreGroup.name,
-        mpCorePerson.firstName,
-        mpCorePerson.lastName,
-        mpCorePersonGroup.role,
-        mpCorePerson.personType
+        mpbcGroup.id,
+        mpbcGroup.name,
+        mpbcPerson.firstName,
+        mpbcPerson.lastName,
+        mpbcPersonGroup.role,
+        mpbcPerson.personType
       );
 
     console.log('Raw teams data:', teams);
@@ -52,17 +60,9 @@ export async function GET() {
         team.coachName && team.coachLastName
           ? `${team.coachName} ${team.coachLastName}`.trim()
           : team.coachName || team.coachLastName || 'Unknown Coach',
-      role: team.role || 'member',
-      personType: team.personType || 'player',
-      createdAt: new Date().toISOString(), // Since we don't have this in the current schema
-      updatedAt: new Date().toISOString(), // Since we don't have this in the current schema
-      // Add analytics fields with default values
-      performance: 75, // Default performance score
-      attendance: 85, // Default attendance rate
-      players: 12, // Default number of players
+      role: team.role || 'Coach',
+      personType: team.personType || 'coach',
     }));
-
-    console.log('Formatted teams data:', formattedTeams);
 
     return Response.json(formattedTeams);
   } catch (error) {

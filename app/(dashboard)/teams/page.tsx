@@ -17,7 +17,6 @@ const TeamSchema = z.object({
   id: z.string(),
   name: z.string(),
   coachName: z.string().optional(),
-  createdAt: z.string(),
 });
 const TeamsArraySchema = z.array(TeamSchema);
 
@@ -34,7 +33,6 @@ interface Team {
   id: string;
   name: string;
   coachName?: string | undefined;
-  createdAt: string;
 }
 
 interface Player {
@@ -371,15 +369,6 @@ export default function TeamsPage() {
                 <div>
                   <p className="text-sm text-zinc-400">Players</p>
                   <p className="text-white">{teamPlayers.length} players</p>
-                </div>
-                <div>
-                  <p className="text-sm text-zinc-400">Created</p>
-                  <p className="text-white">
-                    {new Date(selectedTeam.createdAt).toLocaleDateString(
-                      'en-US',
-                      { month: 'long', day: 'numeric', year: 'numeric' }
-                    )}
-                  </p>
                 </div>
               </div>
             ) : (
