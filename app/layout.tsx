@@ -4,6 +4,8 @@ import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
 import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { SWRConfig } from 'swr';
+import { SimulationProvider } from '@/lib/contexts/SimulationContext';
+import DevBanner from '@/components/ui/DevBanner';
 
 export const metadata: Metadata = {
   title: 'Next.js SaaS Starter',
@@ -27,30 +29,33 @@ export default function RootLayout({
       className={`bg-white dark:bg-gray-950 text-black dark:text-white ${manrope.className}`}
     >
       <body className="min-h-[100dvh] bg-gray-50">
-        {/*
-          Build SWR fallback data conditionally. In local development (or
-          environments without a configured database) `getUser` / `getTeamForUser`
-          will throw because `db` is undefined.  We shield the app from that
-          scenario so that pages not requiring the DB (e.g. marketing / auth)
-          continue to work.
-        */}
-        <SWRConfig
-          value={(() => {
-            const fallback: Record<string, unknown> = {};
-            try {
-              fallback['/api/user'] = getUser();
-              fallback['/api/team'] = getTeamForUser();
-            } catch {
-              /* eslint-disable no-console */
-              console.warn(
-                '[layout] Database unavailable, skipping SWR fallback data.'
-              );
-            }
-            return { fallback };
-          })()}
-        >
-          {children}
-        </SWRConfig>
+        <SimulationProvider>
+          {/*
+            Build SWR fallback data conditionally. In local development (or
+            environments without a configured database) `getUser` / `getTeamForUser`
+            will throw because `db` is undefined.  We shield the app from that
+            scenario so that pages not requiring the DB (e.g. marketing / auth)
+            continue to work.
+          */}
+          <SWRConfig
+            value={(() => {
+              const fallback: Record<string, unknown> = {};
+              try {
+                fallback['/api/user'] = getUser();
+                fallback['/api/team'] = getTeamForUser();
+              } catch {
+                /* eslint-disable no-console */
+                console.warn(
+                  '[layout] Database unavailable, skipping SWR fallback data.'
+                );
+              }
+              return { fallback };
+            })()}
+          >
+            <DevBanner />
+            {children}
+          </SWRConfig>
+        </SimulationProvider>
       </body>
     </html>
   );

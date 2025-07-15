@@ -22,6 +22,7 @@ import {
   CreditCard,
   Shield,
   UserCheck,
+  Beaker,
 } from 'lucide-react';
 import UniversalButton from './UniversalButton';
 
@@ -116,9 +117,19 @@ const getNavItems = (userRole?: string): NavItemType[] => {
       icon: <Shield size={20} />,
       children: [
         {
+          title: 'Simulation Mode',
+          href: '/simulation-test',
+          icon: <Beaker size={16} />,
+        },
+        {
           title: 'Player Portal',
           href: '/player',
           icon: <UserCheck size={16} />,
+        },
+        {
+          title: 'Parent Portal',
+          href: '/parent',
+          icon: <Users size={16} />,
         },
         {
           title: 'Billing',
