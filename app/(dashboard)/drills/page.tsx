@@ -1,14 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Filter,
-  Target,
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Filter, Target } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
+import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -333,6 +328,12 @@ export default function DrillsPage() {
       className="flex min-h-screen h-full bg-black text-white"
       style={{ background: 'black' }}
     >
+      {/* Coming Soon Overlay */}
+      <ComingSoonOverlay
+        title="Drills Coming Soon!"
+        description="Our drill library and management system is in development. You can see the layout and structure, but the drill creation and management features are being built. Let us know what drill features you'd like to see!"
+        feedbackLink="mailto:coach@example.com?subject=MPB%20Drills%20Feedback"
+      />
       {/* Header - exact replica with coach info */}
       <header
         className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"

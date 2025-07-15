@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
+import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -32,9 +33,9 @@ const PlayersArraySchema = z.array(PlayerSchema);
 const TeamSchema = z.object({
   id: z.string(),
   name: z.string(),
-  performance: z.number(),
-  attendance: z.number(),
-  players: z.number(),
+  coachName: z.string().optional(),
+  role: z.string().optional(),
+  personType: z.string().optional(),
 });
 const TeamsArraySchema = z.array(TeamSchema);
 
@@ -63,9 +64,12 @@ interface Player {
 interface Team {
   id: string;
   name: string;
-  performance: number;
-  attendance: number;
-  players: number;
+  coachName?: string;
+  role?: string;
+  personType?: string;
+  performance?: number;
+  attendance?: number;
+  players?: number;
 }
 
 // Main component
@@ -77,10 +81,6 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state for metrics
-  // const [page, setPage] = useState(1);
-  // const pageSize = 5;
-
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -88,11 +88,6 @@ export default function AnalyticsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-
-  // Filter metrics by selected category
-  // const filteredMetrics = selectedMetricId
-  //   ? metrics.filter(metric => metric.id === selectedMetricId)
-  //   : metrics;
 
   const filteredMetricsList = metrics.filter(metric => {
     const matchesSearch = metric.name
@@ -189,7 +184,6 @@ export default function AnalyticsPage() {
         const validatedMetrics =
           AnalyticsMetricsArraySchema.safeParse(mockMetrics);
         if (!validatedMetrics.success) {
-          // console.error('Invalid metrics data:', validatedMetrics.error);
           throw new Error('Invalid metrics data received');
         }
 
@@ -246,7 +240,6 @@ export default function AnalyticsPage() {
               transformedRawPlayers
             );
             if (!validatedPlayers.success) {
-              // console.error('Invalid players data:', validatedPlayers.error);
               throw new Error('Invalid players data received');
             }
 
@@ -269,10 +262,6 @@ export default function AnalyticsPage() {
             );
             setPlayers(uniquePlayers);
           } else {
-            // console.error(
-            //   'Invalid API response structure for players:',
-            //   rawPlayersData
-            // );
             setPlayers([]);
           }
         }
@@ -285,7 +274,6 @@ export default function AnalyticsPage() {
           // Validate teams data
           const validatedTeams = TeamsArraySchema.safeParse(rawTeamsData);
           if (!validatedTeams.success) {
-            // console.error('Invalid teams data:', validatedTeams.error);
             throw new Error('Invalid teams data received');
           }
 
@@ -317,7 +305,6 @@ export default function AnalyticsPage() {
           setSelectedMetric(uniqueMetrics[0]);
         }
       } catch (err) {
-        // console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
         setMetrics([]);
         setPlayers([]);
@@ -329,11 +316,6 @@ export default function AnalyticsPage() {
 
     fetchData();
   }, []);
-
-  // Reset page when metric selection changes
-  useEffect(() => {
-    // setPage(1);
-  }, [selectedMetricId]);
 
   if (loading) {
     return (
@@ -359,10 +341,14 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen h-full bg-black text-white"
-      style={{ background: 'black' }}
-    >
+    <div className="flex min-h-screen h-full bg-black text-white">
+      {/* Coming Soon Overlay */}
+      <ComingSoonOverlay
+        title="Analytics Coming Soon!"
+        description="Our analytics dashboard is in development. You can see the layout and structure, but the data and charts are being built. Let us know what metrics you'd like to see!"
+        feedbackLink="mailto:coach@example.com?subject=MPB%20Analytics%20Feedback"
+      />
+
       {/* Header - exact replica with coach info */}
       <header
         className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
@@ -384,6 +370,7 @@ export default function AnalyticsPage() {
           <span className="text-xs text-white leading-tight">Coach</span>
         </div>
       </header>
+
       {/* Sidebar */}
       <Sidebar
         user={{
@@ -392,16 +379,11 @@ export default function AnalyticsPage() {
           role: 'Coach',
         }}
       />
+
       {/* Main Content */}
-      <div
-        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
-        style={{ background: 'black', minHeight: '100vh' }}
-      >
+      <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen">
         {/* LEFT PANE: Metrics List */}
-        <div
-          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+        <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Metrics
           </h2>
@@ -492,10 +474,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* CENTER PANE: Metric Details */}
-        <div
-          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+        <div className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             {selectedMetricId
               ? `${metrics.find(m => m.id === selectedMetricId)?.name}`
@@ -519,16 +498,10 @@ export default function AnalyticsPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent"
-                      style={{ background: 'transparent' }}
-                    >
+                    <button className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent">
                       Export
                     </button>
-                    <button
-                      className="text-xs text-red-400 font-semibold hover:underline bg-transparent"
-                      style={{ background: 'transparent' }}
-                    >
+                    <button className="text-xs text-red-400 font-semibold hover:underline bg-transparent">
                       Share
                     </button>
                   </div>
@@ -608,16 +581,16 @@ export default function AnalyticsPage() {
         </div>
 
         {/* RIGHT PANE: Analytics Dashboard */}
-        <div
-          className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+        <div className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Dashboard
           </h2>
 
           {/* Quick Stats */}
-          <div className="bg-zinc-800 p-6 rounded mb-6">
+          <div
+            className="bg-zinc-800 p-6 rounded mb-6"
+            style={{ background: '#181818' }}
+          >
             <h3 className="text-base font-bold text-[#d8cc97] mb-4">
               Quick Stats
             </h3>
@@ -658,13 +631,16 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Team Performance */}
-          <div className="bg-zinc-800 p-6 rounded mb-6">
+          <div
+            className="bg-zinc-800 p-6 rounded mb-6"
+            style={{ background: '#181818' }}
+          >
             <h3 className="text-base font-bold text-[#d8cc97] mb-4">
               Team Performance
             </h3>
             <div className="space-y-3">
               {teams
-                .sort((a, b) => b.performance - a.performance)
+                .sort((a, b) => (b.performance || 0) - (a.performance || 0))
                 .slice(0, 3)
                 .map(team => (
                   <div key={team.id} className="p-3 bg-zinc-700 rounded">
@@ -680,7 +656,10 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Recent Trends */}
-          <div className="bg-zinc-800 p-6 rounded">
+          <div
+            className="bg-zinc-800 p-6 rounded"
+            style={{ background: '#181818' }}
+          >
             <h3 className="text-base font-bold text-[#d8cc97] mb-4">
               Recent Trends
             </h3>
