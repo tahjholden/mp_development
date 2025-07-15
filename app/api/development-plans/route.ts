@@ -4,9 +4,12 @@ import { db } from '@/lib/db/drizzle';
 import { mpbcDevelopmentPlan, mpbcPerson } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     console.log('GET /api/development-plans: Starting request');
+
+    const { searchParams } = new URL(req.url);
+    const playerIdsParam = searchParams.get('playerIds');
 
     const user = await getUser();
     console.log(
@@ -60,9 +63,8 @@ export async function GET() {
 
     console.log('GET /api/development-plans: Starting database query');
 
-    // Fetch development plans and join with player info
-    // Use only columns that exist in the real table
-    const results = await db
+    // Build query with optional player filtering
+    let query = db
       .select({
         id: mpbcDevelopmentPlan.id,
         playerId: mpbcDevelopmentPlan.playerId,
@@ -78,6 +80,17 @@ export async function GET() {
       })
       .from(mpbcDevelopmentPlan)
       .leftJoin(mpbcPerson, eq(mpbcDevelopmentPlan.playerId, mpbcPerson.id));
+
+    // Add player filtering if playerIds are provided
+    if (playerIdsParam) {
+      const playerIds = playerIdsParam.split(',').filter(id => id.trim());
+      if (playerIds.length > 0) {
+        const { inArray } = await import('drizzle-orm');
+        query = query.where(inArray(mpbcDevelopmentPlan.playerId, playerIds));
+      }
+    }
+
+    const results = await query;
 
     console.log(
       'GET /api/development-plans: Database query completed, results count:',

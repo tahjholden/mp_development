@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Edit,
-  CheckCircle,
-  Circle,
-  Clock,
-  Target,
-  Zap,
-  Lightbulb,
-  Shield,
-  Search,
-  Filter,
-} from 'lucide-react';
+import { Target, Zap, Lightbulb, Shield, Search, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { UniversalButton } from '@/components/ui/UniversalButton';
 import type { PlayerStatus } from '@/components/basketball/PlayerListCard';
@@ -110,22 +99,67 @@ export default function DevelopmentPlansPage() {
   const [playersById] = useState<Record<string, Player>>({});
   const [playerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
   // Search and filter state - EXACT SAME AS PLAYERS PAGE
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
 
+  // NEW: Player selection tracking for suggestions
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<{
+    drills: DrillSuggestion[];
+    constraints: any[];
+    combined: any[];
+  }>({ drills: [], constraints: [], combined: [] });
+
   // Handler for selecting a player - EXACT SAME AS PLAYERS PAGE
   const handlePlayerSelect = (player: Player) => {
-    setSelectedPlayer(player);
+    // NEW: Support multiple player selection
+    setSelectedPlayerIds(prevIds => {
+      if (prevIds.includes(player.id)) {
+        // Remove player if already selected
+        return prevIds.filter(id => id !== player.id);
+      } else {
+        // Add player to selection
+        return [...prevIds, player.id];
+      }
+    });
   };
 
-  // Add state and handlers for search, team filter, and dropdown (copied from Players page)
-  const [drillSuggestions, setDrillSuggestions] = useState<DrillSuggestion[]>(
-    []
-  );
+  // NEW: Fetch suggestions when selected players change
+  useEffect(() => {
+    if (selectedPlayerIds.length > 0) {
+      fetchPlansAndSuggestions(selectedPlayerIds);
+    } else {
+      setSuggestions({ drills: [], constraints: [], combined: [] });
+    }
+  }, [selectedPlayerIds]);
+
+  // NEW: Function to fetch plans and suggestions
+  const fetchPlansAndSuggestions = async (playerIds: string[]) => {
+    try {
+      // Fetch development plans for selected players
+      const plansResponse = await fetch(
+        `/api/development-plans?playerIds=${playerIds.join(',')}`
+      );
+      if (plansResponse.ok) {
+        const plansData = await plansResponse.json();
+        setPlans(Array.isArray(plansData) ? plansData : []);
+      }
+
+      // Fetch suggestions for selected players
+      const suggestionsResponse = await fetch(
+        `/api/suggestions?playerIds=${playerIds.join(',')}`
+      );
+      if (suggestionsResponse.ok) {
+        const suggestionsData = await suggestionsResponse.json();
+        setSuggestions(suggestionsData);
+      }
+    } catch (error) {
+      console.error('Error fetching plans and suggestions:', error);
+    }
+  };
 
   // Fetch data with validation
   useEffect(() => {
@@ -224,15 +258,11 @@ export default function DevelopmentPlansPage() {
           );
           setTeams(uniqueTeams);
         }
-
-        // Skip mock drill suggestions for now to debug the issue
-        setDrillSuggestions([]);
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch data';
         setError(errorMessage);
         setPlans([]);
-        setDrillSuggestions([]);
       } finally {
         setLoading(false);
       }
@@ -323,37 +353,18 @@ export default function DevelopmentPlansPage() {
   // - For a specific team, no infinite scroll
   // - Never show blank unless playersToShow.length === 0
 
-  // Get readiness color
-  const getReadinessColor = (readiness: string) => {
-    switch (readiness) {
-      case 'high':
-        return 'bg-green-500';
-      case 'medium':
-        return 'bg-yellow-500';
-      case 'low':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  // Get drill suggestions based on selected players
-  const getFilteredDrillSuggestions = () => {
-    // In real app, this would use AI to generate suggestions based on player needs
-    return drillSuggestions;
-  };
-
-  // Helper function for goal status icons
-  const getGoalStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'in_progress':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'not_started':
-        return <Circle className="h-4 w-4 text-gray-500" />;
-      default:
-        return <Circle className="h-4 w-4 text-gray-500" />;
+  // Helper function to format dates
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'No start date';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return 'Invalid date';
     }
   };
 
@@ -492,7 +503,7 @@ export default function DevelopmentPlansPage() {
                   key={player.id}
                   onClick={() => handlePlayerSelect(player)}
                   className={`p-3 rounded-lg cursor-pointer transition-all ${
-                    selectedPlayer?.id === player.id
+                    selectedPlayerIds.includes(player.id)
                       ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
                       : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
                   }`}
@@ -522,19 +533,14 @@ export default function DevelopmentPlansPage() {
             )}
           </div>
         </div>
-        {/* CENTER and RIGHT columns: leave unchanged except for being direct siblings in the flex layout */}
-        <div className="flex-1 min-w-0">
-          {/* CENTER: Active PDP Summary View */}
+        {/* MIDDLE PANE: Development Plans */}
+        <div className="flex-1 p-6 bg-black">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-[#d8cc97]">
-                Active PDP Summary
+                Development Plans
               </h2>
               <div className="flex gap-2">
-                <UniversalButton.Secondary size="sm">
-                  <Edit className="h-3 w-3 mr-1" />
-                  Edit Plans
-                </UniversalButton.Secondary>
                 <UniversalButton.Primary size="sm">
                   Export Plan
                 </UniversalButton.Primary>
@@ -556,80 +562,22 @@ export default function DevelopmentPlansPage() {
                   plans.map(plan => (
                     <div
                       key={plan.id}
-                      className="bg-zinc-900 border border-zinc-800 rounded-lg p-6"
+                      className="bg-zinc-800 px-6 py-3 rounded transition-all"
+                      style={{ background: '#181818' }}
                     >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-lg font-bold text-[#d8cc97]">
-                            {plan.title ? plan.title : 'Untitled Plan'}
-                          </h3>
-                          <p className="text-sm text-zinc-300 mb-2">
-                            {plan.objective
-                              ? plan.objective
-                              : 'No objective provided'}
-                          </p>
-                          <p className="text-sm text-zinc-400">
-                            Player: {plan.playerName}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span
-                            className={
-                              plan.status === 'active'
-                                ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-500'
-                                : plan.status === 'completed'
-                                  ? 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-500'
-                                  : 'inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-500'
-                            }
-                          >
-                            {(plan.status || 'draft').charAt(0).toUpperCase() +
-                              (plan.status || 'draft').slice(1)}
-                          </span>
-                          <div
-                            className={`w-2 h-2 rounded-full ${getReadinessColor(
-                              plan.readiness || 'medium'
-                            )}`}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-sm font-medium text-zinc-400 mb-2">
-                            Focus Areas
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {(plan.tags || []).map((tag, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-zinc-800 text-zinc-300"
-                              >
-                                {tag}
-                              </span>
-                            ))}
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex flex-col">
+                          <div className="text-base font-bold text-[#d8cc97]">
+                            {plan.playerName}
                           </div>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-zinc-400 mb-2">
-                            Active Goals
-                          </h4>
-                          <div className="space-y-2">
-                            {(plan.goals || [])
-                              .filter(g => g.status !== 'completed')
-                              .slice(0, 3)
-                              .map(goal => (
-                                <div
-                                  key={goal.id}
-                                  className="flex items-center space-x-2 p-2 bg-zinc-800/50 rounded"
-                                >
-                                  {getGoalStatusIcon(goal.status)}
-                                  <span className="text-sm text-white">
-                                    {goal.title}
-                                  </span>
-                                </div>
-                              ))}
+                          <div className="text-xs text-zinc-400">
+                            Started: {formatDate(plan.startDate)}
                           </div>
                         </div>
                       </div>
+                      <p className="text-sm text-zinc-300 line-clamp-3">
+                        {plan.objective || 'No plan content provided'}
+                      </p>
                     </div>
                   ))
                 ) : (
@@ -647,88 +595,300 @@ export default function DevelopmentPlansPage() {
             )}
           </div>
         </div>
-        <div style={{ width: 340 }}>
-          {/* RIGHT: Drill Suggestions */}
+
+        {/* RIGHT PANE: Suggestions Panel */}
+        <div className="w-1/4 p-6 bg-black flex flex-col min-h-screen">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97]">
-            Drill Suggestions
+            {selectedPlayerIds.length === 1
+              ? 'Player Suggestions'
+              : 'Group Suggestions'}
           </h2>
-          {plans.length === 0 ? (
+
+          {selectedPlayerIds.length === 0 ? (
             <div className="text-center py-8">
               <Lightbulb className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
               <p className="text-zinc-400 text-sm">
-                No development plans available
+                Select a player to see suggestions
               </p>
               <p className="text-xs text-zinc-500 mt-1">
-                Drill suggestions will appear when plans are available
+                Individual or group practice recommendations
               </p>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Smart Logic Header */}
+          ) : selectedPlayerIds.length === 1 ? (
+            // Individual player suggestions
+            <div className="space-y-6">
+              {/* Active Development Plans */}
               <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Zap className="text-[#d8cc97] w-4 h-4" />
-                  <h4 className="font-medium text-white">Smart Suggestions</h4>
+                <div className="flex items-center space-x-2 mb-3">
+                  <Target className="text-[#d8cc97] w-4 h-4" />
+                  <h4 className="font-medium text-white">
+                    Active Development Plans
+                  </h4>
                 </div>
+                {plans.length > 0 ? (
+                  <div className="space-y-2">
+                    {plans.slice(0, 2).map(plan => (
+                      <div key={plan.id} className="bg-zinc-700/50 rounded p-3">
+                        <p className="text-sm text-white font-medium">
+                          {plan.playerName}
+                        </p>
+                        <p className="text-xs text-zinc-400 line-clamp-2">
+                          {plan.objective}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400">No active plans found</p>
+                )}
+              </div>
+
+              {/* Top 2 Drill Suggestions */}
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Zap className="text-[#d8cc97] w-4 h-4" />
+                  <h4 className="font-medium text-white">
+                    Top 2 Drill Suggestions
+                  </h4>
+                </div>
+                {suggestions.drills.length > 0 ? (
+                  <div className="space-y-3">
+                    {suggestions.drills.map(drill => (
+                      <div
+                        key={drill.id}
+                        className="bg-zinc-700/50 rounded p-3"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-white text-sm">
+                            {drill.name}
+                          </h5>
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${
+                              drill.difficulty === 'beginner'
+                                ? 'bg-green-500/20 text-green-500'
+                                : drill.difficulty === 'intermediate'
+                                  ? 'bg-yellow-500/20 text-yellow-500'
+                                  : 'bg-red-500/20 text-red-500'
+                            }`}
+                          >
+                            {drill.difficulty}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mb-2">
+                          {drill.description}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          Duration: {drill.duration} min
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400">
+                    No drill suggestions available
+                  </p>
+                )}
+              </div>
+
+              {/* Top 2 Constraint Suggestions */}
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Shield className="text-[#d8cc97] w-4 h-4" />
+                  <h4 className="font-medium text-white">
+                    Top 2 Constraint Suggestions
+                  </h4>
+                </div>
+                {suggestions.constraints.length > 0 ? (
+                  <div className="space-y-3">
+                    {suggestions.constraints.map(constraint => (
+                      <div
+                        key={constraint.id}
+                        className="bg-zinc-700/50 rounded p-3"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-white text-sm">
+                            {constraint.name}
+                          </h5>
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${
+                              constraint.difficulty === 'beginner'
+                                ? 'bg-green-500/20 text-green-500'
+                                : constraint.difficulty === 'intermediate'
+                                  ? 'bg-yellow-500/20 text-yellow-500'
+                                  : 'bg-red-500/20 text-red-500'
+                            }`}
+                          >
+                            {constraint.difficulty}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400">
+                          {constraint.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400">
+                    No constraint suggestions available
+                  </p>
+                )}
+              </div>
+
+              {/* Combined Drill + Constraint Bundle */}
+              {suggestions.combined.length > 0 && (
+                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Lightbulb className="text-[#d8cc97] w-4 h-4" />
+                    <h4 className="font-medium text-white">
+                      Combined Practice Bundle
+                    </h4>
+                  </div>
+                  {suggestions.combined.map(combo => (
+                    <div key={combo.id} className="bg-zinc-700/50 rounded p-3">
+                      <h5 className="font-medium text-white text-sm mb-2">
+                        {combo.name}
+                      </h5>
+                      <p className="text-xs text-zinc-400 mb-2">
+                        {combo.description}
+                      </p>
+                      <div className="flex gap-2">
+                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
+                          {combo.drill.name}
+                        </span>
+                        <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">
+                          {combo.constraint.name}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            // Multiple players - Group suggestions
+            <div className="space-y-6">
+              {/* Group Practice Overview */}
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Target className="text-[#d8cc97] w-4 h-4" />
+                  <h4 className="font-medium text-white">
+                    Group Practice Overview
+                  </h4>
+                </div>
+                <p className="text-xs text-zinc-400 mb-3">
+                  {selectedPlayerIds.length} players selected
+                </p>
                 <p className="text-xs text-zinc-400">
-                  Showing drill suggestions based on available development plans
+                  Showing common themes and group practice suggestions
                 </p>
               </div>
-              {/* Drill Suggestions */}
-              <div className="space-y-3">
-                {getFilteredDrillSuggestions().map(drill => (
-                  <div
-                    key={drill.id}
-                    className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-white text-sm">
-                        {drill.name}
-                      </h4>
-                      <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          drill.difficulty === 'beginner'
-                            ? 'bg-green-500/20 text-green-500'
-                            : drill.difficulty === 'intermediate'
-                              ? 'bg-yellow-500/20 text-yellow-500'
-                              : 'bg-red-500/20 text-red-500'
-                        }`}
-                      >
-                        {drill.difficulty}
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 mb-2">
-                      {drill.description}
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      Duration: {drill.duration} minutes
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      Players needed: {drill.players}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {drill.cues.map((cue, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-zinc-700 text-zinc-300"
-                        >
-                          {cue}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {drill.constraints.map((constraint, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-zinc-700 text-zinc-300"
-                        >
-                          {constraint}
-                        </span>
-                      ))}
-                    </div>
+
+              {/* Top Common Drill */}
+              {suggestions.drills.length > 0 && (
+                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Zap className="text-[#d8cc97] w-4 h-4" />
+                    <h4 className="font-medium text-white">Top Common Drill</h4>
                   </div>
-                ))}
-              </div>
+                  {suggestions.drills.map(drill => (
+                    <div key={drill.id} className="bg-zinc-700/50 rounded p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <h5 className="font-medium text-white text-sm">
+                          {drill.name}
+                        </h5>
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${
+                            drill.difficulty === 'beginner'
+                              ? 'bg-green-500/20 text-green-500'
+                              : drill.difficulty === 'intermediate'
+                                ? 'bg-yellow-500/20 text-yellow-500'
+                                : 'bg-red-500/20 text-red-500'
+                          }`}
+                        >
+                          {drill.difficulty}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400 mb-2">
+                        {drill.description}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        Duration: {drill.duration} min
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        Players: {drill.players}+
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Top Common Constraint */}
+              {suggestions.constraints.length > 0 && (
+                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Shield className="text-[#d8cc97] w-4 h-4" />
+                    <h4 className="font-medium text-white">
+                      Top Common Constraint
+                    </h4>
+                  </div>
+                  {suggestions.constraints.map(constraint => (
+                    <div
+                      key={constraint.id}
+                      className="bg-zinc-700/50 rounded p-3"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h5 className="font-medium text-white text-sm">
+                          {constraint.name}
+                        </h5>
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${
+                            constraint.difficulty === 'beginner'
+                              ? 'bg-green-500/20 text-green-500'
+                              : constraint.difficulty === 'intermediate'
+                                ? 'bg-yellow-500/20 text-yellow-500'
+                                : 'bg-red-500/20 text-red-500'
+                          }`}
+                        >
+                          {constraint.difficulty}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400">
+                        {constraint.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Group Practice Bundle */}
+              {suggestions.combined.length > 0 && (
+                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Lightbulb className="text-[#d8cc97] w-4 h-4" />
+                    <h4 className="font-medium text-white">
+                      Group Practice Bundle
+                    </h4>
+                  </div>
+                  {suggestions.combined.map(combo => (
+                    <div key={combo.id} className="bg-zinc-700/50 rounded p-3">
+                      <h5 className="font-medium text-white text-sm mb-2">
+                        {combo.name}
+                      </h5>
+                      <p className="text-xs text-zinc-400 mb-2">
+                        {combo.description}
+                      </p>
+                      <div className="flex gap-2">
+                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
+                          {combo.drill.name}
+                        </span>
+                        <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">
+                          {combo.constraint.name}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
