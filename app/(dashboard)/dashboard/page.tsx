@@ -29,8 +29,8 @@ import PlayerPortalDashboard from '@/components/basketball/PlayerPortalDashboard
 const createMockUser = (role: string) => {
   const baseUser = {
     id: '1',
-    name: role === 'admin' ? 'Admin' : role === 'player' ? 'Player' : 'Coach',
-    email: role === 'admin' ? 'admin@example.com' : role === 'player' ? 'player@example.com' : 'coach@example.com',
+    name: role === 'admin' ? 'Admin' : role === 'player' ? 'Player' : role === 'superadmin' ? 'SuperAdmin' : 'Coach',
+    email: role === 'admin' ? 'admin@example.com' : role === 'player' ? 'player@example.com' : role === 'superadmin' ? 'superadmin@example.com' : 'coach@example.com',
     role: role,
     orgId: 'org_123',
     teamId: 'team_456',
@@ -38,15 +38,15 @@ const createMockUser = (role: string) => {
 
   // Feature flags based on role
   const features = {
-    billing: role === 'admin',
-    advancedAnalytics: role === 'admin',
-    customBranding: role === 'admin',
-    teamFees: role === 'admin',
-    userManagement: role === 'admin',
-    systemSettings: role === 'admin',
-    auditLogs: role === 'admin',
-    dataExport: role === 'admin',
-    playerPortal: role === 'player',
+    billing: role === 'admin' || role === 'superadmin',
+    advancedAnalytics: role === 'admin' || role === 'superadmin',
+    customBranding: role === 'admin' || role === 'superadmin',
+    teamFees: role === 'admin' || role === 'superadmin',
+    userManagement: role === 'admin' || role === 'superadmin',
+    systemSettings: role === 'admin' || role === 'superadmin',
+    auditLogs: role === 'admin' || role === 'superadmin',
+    dataExport: role === 'admin' || role === 'superadmin',
+    playerPortal: role === 'player' || role === 'superadmin',
   };
 
   return { ...baseUser, features };
@@ -54,7 +54,7 @@ const createMockUser = (role: string) => {
 
 // Role-aware main component
 export default function DashboardPage() {
-  const [currentRole, setCurrentRole] = useState<'coach' | 'admin' | 'player'>('coach');
+  const [currentRole, setCurrentRole] = useState<'coach' | 'admin' | 'player' | 'superadmin'>('coach');
   const [user, setUser] = useState(createMockUser('coach'));
 
   // Update user when role changes
@@ -81,7 +81,7 @@ export default function DashboardPage() {
       </header>
       
       {/* Sidebar */}
-      <Sidebar user={user} />
+      <Sidebar user={user} onSignOut={() => {}} />
       
       {/* Main Content */}
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen">
@@ -124,6 +124,16 @@ export default function DashboardPage() {
                 }`}
               >
                 Player
+              </button>
+              <button
+                onClick={() => setCurrentRole('superadmin')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  currentRole === 'superadmin'
+                    ? 'bg-[#d8cc97] text-black'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                SuperAdmin
               </button>
             </div>
           </div>

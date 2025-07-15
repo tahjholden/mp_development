@@ -19,6 +19,9 @@ import {
   Calendar,
   BarChart3,
   BookOpen,
+  CreditCard,
+  Shield,
+  UserCheck,
 } from 'lucide-react';
 import UniversalButton from './UniversalButton';
 
@@ -39,77 +42,111 @@ type SidebarProps = {
   onSignOut?: () => void;
 };
 
-const navItems: NavItemType[] = [
-  {
-    title: 'Dashboard',
-    href: '/dashboard',
-    icon: <LayoutDashboard size={20} />,
-  },
-  {
-    title: 'Players',
-    href: '/players',
-    icon: <Users size={20} />,
-    children: [
-      {
-        title: 'All Players',
-        href: '/players',
-        icon: <ChevronRight size={16} />,
-      },
-      {
-        title: 'Development Plans',
-        href: '/development-plans',
-        icon: <ChevronRight size={16} />,
-      },
-      {
-        title: 'Observations',
-        href: '/observations',
-        icon: <ChevronRight size={16} />,
-      },
-    ],
-  },
-  {
-    title: 'Teams',
-    href: '/teams',
-    icon: <Users size={20} />,
-  },
-  {
-    title: 'Coaches',
-    href: '/coaches',
-    icon: <UserRound size={20} />,
-  },
-  {
-    title: 'Sessions',
-    href: '/sessions',
-    icon: <Calendar size={20} />,
-  },
-  {
-    title: 'Drills',
-    href: '/drills',
-    icon: <ClipboardList size={20} />,
-  },
-  {
-    title: 'Analytics',
-    href: '/analytics',
-    icon: <BarChart3 size={20} />,
-  },
-  {
-    title: 'Resources',
-    href: '/resources',
-    icon: <BookOpen size={20} />,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: <Settings size={20} />,
-  },
-];
+const getNavItems = (userRole?: string): NavItemType[] => {
+  const baseItems: NavItemType[] = [
+    {
+      title: 'Dashboard',
+      href: '/dashboard',
+      icon: <LayoutDashboard size={20} />,
+    },
+    {
+      title: 'Players',
+      href: '/players',
+      icon: <Users size={20} />,
+      children: [
+        {
+          title: 'All Players',
+          href: '/players',
+          icon: <ChevronRight size={16} />,
+        },
+        {
+          title: 'Development Plans',
+          href: '/development-plans',
+          icon: <ChevronRight size={16} />,
+        },
+        {
+          title: 'Observations',
+          href: '/observations',
+          icon: <ChevronRight size={16} />,
+        },
+      ],
+    },
+    {
+      title: 'Teams',
+      href: '/teams',
+      icon: <Users size={20} />,
+    },
+    {
+      title: 'Coaches',
+      href: '/coaches',
+      icon: <UserRound size={20} />,
+    },
+    {
+      title: 'Sessions',
+      href: '/sessions',
+      icon: <Calendar size={20} />,
+    },
+    {
+      title: 'Drills',
+      href: '/drills',
+      icon: <ClipboardList size={20} />,
+    },
+    {
+      title: 'Analytics',
+      href: '/analytics',
+      icon: <BarChart3 size={20} />,
+    },
+    {
+      title: 'Resources',
+      href: '/resources',
+      icon: <BookOpen size={20} />,
+    },
+    {
+      title: 'Settings',
+      href: '/settings',
+      icon: <Settings size={20} />,
+    },
+  ];
 
-export function Sidebar({ onSignOut }: SidebarProps) {
+  // Superadmin-only dev links
+  if (userRole === 'superadmin') {
+    baseItems.push(
+      {
+        title: '🛠️ Dev Tools',
+        href: '#',
+        icon: <Shield size={20} />,
+        children: [
+          {
+            title: 'Player Portal',
+            href: '/player',
+            icon: <UserCheck size={16} />,
+          },
+          {
+            title: 'Billing',
+            href: '/billing',
+            icon: <CreditCard size={16} />,
+          },
+          {
+            title: 'Audit Logs',
+            href: '/audit-logs',
+            icon: <Shield size={16} />,
+          },
+        ],
+      }
+    );
+  }
+
+  return baseItems;
+};
+
+export function Sidebar({ user, onSignOut }: SidebarProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
     {}
   );
+
+  const navItems = getNavItems(user?.role);
 
   // Close mobile sidebar when pathname changes
   useEffect(() => {
@@ -118,9 +155,9 @@ export function Sidebar({ onSignOut }: SidebarProps) {
 
   // Pre-expand the item that contains the current path
   useEffect(() => {
-    navItems.forEach(item => {
+    navItems.forEach((item: NavItemType) => {
       if (item.children) {
-        const shouldExpand = item.children.some(child =>
+        const shouldExpand = item.children.some((child: NavItemType) =>
           pathname.startsWith(child.href)
         );
         if (shouldExpand) {
@@ -128,7 +165,7 @@ export function Sidebar({ onSignOut }: SidebarProps) {
         }
       }
     });
-  }, [pathname]);
+  }, [pathname, navItems]);
 
   const toggleExpand = (title: string) => {
     setExpandedItems(prev => ({
