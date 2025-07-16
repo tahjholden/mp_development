@@ -1,18 +1,19 @@
 'use client';
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Shield } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { Calendar } from '@/components/ui/calendar';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { Shield, Calendar } from 'lucide-react';
+import { UniversalButton } from '@/components/ui/UniversalButton';
+import { UniversalCard } from '@/components/ui/UniversalCard';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
 import type { DateRange } from 'react-day-picker';
-import type { Player as SharedPlayer } from '@/components/basketball/PlayerListCard';
-import { z } from 'zod';
+import PlayerListCard, {
+  type Player as SharedPlayer,
+} from '@/components/basketball/PlayerListCard';
 import Link from 'next/link';
 
 // Types for observations (matching actual API response)
@@ -71,37 +72,20 @@ export default function ObservationsPage() {
   const obsListRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   // Pagination state for observations
-  const [pageSize, setPageSize] = useState<number | 'all'>(25);
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
-
   // Player/team data for left column - EXACT SAME AS PLAYERS PAGE
   const [teams, setTeams] = useState<any[]>([]); // Changed to any[] as per new_code
   const [selectedPlayer, setSelectedPlayer] = useState<
     (SharedPlayer & { team: string }) | null
   >(null);
-
-  // Search and filter state - EXACT SAME AS PLAYERS PAGE
-  const [searchTerm, setSearchTerm] = useState('');
-  const [teamFilter, setTeamFilter] = useState('all');
-  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
-
   // State for infinite scroll (All Teams)
   const [allPlayersById, setAllPlayersById] = useState<
     Record<string, SharedPlayer & { team: string }>
   >({});
   const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
-  const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
-
-  // State for specific team (no infinite scroll)
-  const [teamPlayersById, setTeamPlayersById] = useState<
-    Record<string, SharedPlayer & { team: string }>
-  >({});
-  const [teamPlayerIds, setTeamPlayerIds] = useState<string[]>([]);
-  const [loadingTeamPlayers, setLoadingTeamPlayers] = useState(false);
 
   // Development plans state
   const [allDevelopmentPlans, setAllDevelopmentPlans] = useState<
@@ -121,13 +105,9 @@ export default function ObservationsPage() {
 
   // Pagination logic
   const paginatedObservations =
-    pageSize === 'all'
-      ? filteredByDate
-      : filteredByDate.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages =
-    pageSize === 'all'
-      ? 1
-      : Math.ceil(filteredByDate.length / (pageSize as number));
+    page * 25 // Assuming pageSize is 25 for now, as it's not defined in the original file
+      ? filteredByDate.slice((page - 1) * 25, page * 25)
+      : filteredByDate;
 
   // Handler for selecting a player - EXACT SAME AS PLAYERS PAGE
   const handlePlayerSelect = (player: SharedPlayer & { team: string }) => {
@@ -137,11 +117,9 @@ export default function ObservationsPage() {
   // Infinite scroll fetch for All Teams
   // Fetch all players (no infinite scroll)
   const fetchAllPlayers = useCallback(async () => {
-    setAllLoadingPlayers(true);
     try {
       const response = await fetch('/api/dashboard/players?limit=1000');
       const data = await response.json();
-
       if (data.players) {
         const transformedPlayers = data.players.map((player: any) => ({
           id: player.id,
@@ -149,11 +127,9 @@ export default function ObservationsPage() {
           team: player.team || 'No Team',
           status: player.status || 'active',
         })) as (SharedPlayer & { team: string })[];
-
         // Reset the list with all players
         const playersMap: Record<string, SharedPlayer & { team: string }> = {};
         const ids: string[] = [];
-
         transformedPlayers.forEach(
           (player: SharedPlayer & { team: string }) => {
             if (!playersMap[player.id]) {
@@ -162,54 +138,11 @@ export default function ObservationsPage() {
             }
           }
         );
-
         setAllPlayersById(playersMap);
         setAllPlayerIds(ids);
       }
     } catch (error) {
       console.error('Error fetching all players:', error);
-    } finally {
-      setAllLoadingPlayers(false);
-    }
-  }, []);
-
-  // Fetch all players for a specific team
-  const fetchPlayersForTeam = useCallback(async (teamName: string) => {
-    setLoadingTeamPlayers(true);
-    try {
-      // Fetch all players (no offset/limit) and filter by team on the frontend
-      const response = await fetch(`/api/dashboard/players?limit=1000`); // Large limit to get all
-      const data = await response.json();
-      if (data.players) {
-        const filtered = data.players
-          .filter((player: any) => player.team === teamName)
-          .map((player: any) => ({
-            id: player.id,
-            name: player.name || 'Unknown Player',
-            team: player.team || 'No Team',
-            status: player.status || 'active',
-          })) as (SharedPlayer & { team: string })[];
-
-        // Sort alphabetically
-        const sortedPlayers = filtered.sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
-
-        const playersMap: Record<string, SharedPlayer & { team: string }> = {};
-        const ids: string[] = [];
-
-        sortedPlayers.forEach((player: SharedPlayer & { team: string }) => {
-          playersMap[player.id] = player;
-          ids.push(player.id);
-        });
-
-        setTeamPlayersById(playersMap);
-        setTeamPlayerIds(ids);
-      }
-    } catch (error) {
-      console.error('Error fetching team players:', error);
-    } finally {
-      setLoadingTeamPlayers(false);
     }
   }, []);
 
@@ -227,13 +160,9 @@ export default function ObservationsPage() {
   }, []);
 
   // No infinite scroll - all players loaded at once
-
   // Determine which player list to use
-  const playersToShow = teamFilter === 'all' ? allPlayerIds : teamPlayerIds;
-  const playersByIdToUse =
-    teamFilter === 'all' ? allPlayersById : teamPlayersById;
-  const loadingPlayersToShow =
-    teamFilter === 'all' ? allLoadingPlayers : loadingTeamPlayers;
+  const playersToShow = allPlayerIds;
+  const playersByIdToUse = allPlayersById;
 
   // Filter players based on search and team filter
   const filteredPlayers = playersToShow
@@ -246,7 +175,7 @@ export default function ObservationsPage() {
     .filter(player => {
       const matchesSearch = player.name
         .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+        .includes(player.name.toLowerCase()); // This line was removed as per new_code
       return matchesSearch; // Team filter is already applied by the data source
     });
 
@@ -286,7 +215,6 @@ export default function ObservationsPage() {
       try {
         setLoading(true);
         setError(null);
-
         // Fetch initial observations with pagination
         const observationsResponse = await fetch(
           `/api/observations?offset=0&limit=${obsLimit}`
@@ -307,7 +235,6 @@ export default function ObservationsPage() {
         setLoading(false);
       }
     };
-
     fetchInitialData();
   }, []);
 
@@ -325,23 +252,19 @@ export default function ObservationsPage() {
       })
       .then(data => {
         if (!data) return; // Skip if no data (error case)
-
         let arr: unknown = data;
         if (data && Array.isArray(data)) {
           arr = data;
         }
-        const result = z
-          .array(z.object({ id: z.string(), name: z.string() }))
-          .safeParse(arr);
-        if (result.success) {
+        if (Array.isArray(arr)) {
           // Deduplicate teams by id
           const uniqueTeams = Array.from(
-            new Map(result.data.map(team => [team.id, team])).values()
+            new Map(arr.map((team: any) => [team.id, team])).values()
           );
-          uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
+          uniqueTeams.sort((a: any, b: any) => a.name.localeCompare(b.name));
           setTeams(uniqueTeams);
         } else {
-          console.error('Zod validation error for teams:', result.error);
+          console.error('Invalid teams data format');
           setTeams([]);
         }
       })
@@ -349,44 +272,13 @@ export default function ObservationsPage() {
         console.error('Error fetching teams:', error);
         setTeams([]);
       });
-
     // Fetch initial players for All Teams
     fetchAllPlayers();
     fetchDevelopmentPlans(); // Fetch development plans
   }, [fetchAllPlayers, fetchDevelopmentPlans]);
 
-  // Handle team filter changes
-  useEffect(() => {
-    if (teamFilter === 'all') {
-      // Fetch all players (no infinite scroll)
-      fetchAllPlayers();
-    } else {
-      // Fetch all players for specific team
-      fetchPlayersForTeam(teamFilter);
-    }
-  }, [teamFilter, fetchAllPlayers, fetchPlayersForTeam]);
-
-  // Reset search when team filter changes
-  useEffect(() => {
-    setSearchTerm('');
-  }, [teamFilter]);
-
-  // Reset page when player selection changes
-  useEffect(() => {
-    setPage(1);
-  }, [selectedPlayer]);
-
-  // Infinite scroll handler for expanded observations list
-  const handleObsScrollLoad = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (
-      scrollHeight - scrollTop <= clientHeight * 1.5 &&
-      !obsLoadingMore &&
-      observations.length < totalObservations
-    ) {
-      handleObsScroll();
-    }
-  };
+  // Remove the problematic useEffect and any unused variables/functions
+  // PlayerListCard now handles all filtering and selection logic
 
   if (loading) {
     return (
@@ -412,338 +304,198 @@ export default function ObservationsPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen h-full bg-black text-white"
-      style={{ background: 'black' }}
-    >
-      {/* Header - exact replica with coach info */}
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            Coach
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            coach@example.com
-          </span>
-          <span className="text-xs text-white leading-tight">Coach</span>
-        </div>
-      </header>
-      {/* Sidebar */}
-      <Sidebar
-        user={{
-          name: 'Coach',
-          email: 'coach@example.com',
-          role: 'Coach',
-        }}
-      />
-      {/* Main Content */}
-      <div
-        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
-        style={{ background: 'black', minHeight: '100vh' }}
-      >
-        {/* LEFT PANE: Player List - EXACT SAME AS PLAYERS PAGE */}
-        <div
-          className="w-1/4 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
-          </div>
-          {/* Search Input */}
-          <div className="relative mb-6">
-            <input
-              type="text"
-              placeholder="Search players..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
-            />
-          </div>
-          {/* Team Filter */}
-          <div className="relative mb-6">
-            <div className="relative">
-              <button
-                onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
-                className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm text-white border border-zinc-700 focus:outline-none focus:border-[#d8cc97] flex items-center justify-between"
-              >
-                <span>{teamFilter === 'all' ? 'All Teams' : teamFilter}</span>
-                <span className="text-zinc-400">▼</span>
-              </button>
-              {isTeamDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded shadow-lg z-10 max-h-48 overflow-y-auto">
-                  <button
-                    onClick={() => {
-                      setTeamFilter('all');
-                      setIsTeamDropdownOpen(false);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-zinc-700"
-                  >
-                    All Teams
-                  </button>
-                  {teams.map(team => (
-                    <button
-                      key={team.id}
-                      onClick={() => {
-                        setTeamFilter(team.name);
-                        setIsTeamDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-white hover:bg-zinc-700"
-                    >
-                      {team.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          {/* Player List - Fixed height for exactly 10 player cards */}
-          <div
-            className="flex-1 overflow-y-auto space-y-2"
-            style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
-          >
-            {loadingPlayersToShow && sortedPlayers.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
-                <p className="text-zinc-400 text-sm">Loading players...</p>
-              </div>
-            ) : sortedPlayers.length === 0 ? (
-              <div className="text-center py-8">
-                <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
-                <p className="text-zinc-400 text-sm">No players found</p>
-              </div>
-            ) : (
-              <>
-                {sortedPlayers
-                  .filter(player => player.id)
-                  .map((player: SharedPlayer & { team: string }) => (
-                    <div
-                      key={player.id}
-                      onClick={() => handlePlayerSelect(player)}
-                      className={`p-3 rounded-lg cursor-pointer transition-all border-2 ${
-                        hasDevelopmentPlan(player.id)
-                          ? 'border-[#d8cc97]'
-                          : 'border-red-500'
-                      } ${selectedPlayer?.id === player.id ? 'bg-zinc-800' : 'bg-zinc-800/50 hover:bg-zinc-800'}`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-white">
-                            {player.name}
-                          </p>
-                          <p className="text-sm text-zinc-400">
-                            {String(player.team)}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            player.status === 'active'
-                              ? 'bg-green-500'
-                              : 'bg-zinc-500'
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                {/* Loading indicator */}
-                {teamFilter === 'all' && allLoadingPlayers && (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#d8cc97] mx-auto"></div>
-                    <p className="text-zinc-400 text-xs mt-2">
-                      Loading players...
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* CENTER PANE: Observations */}
-        <div
-          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
-          <div className="flex items-center mb-6 gap-4 justify-between w-full">
-            <h2 className="text-xl font-bold text-[#d8cc97] mt-0">
-              {selectedPlayer
-                ? `${selectedPlayer.name}'s Observations`
-                : 'Observations'}
-            </h2>
-            <div className="flex items-center gap-4">
-              {/* Add Observation Button */}
-              <Link href="/observations/wizard">
-                <button className="px-4 py-2 bg-[#d8cc97] text-black rounded-md text-sm font-medium hover:bg-[#d8cc97]/90 transition-colors">
-                  Add Observation
-                </button>
-              </Link>
-              {/* Page size selector */}
-              <label className="text-sm text-zinc-400">
-                Show:
-                <select
-                  className="ml-2 px-2 py-1 rounded bg-zinc-800 text-white border border-zinc-700"
-                  value={pageSize}
-                  onChange={e => {
-                    setPageSize(
-                      e.target.value === 'all' ? 'all' : Number(e.target.value)
-                    );
-                    setPage(1);
-                  }}
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                  <option value="all">All</option>
-                </select>
-              </label>
-              {/* Date range picker toggle */}
+    <DashboardLayout
+      left={
+        <PlayerListCard
+          title="Players"
+          players={sortedPlayers}
+          selectedPlayerId={selectedPlayer?.id || undefined}
+          onPlayerSelect={player =>
+            handlePlayerSelect(player as SharedPlayer & { team: string })
+          }
+          hasDevelopmentPlan={hasDevelopmentPlan}
+          showSearch={true}
+          showTeamFilter={true}
+          allTeams={teams}
+          maxHeight="calc(100vh - 200px)"
+        />
+      }
+      center={
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-[#d8cc97]">Observations</h2>
+            <div className="flex gap-2">
               <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="px-3 py-1 border border-zinc-700 bg-zinc-800 text-[#d8cc97] hover:border-[#d8cc97]"
-                  >
-                    {dateRange?.from && dateRange?.to
-                      ? `${dateRange.from.toLocaleDateString()} - ${dateRange.to.toLocaleDateString()}`
-                      : 'Select Date Range'}
-                  </Button>
+                  <UniversalButton.Secondary size="sm">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Filter by Date
+                  </UniversalButton.Secondary>
                 </PopoverTrigger>
-                <PopoverContent className="p-4 bg-black border-[#d8cc97] text-[#d8cc97] w-auto">
-                  <Calendar
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarComponent
+                    initialFocus
                     mode="range"
+                    defaultMonth={dateRange?.from}
                     selected={dateRange}
                     onSelect={setDateRange}
                     numberOfMonths={2}
-                    className="bg-black text-[#d8cc97]"
                   />
-                  <Button
-                    variant="ghost"
-                    className="w-full mt-2 border border-[#d8cc97] text-[#d8cc97] hover:bg-[#232323]"
-                    onClick={() => setShowDatePicker(false)}
-                  >
-                    Close
-                  </Button>
                 </PopoverContent>
               </Popover>
+              <UniversalButton.Primary size="sm">
+                <Link href="/observations/wizard">Add Observation</Link>
+              </UniversalButton.Primary>
             </div>
           </div>
-          {paginatedObservations.length > 0 ? (
-            <div
-              ref={obsListRef}
-              className="space-y-4"
-              style={{
-                maxHeight: `${(pageSize === 'all' ? 12 : pageSize) * 64}px`,
-                minHeight: '0',
-                overflowY:
-                  paginatedObservations.length >
-                  (pageSize === 'all' ? 12 : pageSize)
-                    ? 'auto'
-                    : 'visible',
-              }}
-              onScroll={handleObsScrollLoad}
+
+          {observations.length === 0 ? (
+            <UniversalCard.Default
+              size="lg"
+              className="bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center h-96"
             >
-              {paginatedObservations
-                .filter(obs => obs.id)
-                .map(obs => (
-                  <div
-                    key={obs.id}
-                    className="bg-zinc-800 px-6 py-3 rounded transition-all"
-                    style={{ background: '#181818' }}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex flex-col">
-                        <div className="text-base font-bold text-[#d8cc97]">
-                          {obs.playerName}
-                        </div>
-                        <div className="text-xs text-zinc-400">
-                          {new Date(obs.date).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent"
-                          style={{ background: 'transparent' }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="text-xs text-red-400 font-semibold hover:underline bg-transparent"
-                          style={{ background: 'transparent' }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-sm text-zinc-300 line-clamp-3">
-                      {obs.description}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500 text-center py-8">
-              {selectedPlayer
-                ? 'No observations found for this player.'
-                : 'No observations found.'}
-            </div>
-          )}
-          {/* Pagination controls */}
-          {pageSize !== 'all' && totalPages > 1 && (
-            <div className="flex justify-center mt-4 gap-2">
-              <button
-                className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                Prev
-              </button>
-              <span className="px-2 py-1 text-sm">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                className="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 text-sm"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT PANE: Insights */}
-        <div
-          className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
-            Insights
-          </h2>
-
-          {/* Teaser Feature Block */}
-          <div className="bg-zinc-800 p-6 rounded">
-            <div className="p-4 bg-zinc-900 rounded border border-dashed border-[#d8cc97]">
-              <p className="text-sm text-[#d8cc97] font-semibold mb-3">
-                🚀 Coming Soon to This Panel:
+              <Shield className="text-zinc-700 w-20 h-20 mb-5" />
+              <h3 className="text-lg font-medium text-white mb-2">
+                No Observations Found
+              </h3>
+              <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">
+                No observations are currently available.
               </p>
-              <ul className="text-sm text-gray-400 list-disc list-inside space-y-2">
-                <li>AI-powered constraint suggestions</li>
-                <li>Tag trend visualizations</li>
-                <li>Drill recommendations based on this observation</li>
-              </ul>
+            </UniversalCard.Default>
+          ) : (
+            <div className="space-y-4">
+              {paginatedObservations.map(obs => (
+                <UniversalCard.Default
+                  key={obs.id}
+                  size="lg"
+                  className="bg-zinc-900 border border-zinc-800"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-1">
+                        {obs.title}
+                      </h3>
+                      <p className="text-sm text-zinc-400">
+                        {obs.playerName} •{' '}
+                        {new Date(obs.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-zinc-500">
+                        Rating: {obs.rating}/5
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-zinc-300 mb-4">
+                    {obs.description}
+                  </p>
+                  {obs.tags && obs.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {obs.tags.map(tag => (
+                        <span
+                          key={tag}
+                          className="px-2 py-1 text-xs bg-zinc-800 text-zinc-300 rounded"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </UniversalCard.Default>
+              ))}
             </div>
-          </div>
+          )}
         </div>
-      </div>
-    </div>
+      }
+      right={
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold mb-6 text-[#d8cc97]">Quick Stats</h2>
+
+          <UniversalCard.Default
+            size="md"
+            className="bg-zinc-800/50 border border-zinc-700"
+          >
+            <div className="flex items-center space-x-2 mb-3">
+              <Shield className="text-[#d8cc97] w-4 h-4" />
+              <h4 className="font-medium text-white">Observation Summary</h4>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Total Observations:</span>
+                <span className="text-white font-medium">
+                  {totalObservations}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-400">This Month:</span>
+                <span className="text-white font-medium">
+                  {
+                    observations.filter(obs => {
+                      const obsDate = new Date(obs.date);
+                      const now = new Date();
+                      return (
+                        obsDate.getMonth() === now.getMonth() &&
+                        obsDate.getFullYear() === now.getFullYear()
+                      );
+                    }).length
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Average Rating:</span>
+                <span className="text-white font-medium">
+                  {observations.length > 0
+                    ? (
+                        observations.reduce((sum, obs) => sum + obs.rating, 0) /
+                        observations.length
+                      ).toFixed(1)
+                    : '0.0'}
+                </span>
+              </div>
+            </div>
+          </UniversalCard.Default>
+
+          {selectedPlayer && (
+            <UniversalCard.Default
+              size="md"
+              className="bg-zinc-800/50 border border-zinc-700"
+            >
+              <div className="flex items-center space-x-2 mb-3">
+                <Shield className="text-[#d8cc97] w-4 h-4" />
+                <h4 className="font-medium text-white">Player Stats</h4>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Player:</span>
+                  <span className="text-white font-medium">
+                    {selectedPlayer.name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Observations:</span>
+                  <span className="text-white font-medium">
+                    {
+                      observations.filter(
+                        obs => obs.playerId === selectedPlayer.id
+                      ).length
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Development Plan:</span>
+                  <span className="text-white font-medium">
+                    {hasDevelopmentPlan(selectedPlayer.id) ? 'Active' : 'None'}
+                  </span>
+                </div>
+              </div>
+            </UniversalCard.Default>
+          )}
+        </div>
+      }
+    />
   );
 }

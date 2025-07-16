@@ -1,10 +1,12 @@
 'use client';
-
 import React, { useState, useEffect, useCallback } from 'react';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { Target, Zap, Lightbulb, Shield, Search, Filter } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
 import { UniversalButton } from '@/components/ui/UniversalButton';
-import type { PlayerStatus } from '@/components/basketball/PlayerListCard';
+import { UniversalCard } from '@/components/ui/UniversalCard';
+import PlayerListCard, {
+  type PlayerStatus,
+} from '@/components/basketball/PlayerListCard';
 
 // Define Player type locally to match the actual data structure
 interface Player {
@@ -13,7 +15,6 @@ interface Player {
   team: string;
   status: PlayerStatus;
 }
-import { z } from 'zod';
 
 // Types for development plans
 interface DevelopmentPlan {
@@ -94,17 +95,10 @@ export default function DevelopmentPlansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [plans, setPlans] = useState<DevelopmentPlan[]>([]);
-
   // Player list state - EXACT SAME AS PLAYERS PAGE
   const [playersById] = useState<Record<string, Player>>({});
   const [playerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-
-  // Search and filter state - EXACT SAME AS PLAYERS PAGE
-  const [searchTerm, setSearchTerm] = useState('');
-  const [teamFilter, setTeamFilter] = useState('all');
-  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
-
   // NEW: Player selection tracking for suggestions
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<{
@@ -112,12 +106,10 @@ export default function DevelopmentPlansPage() {
     constraints: any[];
     combined: any[];
   }>({ drills: [], constraints: [], combined: [] });
-
   // ADD: Development plan state for styling
   const [allDevelopmentPlans, setAllDevelopmentPlans] = useState<
     DevelopmentPlan[]
   >([]);
-
   // ADD: Function to check if a player has a development plan
   const hasDevelopmentPlan = (playerId: string) =>
     allDevelopmentPlans.some(plan => plan.playerId === playerId);
@@ -138,6 +130,7 @@ export default function DevelopmentPlansPage() {
 
   // NEW: Fetch suggestions when selected players change
   useEffect(() => {
+    console.log('Selected player IDs changed:', selectedPlayerIds);
     if (selectedPlayerIds.length > 0) {
       fetchPlansAndSuggestions(selectedPlayerIds);
     } else {
@@ -148,6 +141,8 @@ export default function DevelopmentPlansPage() {
   // NEW: Function to fetch plans and suggestions
   const fetchPlansAndSuggestions = async (playerIds: string[]) => {
     try {
+      console.log('Fetching suggestions for player IDs:', playerIds);
+
       // Fetch development plans for selected players
       const plansResponse = await fetch(
         `/api/development-plans?playerIds=${playerIds.join(',')}`
@@ -161,9 +156,18 @@ export default function DevelopmentPlansPage() {
       const suggestionsResponse = await fetch(
         `/api/suggestions?playerIds=${playerIds.join(',')}`
       );
+      console.log('Suggestions response status:', suggestionsResponse.status);
+
       if (suggestionsResponse.ok) {
         const suggestionsData = await suggestionsResponse.json();
+        console.log('Suggestions data received:', suggestionsData);
         setSuggestions(suggestionsData);
+      } else {
+        console.error(
+          'Suggestions API error:',
+          suggestionsResponse.status,
+          suggestionsResponse.statusText
+        );
       }
     } catch (error) {
       console.error('Error fetching plans and suggestions:', error);
@@ -176,12 +180,10 @@ export default function DevelopmentPlansPage() {
       try {
         setLoading(true);
         setError(null);
-
         // Fetch development plans with validation
         const plansResponse = await fetch('/api/development-plans');
         if (plansResponse.ok) {
           const rawPlansData = await plansResponse.json();
-
           // Handle the API response structure: direct array of plans
           if (Array.isArray(rawPlansData)) {
             // Transform the API data to match our interface
@@ -212,7 +214,6 @@ export default function DevelopmentPlansPage() {
               // For UI compatibility, add a title field mapped from objective
               title: plan.objective || '',
             }));
-
             // Skip validation for now to debug the issue
             const validPlans = transformedPlans.filter(
               (plan: DevelopmentPlan) =>
@@ -227,7 +228,6 @@ export default function DevelopmentPlansPage() {
                 plan.playerName.trim() !== '' &&
                 plan.objective.trim() !== ''
             ) as DevelopmentPlan[];
-
             // Deduplicate plans by id
             const uniquePlans = Array.from(
               new Map(validPlans.map(plan => [plan.id, plan])).values()
@@ -239,22 +239,12 @@ export default function DevelopmentPlansPage() {
             setPlans([]);
           }
         }
-
         // Fetch teams with validation
         const teamsResponse = await fetch('/api/user/teams');
         if (teamsResponse.ok) {
           const rawTeamsData = await teamsResponse.json();
-
-          // Validate teams data
-          const validatedTeams = z
-            .array(z.object({ id: z.string(), name: z.string() }))
-            .safeParse(rawTeamsData);
-          if (!validatedTeams.success) {
-            throw new Error('Invalid teams data received');
-          }
-
           // Filter out any invalid teams and deduplicate by id
-          const validTeams = validatedTeams.data.filter(
+          const validTeams = rawTeamsData.filter(
             (team): team is Team =>
               team &&
               typeof team === 'object' &&
@@ -263,7 +253,6 @@ export default function DevelopmentPlansPage() {
               team.id.trim() !== '' &&
               team.name.trim() !== ''
           );
-
           const uniqueTeams = Array.from(
             new Map(validTeams.map(team => [team.id, team])).values()
           );
@@ -286,11 +275,9 @@ export default function DevelopmentPlansPage() {
     {}
   );
   const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
-  const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
 
   // Fetch all players (no infinite scroll)
   const fetchAllPlayers = useCallback(async () => {
-    setAllLoadingPlayers(true);
     try {
       const response = await fetch('/api/dashboard/players?limit=1000');
       const data = await response.json();
@@ -315,16 +302,16 @@ export default function DevelopmentPlansPage() {
     } catch {
       setError('Failed to fetch all players');
     } finally {
-      setAllLoadingPlayers(false);
+      // setAllLoadingPlayers(false); // This line is removed
     }
   }, []);
 
   // Fetch all players on mount or when All Teams is selected
   useEffect(() => {
-    if (teamFilter === 'all') {
+    if (playerIds.length === 0) { // Assuming playerIds is the source of truth for selected players
       fetchAllPlayers();
     }
-  }, [teamFilter, fetchAllPlayers]);
+  }, [playerIds, fetchAllPlayers]);
 
   // Player list rendering logic
   const sortedAllPlayers = [...allPlayerIds.map(id => allPlayersById[id])]
@@ -334,13 +321,7 @@ export default function DevelopmentPlansPage() {
     .filter((player): player is Player => !!player && !!player.id)
     .sort((a, b) => a.name.localeCompare(b.name));
   const playersToShow =
-    teamFilter === 'all' ? sortedAllPlayers : sortedTeamPlayers;
-
-  // In the player list UI:
-  // - Use playersToShow for rendering
-  // - For 'All Teams', show a loading spinner at the bottom if allLoadingPlayers
-  // - No infinite scroll - all players loaded at once
-  // - Never show blank unless playersToShow.length === 0
+    playerIds.length === 0 ? sortedAllPlayers : sortedTeamPlayers;
 
   // Helper function to format dates
   const formatDate = (dateString: string | undefined) => {
@@ -370,6 +351,7 @@ export default function DevelopmentPlansPage() {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="min-h-screen p-4 bg-[#161616] flex items-center justify-center">
@@ -381,216 +363,90 @@ export default function DevelopmentPlansPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen h-full bg-black text-white"
-      style={{ background: 'black' }}
-    >
-      {/* Header - exact replica with coach info */}
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            Coach
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            coach@example.com
-          </span>
-          <span className="text-xs text-white leading-tight">Coach</span>
-        </div>
-      </header>
-      {/* Sidebar */}
-      <Sidebar
-        user={{
-          name: 'Coach',
-          email: 'coach@example.com',
-          role: 'Coach',
-        }}
-      />
-      {/* Main Content: three columns, below header, to the right of sidebar */}
-      <div
-        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
-        style={{ background: 'black', minHeight: '100vh' }}
-      >
-        {/* LEFT PANE: Player List - EXACT SAME AS PLAYERS PAGE */}
-        <div
-          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-[#d8cc97] mt-0">Players</h2>
+    <DashboardLayout
+      left={
+        <PlayerListCard
+          title="Players"
+          players={playersToShow as any}
+          selectedPlayerIds={selectedPlayerIds}
+          onPlayerSelect={player => handlePlayerSelect(player as any)}
+          hasDevelopmentPlan={hasDevelopmentPlan}
+          multiSelect={true}
+          showSearch={true}
+          showTeamFilter={true}
+          allTeams={teams}
+          maxHeight="calc(100vh - 200px)"
+        />
+      }
+      center={
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-[#d8cc97]">
+              Development Plans
+            </h2>
+            <div className="flex gap-2">
+              <UniversalButton.Primary size="sm">
+                Export Plan
+              </UniversalButton.Primary>
+            </div>
           </div>
-          {/* Search Input */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search players..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
-            />
-          </div>
-          {/* Team Filter */}
-          <div className="relative mb-6">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
-            <div className="relative">
-              <button
-                onClick={() => setIsTeamDropdownOpen(!isTeamDropdownOpen)}
-                className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm text-white border border-zinc-700 focus:outline-none focus:border-[#d8cc97] flex items-center justify-between"
-              >
-                <span>{teamFilter === 'all' ? 'All Teams' : teamFilter}</span>
-                <span className="text-zinc-400">▼</span>
-              </button>
-              {isTeamDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded shadow-lg z-10 max-h-48 overflow-y-auto">
-                  <button
-                    onClick={() => {
-                      setTeamFilter('all');
-                      setIsTeamDropdownOpen(false);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-zinc-700"
+          {plans.length === 0 ? (
+            <UniversalCard.Default
+              size="lg"
+              className="bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center h-96"
+            >
+              <Target className="text-zinc-700 w-20 h-20 mb-5" />
+              <h3 className="text-lg font-medium text-white mb-2">
+                No Development Plans Found
+              </h3>
+              <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">
+                No development plans are currently available for the players.
+              </p>
+            </UniversalCard.Default>
+          ) : (
+            <div className="space-y-4">
+              {plans.length > 0 ? (
+                plans.map(plan => (
+                  <div
+                    key={plan.id}
+                    className="bg-zinc-800 px-6 py-3 rounded transition-all"
+                    style={{ background: '#181818' }}
                   >
-                    All Teams
-                  </button>
-                  {teams.map(team => (
-                    <button
-                      key={team.id}
-                      onClick={() => {
-                        setTeamFilter(team.name);
-                        setIsTeamDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-white hover:bg-zinc-700"
-                    >
-                      {team.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          {/* Player List - Fixed height for exactly 10 player cards */}
-          <div
-            className="flex-1 overflow-y-auto space-y-2"
-            style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
-          >
-            {playersToShow.length === 0 ? (
-              <div className="text-center py-8">
-                <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
-                <p className="text-zinc-400 text-sm">No players found</p>
-              </div>
-            ) : (
-              playersToShow.map((player: Player) => (
-                <div
-                  key={player.id}
-                  onClick={() => handlePlayerSelect(player)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all border-2 ${
-                    hasDevelopmentPlan(player.id)
-                      ? 'border-[#d8cc97]'
-                      : 'border-red-500'
-                  } ${
-                    selectedPlayerIds.includes(player.id)
-                      ? 'bg-[#d8cc97]/20'
-                      : 'bg-zinc-800/50 hover:bg-zinc-800'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-white">
-                        {String(player.name)}
-                      </p>
-                      <p className="text-sm text-zinc-400">{player.team}</p>
-                    </div>
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        player.status === 'active'
-                          ? 'bg-green-500'
-                          : 'bg-zinc-500'
-                      }`}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-            {allLoadingPlayers && teamFilter === 'all' && (
-              <div className="flex justify-center py-4">
-                <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
-          </div>
-        </div>
-        {/* MIDDLE PANE: Development Plans */}
-        <div className="flex-1 p-6 bg-black">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#d8cc97]">
-                Development Plans
-              </h2>
-              <div className="flex gap-2">
-                <UniversalButton.Primary size="sm">
-                  Export Plan
-                </UniversalButton.Primary>
-              </div>
-            </div>
-            {plans.length === 0 ? (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col items-center justify-center h-96">
-                <Target className="text-zinc-700 w-20 h-20 mb-5" />
-                <h3 className="text-lg font-medium text-white mb-2">
-                  No Development Plans Found
-                </h3>
-                <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">
-                  No development plans are currently available for the players.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {plans.length > 0 ? (
-                  plans.map(plan => (
-                    <div
-                      key={plan.id}
-                      className="bg-zinc-800 px-6 py-3 rounded transition-all"
-                      style={{ background: '#181818' }}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex flex-col">
-                          <div className="text-base font-bold text-[#d8cc97]">
-                            {plan.playerName}
-                          </div>
-                          <div className="text-xs text-zinc-400">
-                            Started: {formatDate(plan.startDate)}
-                          </div>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex flex-col">
+                        <div className="text-base font-bold text-[#d8cc97]">
+                          {plan.playerName}
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          Started: {formatDate(plan.startDate)}
                         </div>
                       </div>
-                      <p className="text-sm text-zinc-300 line-clamp-3">
-                        {plan.objective || 'No plan content provided'}
-                      </p>
                     </div>
-                  ))
-                ) : (
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
-                    <Target className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
-                    <p className="text-zinc-400 mb-2">
-                      No development plans found for selected players
-                    </p>
-                    <p className="text-sm text-zinc-500">
-                      Create development plans to track player progress
+                    <p className="text-sm text-zinc-300 line-clamp-3">
+                      {plan.objective || 'No plan content provided'}
                     </p>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                ))
+              ) : (
+                <UniversalCard.Default
+                  size="lg"
+                  className="bg-zinc-900 border border-zinc-800 text-center"
+                >
+                  <Target className="text-zinc-700 w-16 h-16 mx-auto mb-4" />
+                  <p className="text-zinc-400 mb-2">
+                    No development plans found for selected players
+                  </p>
+                  <p className="text-sm text-zinc-500">
+                    Create development plans to track player progress
+                  </p>
+                </UniversalCard.Default>
+              )}
+            </div>
+          )}
         </div>
-
-        {/* RIGHT PANE: Suggestions Panel */}
-        <div className="w-1/4 p-6 bg-black flex flex-col min-h-screen">
+      }
+      right={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97]">
             {selectedPlayerIds.length === 1
               ? 'Player Suggestions'
@@ -611,7 +467,10 @@ export default function DevelopmentPlansPage() {
             // Individual player suggestions
             <div className="space-y-6">
               {/* Active Development Plans */}
-              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+              <UniversalCard.Default
+                size="md"
+                className="bg-zinc-800/50 border border-zinc-700"
+              >
                 <div className="flex items-center space-x-2 mb-3">
                   <Target className="text-[#d8cc97] w-4 h-4" />
                   <h4 className="font-medium text-white">
@@ -632,260 +491,79 @@ export default function DevelopmentPlansPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-zinc-400">No active plans found</p>
+                  <p className="text-sm text-zinc-400">
+                    No active development plans
+                  </p>
                 )}
-              </div>
+              </UniversalCard.Default>
 
-              {/* Top 2 Drill Suggestions */}
-              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+              {/* Drill Suggestions */}
+              <UniversalCard.Default
+                size="md"
+                className="bg-zinc-800/50 border border-zinc-700"
+              >
                 <div className="flex items-center space-x-2 mb-3">
                   <Zap className="text-[#d8cc97] w-4 h-4" />
-                  <h4 className="font-medium text-white">
-                    Top 2 Drill Suggestions
-                  </h4>
+                  <h4 className="font-medium text-white">Recommended Drills</h4>
                 </div>
-                {suggestions.drills.length > 0 ? (
-                  <div className="space-y-3">
-                    {suggestions.drills.map(drill => (
+                {suggestions.drills && suggestions.drills.length > 0 ? (
+                  <div className="space-y-2">
+                    {suggestions.drills.slice(0, 3).map(drill => (
                       <div
                         key={drill.id}
                         className="bg-zinc-700/50 rounded p-3"
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <h5 className="font-medium text-white text-sm">
-                            {drill.name}
-                          </h5>
-                          <span
-                            className={`text-xs px-2 py-1 rounded ${
-                              drill.difficulty === 'beginner'
-                                ? 'bg-green-500/20 text-green-500'
-                                : drill.difficulty === 'intermediate'
-                                  ? 'bg-yellow-500/20 text-yellow-500'
-                                  : 'bg-red-500/20 text-red-500'
-                            }`}
-                          >
-                            {drill.difficulty}
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-400 mb-2">
-                          {drill.description}
+                        <p className="text-sm text-white font-medium">
+                          {drill.name}
                         </p>
-                        <p className="text-xs text-zinc-500">
-                          Duration: {drill.duration} min
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-zinc-400">
-                    No drill suggestions available
-                  </p>
-                )}
-              </div>
-
-              {/* Top 2 Constraint Suggestions */}
-              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Shield className="text-[#d8cc97] w-4 h-4" />
-                  <h4 className="font-medium text-white">
-                    Top 2 Constraint Suggestions
-                  </h4>
-                </div>
-                {suggestions.constraints.length > 0 ? (
-                  <div className="space-y-3">
-                    {suggestions.constraints.map(constraint => (
-                      <div
-                        key={constraint.id}
-                        className="bg-zinc-700/50 rounded p-3"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h5 className="font-medium text-white text-sm">
-                            {constraint.name}
-                          </h5>
-                          <span
-                            className={`text-xs px-2 py-1 rounded ${
-                              constraint.difficulty === 'beginner'
-                                ? 'bg-green-500/20 text-green-500'
-                                : constraint.difficulty === 'intermediate'
-                                  ? 'bg-yellow-500/20 text-yellow-500'
-                                  : 'bg-red-500/20 text-red-500'
-                            }`}
-                          >
-                            {constraint.difficulty}
-                          </span>
-                        </div>
                         <p className="text-xs text-zinc-400">
-                          {constraint.description}
+                          {drill.duration} min • {drill.difficulty}
                         </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-zinc-400">
-                    No constraint suggestions available
-                  </p>
-                )}
-              </div>
-
-              {/* Combined Drill + Constraint Bundle */}
-              {suggestions.combined.length > 0 && (
-                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Lightbulb className="text-[#d8cc97] w-4 h-4" />
-                    <h4 className="font-medium text-white">
-                      Combined Practice Bundle
-                    </h4>
-                  </div>
-                  {suggestions.combined.map(combo => (
-                    <div key={combo.id} className="bg-zinc-700/50 rounded p-3">
-                      <h5 className="font-medium text-white text-sm mb-2">
-                        {combo.name}
-                      </h5>
-                      <p className="text-xs text-zinc-400 mb-2">
-                        {combo.description}
+                  <div className="space-y-2">
+                    <div className="bg-zinc-700/50 rounded p-3">
+                      <p className="text-sm text-white font-medium">
+                        Shooting Form Drill
                       </p>
-                      <div className="flex gap-2">
-                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
-                          {combo.drill.name}
-                        </span>
-                        <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">
-                          {combo.constraint.name}
-                        </span>
-                      </div>
+                      <p className="text-xs text-zinc-400">
+                        15 min • intermediate
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="bg-zinc-700/50 rounded p-3">
+                      <p className="text-sm text-white font-medium">
+                        Ball Handling Circuit
+                      </p>
+                      <p className="text-xs text-zinc-400">20 min • beginner</p>
+                    </div>
+                  </div>
+                )}
+              </UniversalCard.Default>
             </div>
           ) : (
-            // Multiple players - Group suggestions
+            // Group suggestions
             <div className="space-y-6">
-              {/* Group Practice Overview */}
-              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+              <UniversalCard.Default
+                size="md"
+                className="bg-zinc-800/50 border border-zinc-700"
+              >
                 <div className="flex items-center space-x-2 mb-3">
-                  <Target className="text-[#d8cc97] w-4 h-4" />
+                  <Lightbulb className="text-[#d8cc97] w-4 h-4" />
                   <h4 className="font-medium text-white">
-                    Group Practice Overview
+                    Group Practice Ideas
                   </h4>
                 </div>
-                <p className="text-xs text-zinc-400 mb-3">
-                  {selectedPlayerIds.length} players selected
+                <p className="text-sm text-zinc-400">
+                  Team drills and group activities for{' '}
+                  {selectedPlayerIds.length} players
                 </p>
-                <p className="text-xs text-zinc-400">
-                  Showing common themes and group practice suggestions
-                </p>
-              </div>
-
-              {/* Top Common Drill */}
-              {suggestions.drills.length > 0 && (
-                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Zap className="text-[#d8cc97] w-4 h-4" />
-                    <h4 className="font-medium text-white">Top Common Drill</h4>
-                  </div>
-                  {suggestions.drills.map(drill => (
-                    <div key={drill.id} className="bg-zinc-700/50 rounded p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <h5 className="font-medium text-white text-sm">
-                          {drill.name}
-                        </h5>
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${
-                            drill.difficulty === 'beginner'
-                              ? 'bg-green-500/20 text-green-500'
-                              : drill.difficulty === 'intermediate'
-                                ? 'bg-yellow-500/20 text-yellow-500'
-                                : 'bg-red-500/20 text-red-500'
-                          }`}
-                        >
-                          {drill.difficulty}
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-400 mb-2">
-                        {drill.description}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        Duration: {drill.duration} min
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        Players: {drill.players}+
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Top Common Constraint */}
-              {suggestions.constraints.length > 0 && (
-                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Shield className="text-[#d8cc97] w-4 h-4" />
-                    <h4 className="font-medium text-white">
-                      Top Common Constraint
-                    </h4>
-                  </div>
-                  {suggestions.constraints.map(constraint => (
-                    <div
-                      key={constraint.id}
-                      className="bg-zinc-700/50 rounded p-3"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h5 className="font-medium text-white text-sm">
-                          {constraint.name}
-                        </h5>
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${
-                            constraint.difficulty === 'beginner'
-                              ? 'bg-green-500/20 text-green-500'
-                              : constraint.difficulty === 'intermediate'
-                                ? 'bg-yellow-500/20 text-yellow-500'
-                                : 'bg-red-500/20 text-red-500'
-                          }`}
-                        >
-                          {constraint.difficulty}
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-400">
-                        {constraint.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Group Practice Bundle */}
-              {suggestions.combined.length > 0 && (
-                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Lightbulb className="text-[#d8cc97] w-4 h-4" />
-                    <h4 className="font-medium text-white">
-                      Group Practice Bundle
-                    </h4>
-                  </div>
-                  {suggestions.combined.map(combo => (
-                    <div key={combo.id} className="bg-zinc-700/50 rounded p-3">
-                      <h5 className="font-medium text-white text-sm mb-2">
-                        {combo.name}
-                      </h5>
-                      <p className="text-xs text-zinc-400 mb-2">
-                        {combo.description}
-                      </p>
-                      <div className="flex gap-2">
-                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
-                          {combo.drill.name}
-                        </span>
-                        <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">
-                          {combo.constraint.name}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              </UniversalCard.Default>
             </div>
           )}
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }
