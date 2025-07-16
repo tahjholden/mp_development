@@ -66,36 +66,25 @@ export interface BasketballUser {
  * Combined user data with roles
  */
 export interface UnifiedUser {
-  // Core identity
   id: string;
-  authUid: string;
   email: string;
   firstName?: string;
   lastName?: string;
-  displayName?: string;
-
-  // Organization
-  organizationId: string;
-  organizationName?: string;
-
-  // Status
-  active: boolean;
-  createdAt: Date;
-  updatedAt?: Date;
-
-  // Roles
-  primaryRole: PersonType;
-  isAdmin: boolean;
-  isSuperadmin: boolean;
-  roles: string[];
-  basketballRoles: BasketballRole[];
-
-  // Context
+  personType?: string;
+  organizationId?: string;
+  isAdmin?: boolean;
+  isSuperadmin?: boolean;
+  authUid?: string;
+  mpCorePersonId?: string;
+  mpbcPersonId?: string;
   currentContext?: RoleContext;
-  availableContexts?: RoleContext[];
-
-  // Pack features
+  roles?: any[];
+  basketballRoles?: any[];
   packFeatures?: Record<string, boolean>;
+  organizationName?: string;
+  active?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /**
@@ -139,12 +128,12 @@ export async function getCurrentUser(): Promise<UnifiedUser | null> {
     }
 
     // Get basketball user data
-    const { data: basketballUser, error: basketballError } = await supabase
+    const { data: basketballUser } = await supabase
       .from('mpbc_person')
       .select(
-        'id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at'
+        'id, mp_core_person_id, person_type, organization_id, first_name, last_name, email, created_at, updated_at'
       )
-      .eq('person_id', coreUser.id)
+      .eq('mp_core_person_id', coreUser.id)
       .maybeSingle();
 
     // Get organization name
@@ -199,30 +188,25 @@ export async function getCurrentUser(): Promise<UnifiedUser | null> {
       email: coreUser.email,
       firstName: coreUser.first_name,
       lastName: coreUser.last_name,
-      displayName:
-        basketballUser?.display_name ||
-        `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
-
+      mpCorePersonId: coreUser.id,
+      mpbcPersonId: basketballUser?.id,
+      personType: basketballUser?.person_type,
+      isAdmin:
+        (basketballUser?.person_type as PersonType) === PersonType.ADMIN ||
+        (basketballUser?.person_type as PersonType) === PersonType.SUPERADMIN,
+      isSuperadmin:
+        (basketballUser?.person_type as PersonType) === PersonType.SUPERADMIN,
       organizationId: coreUser.organization_id,
       organizationName: organization?.name,
-
       active: coreUser.active,
       createdAt: new Date(coreUser.created_at),
       ...(coreUser.updated_at
         ? { updatedAt: new Date(coreUser.updated_at) }
         : {}),
-
-      primaryRole:
-        (basketballUser?.person_type as PersonType) || PersonType.PLAYER,
-      isAdmin: basketballUser?.is_admin || false,
-      isSuperadmin: basketballUser?.is_superadmin || false,
       roles,
       basketballRoles,
-
-      ...(currentContext ? { currentContext } : {}),
-      availableContexts: availableContexts.map(rc => rc.context),
-
       packFeatures: packFeatures as unknown as Record<string, boolean>,
+      ...(currentContext ? { currentContext } : {}),
     };
 
     return unifiedUser;
@@ -235,7 +219,9 @@ export async function getCurrentUser(): Promise<UnifiedUser | null> {
 /**
  * Get a user by email with unified role data
  */
-export async function getUserByEmail(email: string): Promise<UnifiedUser | null> {
+export async function getUserByEmail(
+  email: string
+): Promise<UnifiedUser | null> {
   try {
     const supabase = createClient();
 
@@ -254,12 +240,12 @@ export async function getUserByEmail(email: string): Promise<UnifiedUser | null>
     }
 
     // Get basketball user data
-    const { data: basketballUser, error: basketballError } = await supabase
+    const { data: basketballUser } = await supabase
       .from('mpbc_person')
       .select(
-        'id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at'
+        'id, mp_core_person_id, person_type, organization_id, first_name, last_name, email, created_at, updated_at'
       )
-      .eq('person_id', coreUser.id)
+      .eq('mp_core_person_id', coreUser.id)
       .maybeSingle();
 
     // Get organization name
@@ -285,26 +271,23 @@ export async function getUserByEmail(email: string): Promise<UnifiedUser | null>
       email: coreUser.email,
       firstName: coreUser.first_name,
       lastName: coreUser.last_name,
-      displayName:
-        basketballUser?.display_name ||
-        `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
-
+      mpCorePersonId: coreUser.id,
+      mpbcPersonId: basketballUser?.id,
+      personType: basketballUser?.person_type,
+      isAdmin:
+        (basketballUser?.person_type as PersonType) === PersonType.ADMIN ||
+        (basketballUser?.person_type as PersonType) === PersonType.SUPERADMIN,
+      isSuperadmin:
+        (basketballUser?.person_type as PersonType) === PersonType.SUPERADMIN,
       organizationId: coreUser.organization_id,
       organizationName: organization?.name,
-
       active: coreUser.active,
       createdAt: new Date(coreUser.created_at),
       ...(coreUser.updated_at
         ? { updatedAt: new Date(coreUser.updated_at) }
         : {}),
-
-      primaryRole:
-        (basketballUser?.person_type as PersonType) || PersonType.PLAYER,
-      isAdmin: basketballUser?.is_admin || false,
-      isSuperadmin: basketballUser?.is_superadmin || false,
       roles,
       basketballRoles,
-
       packFeatures: packFeatures as unknown as Record<string, boolean>,
     };
 
@@ -322,73 +305,45 @@ export async function getUserById(userId: string): Promise<UnifiedUser | null> {
   try {
     const supabase = createClient();
 
-    // Get core user data
-    const { data: coreUser, error: coreError } = await supabase
-      .from('mp_core_person')
-      .select(
-        'id, auth_uid, email, first_name, last_name, organization_id, active, created_at, updated_at'
-      )
-      .eq('id', userId)
-      .single();
-
-    if (coreError || !coreUser) {
-      console.error('Error fetching core user:', coreError);
-      return null;
-    }
-
-    // Get basketball user data
+    // Query mpbc_person using mp_core_person_id - the userId is actually the mp_core_person.id
     const { data: basketballUser, error: basketballError } = await supabase
       .from('mpbc_person')
       .select(
-        'id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at'
+        'id, mp_core_person_id, person_type, organization_id, first_name, last_name, email, created_at, updated_at'
       )
-      .eq('person_id', coreUser.id)
-      .maybeSingle();
+      .eq('mp_core_person_id', userId)
+      .single();
 
-    // Get organization name
-    const { data: organization } = await supabase
-      .from('mp_core_organizations')
-      .select('name')
-      .eq('id', coreUser.organization_id)
-      .maybeSingle();
+    console.log('getUserById - Direct mpbc_person query:', {
+      userId: userId,
+      basketballUser: basketballUser,
+      basketballError: basketballError,
+      personType: basketballUser?.person_type,
+    });
 
-    // Get all roles
-    const roles = await getAllPersonRoles(coreUser.id);
+    if (basketballError || !basketballUser) {
+      console.error('Error fetching basketball user:', basketballError);
+      return null;
+    }
 
-    // Get basketball-specific roles
-    const basketballRoles = await getBasketballRoles(coreUser.id);
-
-    // Get pack features
-    const packFeatures = await getPackFeatures(coreUser.organization_id);
-
-    // Build unified user object
+    // Build unified user object from mpbc_person data
     const unifiedUser: UnifiedUser = {
-      id: coreUser.id,
-      authUid: coreUser.auth_uid,
-      email: coreUser.email,
-      firstName: coreUser.first_name,
-      lastName: coreUser.last_name,
-      displayName:
-        basketballUser?.display_name ||
-        `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
-
-      organizationId: coreUser.organization_id,
-      organizationName: organization?.name,
-
-      active: coreUser.active,
-      createdAt: new Date(coreUser.created_at),
-      ...(coreUser.updated_at
-        ? { updatedAt: new Date(coreUser.updated_at) }
-        : {}),
-
-      primaryRole:
-        (basketballUser?.person_type as PersonType) || PersonType.PLAYER,
-      isAdmin: basketballUser?.is_admin || false,
-      isSuperadmin: basketballUser?.is_superadmin || false,
-      roles,
-      basketballRoles,
-
-      packFeatures: packFeatures as unknown as Record<string, boolean>,
+      id: basketballUser.id,
+      authUid: '', // Not needed for app logic
+      email: basketballUser.email || '',
+      firstName: basketballUser.first_name,
+      lastName: basketballUser.last_name,
+      mpCorePersonId: userId,
+      mpbcPersonId: basketballUser.id,
+      personType: basketballUser.person_type,
+      isAdmin:
+        (basketballUser.person_type as PersonType) === PersonType.ADMIN ||
+        (basketballUser.person_type as PersonType) === PersonType.SUPERADMIN,
+      isSuperadmin:
+        (basketballUser.person_type as PersonType) === PersonType.SUPERADMIN,
+      roles: [],
+      basketballRoles: [],
+      packFeatures: {},
     };
 
     return unifiedUser;
@@ -628,7 +583,7 @@ export async function requireRole(
   // Check if it's a core role or a basketball-specific role
   if (Object.values(PersonType).includes(role as PersonType)) {
     // It's a core role
-    if (!currentUser.roles.includes(role)) {
+    if (!currentUser.roles?.includes(role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   } else {
