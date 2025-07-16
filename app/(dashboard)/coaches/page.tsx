@@ -1,9 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
-import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import UniversalButton from '@/components/ui/UniversalButton';
 import CoachListCard, {
   type Coach as SharedCoach,
 } from '@/components/basketball/CoachListCard';
@@ -150,88 +147,18 @@ export default function CoachesPage() {
           a.name.localeCompare(b.name)
         );
         setCoaches(sortedCoaches);
-        // Fetch players with validation - get all players to ensure accurate counts
-        const playersResponse = await fetch(
-          '/api/dashboard/players?offset=0&limit=1000'
-        );
-        if (playersResponse.ok) {
-          const rawPlayersData = await playersResponse.json();
-          // Handle the API response structure: { players: [...], total: number }
-          if (
-            rawPlayersData &&
-            rawPlayersData.players &&
-            Array.isArray(rawPlayersData.players)
-          ) {
-            const transformedRawPlayers = rawPlayersData.players.map(
-              (player: {
-                id: string;
-                name?: string;
-                team?: string;
-                status?: string;
-              }) => ({
-                id: player.id,
-                name: player.name || 'Unknown Player',
-                team: player.team || 'No Team',
-                status: player.status || 'active',
-              })
-            );
-            // Validate players data
-
-            // Filter out any invalid players
-            const validPlayers = validatedPlayers.data.filter(
-              (player): player is Player =>
-                player &&
-                typeof player === 'object' &&
-                typeof player.id === 'string' &&
-                typeof player.name === 'string' &&
-                typeof player.team === 'string' &&
-                player.id.trim() !== '' &&
-                player.name.trim() !== '' &&
-                player.team.trim() !== ''
-            );
-            // Deduplicate players by id
-            const uniquePlayers = Array.from(
-              new Map(validPlayers.map(player => [player.id, player])).values()
-            );
-            setPlayers(uniquePlayers);
-          } else {
-            // console.error(
-            //   'Invalid API response structure for players:',
-            //   rawPlayersData
-            // );
-            setPlayers([]);
-          }
-        }
-        // Fetch teams with validation
-        const teamsResponse = await fetch('/api/user/teams');
-        if (teamsResponse.ok) {
-          const rawTeamsData = await teamsResponse.json();
-          // Validate teams data
-
-          // Filter out any invalid teams and deduplicate by id
-          const validTeams = validatedTeams.data.filter(
-            (team): team is Team =>
-              team &&
-              typeof team === 'object' &&
-              typeof team.id === 'string' &&
-              typeof team.name === 'string' &&
-              team.id.trim() !== '' &&
-              team.name.trim() !== ''
-          );
-          const uniqueTeams = Array.from(
-            new Map(validTeams.map(team => [team.id, team])).values()
-          );
-          setTeams(uniqueTeams);
-        }
+        // Set players and teams to empty arrays for now (not needed for basic coach list)
+        setPlayers([] as Player[]);
+        setTeams([] as Team[]);
         if (sortedCoaches.length > 0 && sortedCoaches[0]) {
           setSelectedCoach(sortedCoaches[0]);
         }
       } catch (err) {
         // console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        setCoaches([]);
-        setPlayers([]);
-        setTeams([]);
+        setCoaches([] as Coach[]);
+        setPlayers([] as Player[]);
+        setTeams([] as Team[]);
       } finally {
         setLoading(false);
       }
