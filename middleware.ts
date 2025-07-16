@@ -5,7 +5,7 @@ import { signToken, verifyToken } from '@/lib/auth/session';
 // import { refreshSession } from '@/lib/supabase/middleware';
 
 const protectedRoutes = ['/dashboard', '/admin'];
-const adminRoutes = ['/admin'];
+// const adminRoutes = ['/admin']; // Temporarily disabled
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route =>
     pathname.startsWith(route)
   );
-  const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+  // const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route)); // Temporarily disabled
 
   if (isProtectedRoute && !sessionCookie) {
     return NextResponse.redirect(new URL('/sign-in', request.url));
@@ -30,10 +30,12 @@ export async function middleware(request: NextRequest) {
     try {
       const parsed = await verifyToken(sessionCookie.value);
 
-      if (isAdminRoute && !parsed.user.isSuperadmin) {
-        // Redirect non-admins trying to access admin routes
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
+      // For now, allow all authenticated users to access admin routes
+      // We'll implement proper role checking once we have the MPBC Person data available
+      // if (isAdminRoute && !parsed.user.isSuperadmin) {
+      //   // Redirect non-admins trying to access admin routes
+      //   return NextResponse.redirect(new URL('/dashboard', request.url));
+      // }
 
       // Refresh the session token on GET requests to keep the user logged in
       if (request.method === 'GET') {

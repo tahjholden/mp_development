@@ -230,6 +230,7 @@ export default function AuditLogsPage() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Filter states
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
@@ -258,6 +259,22 @@ export default function AuditLogsPage() {
       setSelectedLogId(logId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -616,11 +633,13 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Audit Log Features Coming Soon!"
-        description="We're building comprehensive audit logging with real-time monitoring, advanced security analytics, and automated threat detection. Stay tuned for enhanced security and compliance features."
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Audit Log Features Coming Soon!"
+          description="We're building comprehensive audit logging with real-time monitoring, advanced security analytics, and automated threat detection. Stay tuned for enhanced security and compliance features."
+        />
+      )}
     </div>
   );
 }

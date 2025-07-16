@@ -91,6 +91,7 @@ export default function ResourcesPage() {
     useState<Inspiration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   const [selectedInspirationId, setSelectedInspirationId] = useState<
     string | null
@@ -117,6 +118,22 @@ export default function ResourcesPage() {
       setSelectedInspirationId(inspirationId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch real data with validation
   useEffect(() => {
@@ -302,12 +319,14 @@ export default function ResourcesPage() {
       className="flex min-h-screen h-full bg-black text-white"
       style={{ background: 'black' }}
     >
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Resources & Inspirations Coming Soon!"
-        description="Our inspiration curation and resource sharing system is in development. You can see the layout and structure, but the full curation and sharing features are being built. Let us know what inspires you!"
-        feedbackLink="mailto:coach@example.com?subject=MPB%20Inspirations%20Feedback"
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Resources & Inspirations Coming Soon!"
+          description="Our inspiration curation and resource sharing system is in development. You can see the layout and structure, but the full curation and sharing features are being built. Let us know what inspires you!"
+          feedbackLink="mailto:coach@example.com?subject=MPB%20Inspirations%20Feedback"
+        />
+      )}
 
       {/* Header - exact replica with coach info */}
       <header

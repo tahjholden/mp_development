@@ -176,6 +176,7 @@ export default function BillingPage() {
   const [billingItems, setBillingItems] = useState<BillingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Subscription and payment method data
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -209,6 +210,22 @@ export default function BillingPage() {
       setSelectedItemId(itemId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -507,11 +524,13 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Billing Features Coming Soon!"
-        description="We're working on comprehensive billing and subscription management features. Stay tuned for payment processing, invoice management, and advanced billing analytics."
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Billing Features Coming Soon!"
+          description="We're working on comprehensive billing and subscription management features. Stay tuned for payment processing, invoice management, and advanced billing analytics."
+        />
+      )}
     </div>
   );
 }

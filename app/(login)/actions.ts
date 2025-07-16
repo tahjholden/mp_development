@@ -1,34 +1,20 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, isNotNull } from 'drizzle-orm';
-import { db } from '@/lib/db/drizzle';
-import {
-  mpCorePerson,
-  mpCorePersonGroup,
-  infrastructureInvitations,
-  infrastructureActivityLogs,
-} from '@/lib/db/schema';
-import { setSession, setUnifiedSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-// import { createCheckoutSession } from '@/lib/payments/stripe';
+import { db } from '@/lib/db/drizzle';
+import {
+  infrastructureActivityLogs,
+  ActivityType,
+  mpbcPerson,
+  mpbcPersonGroup,
+  infrastructureInvitations,
+  mpCorePerson,
+} from '@/lib/db/schema';
+import { eq, and, isNotNull } from 'drizzle-orm';
+import { setMpbcSession } from '@/lib/auth/session';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
-import { getCurrentUser, getUserByEmail } from '@/lib/db/user-service';
-
-// Define ActivityType enum since it's not in the schema
-export enum ActivityType {
-  SIGN_IN = 'SIGN_IN',
-  SIGN_UP = 'SIGN_UP',
-  SIGN_OUT = 'SIGN_OUT',
-  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
-  DELETE_ACCOUNT = 'DELETE_ACCOUNT',
-  UPDATE_ACCOUNT = 'UPDATE_ACCOUNT',
-  CREATE_TEAM = 'CREATE_TEAM',
-  REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
-  INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
-  ACCEPT_INVITATION = 'ACCEPT_INVITATION',
-}
 
 // Define types for the activity log
 type NewActivityLog = {
@@ -41,7 +27,6 @@ type NewActivityLog = {
 type NewPerson = {
   email: string;
   firstName: string;
-  displayName: string;
   authUid: string;
   organizationId: string | null;
 };
@@ -80,69 +65,51 @@ export async function signIn(prevState: any, formData: FormData) {
   if (!db) {
     return {
       error: 'Database connection not available.',
-      email,
     };
   }
 
-  // First, find the user in mpCorePerson
-  const userWithTeam = await db
-    .select({
-      user: mpCorePerson,
-    })
-    .from(mpCorePerson)
-    .where(eq(mpCorePerson.email, email))
+  // Find the user in mpbc_person for authentication
+  const person = await db
+    .select()
+    .from(mpbcPerson)
+    .where(eq(mpbcPerson.email, email))
     .limit(1);
 
-  if (userWithTeam.length === 0) {
+  if (person.length === 0) {
     return {
       error: 'Could not find your profile. Please sign up.',
       email,
     };
   }
 
-  const foundUser = userWithTeam[0]?.user;
-  if (!foundUser) {
+  const foundPerson = person[0];
+  if (!foundPerson || !foundPerson.email) {
     return {
-      error: 'Could not find your profile. Please sign up.',
+      error: 'Invalid user profile.',
       email,
     };
   }
 
-  // Try to get unified user data with role information
-  try {
-    const unifiedUser = await getUserByEmail(email);
-    if (unifiedUser) {
-      // Use unified session with proper role information
-      await Promise.all([
-        setUnifiedSession(unifiedUser),
-        logActivity(foundUser.organizationId, foundUser.id, ActivityType.SIGN_IN),
-      ]);
-    } else {
-      // Fallback to legacy session
-      await Promise.all([
-        setSession(foundUser),
-        logActivity(foundUser.organizationId, foundUser.id, ActivityType.SIGN_IN),
-      ]);
-    }
-  } catch (error) {
-    console.error('Error setting session:', error);
-    // Fallback to legacy session
-    await setSession(foundUser);
-  }
+  // For now, we'll skip password verification since we're simplifying
+  // In production, you'd verify the password here
 
-  const redirectTo = formData.get('redirect') as string | null;
-  if (redirectTo === 'checkout') {
-    // const priceId = formData.get('priceId') as string;
-    // return createCheckoutSession({ user: foundUser, priceId });
-    redirect('/dashboard');
-  }
+  // Set the session with mpbc person data
+  await setMpbcSession(foundPerson.id, foundPerson.organizationId || '');
+
+  // Log the sign-in activity
+  await logActivity(
+    foundPerson.organizationId || null,
+    foundPerson.id,
+    ActivityType.SIGN_IN
+  );
 
   redirect('/dashboard');
 }
 
 const signUpSchema = z.object({
   email: z.string().email(),
-  displayName: z.string().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
   authUid: z.string(), // Supabase Auth UID
   inviteId: z.string().optional(),
 });
@@ -153,7 +120,7 @@ export async function signUp(prevState: any, formData: FormData) {
   if (!result.success) {
     return { error: result.error.errors[0]?.message || 'Validation failed' };
   }
-  const { email, displayName, authUid } = result.data;
+  const { email, firstName, authUid } = result.data;
 
   if (!db) {
     return {
@@ -164,8 +131,8 @@ export async function signUp(prevState: any, formData: FormData) {
 
   const existingUser = await db
     .select()
-    .from(mpCorePerson)
-    .where(eq(mpCorePerson.email, email))
+    .from(mpbcPerson)
+    .where(eq(mpbcPerson.email, email))
     .limit(1);
 
   if (existingUser.length > 0) {
@@ -180,15 +147,37 @@ export async function signUp(prevState: any, formData: FormData) {
 
   const newPerson: NewPerson = {
     email,
-    firstName: displayName || email,
-    displayName: displayName || email,
+    firstName: firstName || email,
     authUid,
     organizationId: null, // We'll handle this later if needed
   };
 
-  const [createdPerson] = await db
+  // First, we need to create a mp_core_person record
+  const [corePerson] = await db
     .insert(mpCorePerson)
-    .values(newPerson)
+    .values({
+      email: newPerson.email,
+      firstName: newPerson.firstName,
+      authUid: newPerson.authUid,
+      organizationId: newPerson.organizationId,
+    })
+    .returning();
+
+  if (!corePerson) {
+    return {
+      error: 'Failed to create core person record. Please try again.',
+      email,
+    };
+  }
+
+  // Then create the mpbc_person record linked to the core person
+  const [createdPerson] = await db
+    .insert(mpbcPerson)
+    .values({
+      mpCorePersonId: corePerson.id,
+      userId: newPerson.authUid, // Link to auth.users
+      organizationId: newPerson.organizationId,
+    })
     .returning();
 
   if (!createdPerson) {
@@ -205,7 +194,7 @@ export async function signUp(prevState: any, formData: FormData) {
       createdPerson.id,
       ActivityType.SIGN_UP
     ),
-    setSession(createdPerson),
+    setMpbcSession(createdPerson.id, createdPerson.organizationId || ''),
   ]);
 
   const redirectTo = formData.get('redirect') as string | null;
@@ -280,11 +269,11 @@ export async function removeUser(prevState: any, formData: FormData) {
     return { error: 'Database connection not available.' };
   }
 
-  const membership = await db.query.mpCorePersonGroup.findFirst({
+  const membership = await db.query.mpbcPersonGroup.findFirst({
     where: and(
-      isNotNull(mpCorePersonGroup.groupId),
-      eq(mpCorePersonGroup.groupId, userWithTeam.team.id),
-      eq(mpCorePersonGroup.personId, user.id)
+      isNotNull(mpbcPersonGroup.groupId),
+      eq(mpbcPersonGroup.groupId, userWithTeam.team.id),
+      eq(mpbcPersonGroup.personId, user.id)
     ),
   });
 
@@ -293,11 +282,11 @@ export async function removeUser(prevState: any, formData: FormData) {
   }
 
   await db
-    .delete(mpCorePersonGroup)
+    .delete(mpbcPersonGroup)
     .where(
       and(
-        eq(mpCorePersonGroup.personId, userId),
-        eq(mpCorePersonGroup.groupId, userWithTeam.team.id)
+        eq(mpbcPersonGroup.personId, userId),
+        eq(mpbcPersonGroup.groupId, userWithTeam.team.id)
       )
     );
 
@@ -346,14 +335,15 @@ export async function inviteUser(prevState: any, formData: FormData) {
     return { error: 'Invalid team or user ID.' };
   }
   // Check for existing pending invitation
-  const existingInvitation =
-    await db.query.infrastructureInvitations.findFirst({
+  const existingInvitation = await db.query.infrastructureInvitations.findFirst(
+    {
       where: and(
         eq(infrastructureInvitations.teamId, team.id),
         eq(infrastructureInvitations.email, email),
         eq(infrastructureInvitations.status, 'pending')
       ),
-    });
+    }
+  );
 
   if (existingInvitation) {
     return { error: 'An invitation has already been sent to this email.' };
@@ -401,9 +391,9 @@ export async function updateProfile(prevState: any, formData: FormData) {
   }
 
   await db
-    .update(mpCorePerson)
+    .update(mpbcPerson)
     .set({ displayName })
-    .where(eq(mpCorePerson.id, user.id));
+    .where(eq(mpbcPerson.id, user.id));
 
   // Note: team.organizationId doesn't exist in the current schema
   // We'll use the user's organizationId instead

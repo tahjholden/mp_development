@@ -35,7 +35,7 @@ export async function getUsers(limit = 10, offset = 0) {
       firstName: mpCorePerson.firstName,
       lastName: mpCorePerson.lastName,
       email: mpCorePerson.email,
-      role: mpCorePerson.role,
+      personType: mpCorePerson.personType,
     })
     .from(mpCorePerson)
     .limit(limit)
@@ -56,9 +56,7 @@ export async function getUserById(userId: string) {
       firstName: mpCorePerson.firstName,
       lastName: mpCorePerson.lastName,
       email: mpCorePerson.email,
-      role: mpCorePerson.role,
-      groupId: mpCorePerson.groupId,
-      groupName: mpCorePerson.groupName,
+      personType: mpCorePerson.personType,
     })
     .from(mpCorePerson)
     .where(eq(mpCorePerson.id, userId))
@@ -81,7 +79,7 @@ export async function searchUsers(query: string, limit = 10) {
       firstName: mpCorePerson.firstName,
       lastName: mpCorePerson.lastName,
       email: mpCorePerson.email,
-      role: mpCorePerson.role,
+      personType: mpCorePerson.personType,
     })
     .from(mpCorePerson)
     .where(

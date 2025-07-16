@@ -21,7 +21,7 @@ export async function GET() {
       );
     }
 
-    // Query for coaches using mpbc_person_group.role = 'coach' as source of truth
+    // Query for coaches using mpbc_person.person_type = 'coach' as source of truth
     const coaches = await db
       .select({
         id: mpbcPerson.id,
@@ -42,15 +42,13 @@ export async function GET() {
         `.as('player_count'),
       })
       .from(mpbcPerson)
-      .innerJoin(mpbcPersonGroup, eq(mpbcPerson.id, mpbcPersonGroup.personId))
-      .innerJoin(mpbcGroup, eq(mpbcPersonGroup.groupId, mpbcGroup.id))
+      .leftJoin(mpbcPersonGroup, eq(mpbcPerson.id, mpbcPersonGroup.personId))
+      .leftJoin(mpbcGroup, eq(mpbcPersonGroup.groupId, mpbcGroup.id))
       .where(
         and(
           isNotNull(mpbcPerson.id),
-          isNotNull(mpbcPersonGroup.groupId),
-          isNotNull(mpbcGroup.name),
-          // Use role from mpbc_person_group as source of truth for coaches
-          eq(mpbcPersonGroup.role, 'coach')
+          // Use person_type from mpbc_person as source of truth for coaches
+          eq(mpbcPerson.personType, 'coach')
         )
       );
 
@@ -59,7 +57,7 @@ export async function GET() {
       id: coach.id,
       name: [coach.firstName, coach.lastName].filter(Boolean).join(' '),
       email: coach.email,
-      team: coach.team,
+      team: coach.team || 'No Team Assigned',
       teamId: coach.teamId,
       status: coach.status || 'active',
       role: coach.role || 'Coach',

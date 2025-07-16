@@ -161,6 +161,7 @@ export default function PlayerPortalPage() {
   const [progress, setProgress] = useState<PlayerProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Filter states
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -182,6 +183,22 @@ export default function PlayerPortalPage() {
       setSelectedGoalId(goalId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -507,11 +524,13 @@ export default function PlayerPortalPage() {
         </div>
       </div>
 
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Player Portal Features Coming Soon!"
-        description="We're building an advanced player portal with personalized training plans, AI-powered insights, and real-time progress tracking. Stay tuned for enhanced player development tools."
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Player Portal Features Coming Soon!"
+          description="We're building an advanced player portal with personalized training plans, AI-powered insights, and real-time progress tracking. Stay tuned for enhanced player development tools."
+        />
+      )}
     </div>
   );
 }

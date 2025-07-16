@@ -216,7 +216,6 @@ export const mpbcPerson = pgTable(
       mode: 'string',
     }).defaultNow(),
     userId: uuid('user_id'),
-    displayName: text('display_name'),
     metadata: jsonb(),
     firstName: text('first_name'),
     lastName: text('last_name'),
@@ -225,8 +224,6 @@ export const mpbcPerson = pgTable(
     notes: text(),
     personType: text('person_type'),
     organizationId: uuid('organization_id'),
-    isAdmin: boolean('is_admin'),
-    isSuperadmin: boolean('is_superadmin'),
     active: boolean(),
     dateOfBirth: timestamp('date_of_birth', {
       withTimezone: true,
@@ -1313,7 +1310,6 @@ export const mpbcCoreSkills = pgTable('mpbc_core_skills', {
     .default(sql`uuid_generate_v4()`)
     .primaryKey()
     .notNull(),
-  displayName: text('display_name'),
   category: text(),
   subcategory: text(),
   description: text(),
@@ -2618,7 +2614,6 @@ export const mpCorePerson = pgTable(
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    displayName: text('display_name').notNull(),
     metadata: jsonb(),
     createdAt: timestamp('created_at', {
       withTimezone: true,

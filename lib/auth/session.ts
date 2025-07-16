@@ -1,16 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { mpCorePerson } from '@/lib/db/schema';
-import { UnifiedUser } from '@/lib/db/user-service';
 
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 
 type SessionData = {
   user: {
-    id: string;
-    isSuperadmin: boolean;
-    isAdmin: boolean;
-    primaryRole: string;
+    mpbcPersonId: string; // Only MPBC Person ID for basketball app
     organizationId: string;
   };
   expires: string;
@@ -37,21 +32,22 @@ export async function getSession() {
   return await verifyToken(session);
 }
 
-// Legacy function for backward compatibility
-export async function setSession(user: typeof mpCorePerson.$inferSelect) {
+export async function setMpbcSession(
+  mpbcPersonId: string,
+  organizationId: string
+) {
   const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const session: SessionData = {
+  const token = await signToken({
     user: {
-      id: user.id,
-      isSuperadmin: false, // Default to false for legacy compatibility
-      isAdmin: false,
-      primaryRole: 'player',
-      organizationId: user.organizationId || '',
+      mpbcPersonId,
+      organizationId,
     },
     expires: expiresInOneDay.toISOString(),
-  };
-  const encryptedSession = await signToken(session);
-  (await cookies()).set('session', encryptedSession, {
+  });
+
+  (await cookies()).set({
+    name: 'session',
+    value: token,
     expires: expiresInOneDay,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -59,24 +55,18 @@ export async function setSession(user: typeof mpCorePerson.$inferSelect) {
   });
 }
 
-// New function for unified user data with proper role information
-export async function setUnifiedSession(user: UnifiedUser) {
-  const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const session: SessionData = {
-    user: {
-      id: user.id,
-      isSuperadmin: user.isSuperadmin,
-      isAdmin: user.isAdmin,
-      primaryRole: user.primaryRole,
-      organizationId: user.organizationId,
-    },
-    expires: expiresInOneDay.toISOString(),
-  };
-  const encryptedSession = await signToken(session);
-  (await cookies()).set('session', encryptedSession, {
-    expires: expiresInOneDay,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-  });
+export async function clearSession() {
+  (await cookies()).delete('session');
+}
+
+// Legacy function for backward compatibility - will be removed
+export async function setSession() {
+  console.warn('setSession is deprecated, use setMpbcSession instead');
+  // This will be removed once we update all auth flows
+}
+
+// Legacy function for backward compatibility - will be removed
+export async function setUnifiedSession() {
+  console.warn('setUnifiedSession is deprecated, use setMpbcSession instead');
+  // This will be removed once we update all auth flows
 }

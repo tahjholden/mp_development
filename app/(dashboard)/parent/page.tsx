@@ -204,6 +204,7 @@ export default function ParentPortalPage() {
   const [communications, setCommunications] = useState<Communication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Filter states
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -232,6 +233,22 @@ export default function ParentPortalPage() {
       setSelectedChildId(childId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -556,11 +573,13 @@ export default function ParentPortalPage() {
         </div>
       </div>
 
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Parent Portal Features Coming Soon!"
-        description="We're building a comprehensive parent portal with real-time progress tracking, direct coach communication, and family management tools. Stay tuned for enhanced parent engagement features."
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Parent Portal Features Coming Soon!"
+          description="We're building a comprehensive parent portal with real-time progress tracking, direct coach communication, and family management tools. Stay tuned for enhanced parent engagement features."
+        />
+      )}
     </div>
   );
 }

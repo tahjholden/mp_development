@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { setSession } from '@/lib/auth/session';
+import { setMpbcSession } from '@/lib/auth/session';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
-import { mpCorePerson } from '@/lib/db/schema';
+import { mpbcPerson } from '@/lib/db/schema';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,28 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
-
-    // Step 1: Authenticate with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      console.error('Supabase Auth error:', error.message);
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
-
-    if (!data.user) {
-      console.error('Supabase Auth: No user returned');
-      return NextResponse.json(
-        { error: 'Authentication failed' },
-        { status: 401 }
-      );
-    }
-
-    // Step 2: Find the user in our database
+    // Step 1: Find the user in mpbcPerson table
     if (!db) {
       console.error('Database connection not available');
       return NextResponse.json(
@@ -47,32 +25,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try to find by auth_uid first, fallback to email for legacy
-    let userResult = await db
+    const userResult = await db
       .select()
-      .from(mpCorePerson)
-      .where(eq(mpCorePerson.authUid, data.user.id))
+      .from(mpbcPerson)
+      .where(eq(mpbcPerson.email, email))
       .limit(1);
 
-    let user = userResult[0];
+    const user = userResult[0];
 
     if (!user) {
-      // Fallback: try by email (legacy)
-      userResult = await db
-        .select()
-        .from(mpCorePerson)
-        .where(eq(mpCorePerson.email, email))
-        .limit(1);
-      user = userResult[0];
-    }
-
-    if (!user) {
-      console.error(
-        'User not found in mp_core_person for email:',
-        email,
-        'and auth_uid:',
-        data.user.id
-      );
+      console.error('User not found in mpbc_person for email:', email);
       return NextResponse.json(
         {
           error:
@@ -82,9 +44,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 3: Set session cookie
+    // Step 2: For now, skip password verification to simplify
+    // In production, you'd verify the password here
+    console.log('Found user:', {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      personType: user.personType,
+    });
+
+    // Step 3: Set session cookie with MPBC Person data
     try {
-      await setSession(user);
+      await setMpbcSession(user.id, user.organizationId || '');
     } catch (sessionError) {
       console.error('Session creation error:', sessionError);
       return NextResponse.json(

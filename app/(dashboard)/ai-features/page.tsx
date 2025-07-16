@@ -295,6 +295,7 @@ export default function AIFeaturesPage() {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Filter states
   const [selectedInsightId, setSelectedInsightId] = useState<string | null>(
@@ -322,6 +323,22 @@ export default function AIFeaturesPage() {
       setSelectedInsightId(insightId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -659,11 +676,13 @@ export default function AIFeaturesPage() {
         </div>
       </div>
 
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="AI Features Coming Soon!"
-        description="We're developing advanced AI-powered features including predictive analytics, personalized training recommendations, and intelligent performance insights. Stay tuned for the future of basketball development."
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="AI Features Coming Soon!"
+          description="We're developing advanced AI-powered features including predictive analytics, personalized training recommendations, and intelligent performance insights. Stay tuned for the future of basketball development."
+        />
+      )}
     </div>
   );
 }

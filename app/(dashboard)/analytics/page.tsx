@@ -80,6 +80,7 @@ export default function AnalyticsPage() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
@@ -108,6 +109,22 @@ export default function AnalyticsPage() {
       setSelectedMetricId(metricId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch real data with validation
   useEffect(() => {
@@ -342,12 +359,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex min-h-screen h-full bg-black text-white">
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Analytics Coming Soon!"
-        description="Our analytics dashboard is in development. You can see the layout and structure, but the data and charts are being built. Let us know what metrics you'd like to see!"
-        feedbackLink="mailto:coach@example.com?subject=MPB%20Analytics%20Feedback"
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Analytics Coming Soon!"
+          description="Our analytics dashboard is in development. You can see the layout and structure, but the data and charts are being built. Let us know what metrics you'd like to see!"
+          feedbackLink="mailto:coach@example.com?subject=MPB%20Analytics%20Feedback"
+        />
+      )}
 
       {/* Header - exact replica with coach info */}
       <header
@@ -682,11 +701,13 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Advanced Analytics Features Coming Soon!"
-        description="We're building comprehensive analytics with advanced reporting, predictive insights, and customizable dashboards. Stay tuned for enhanced data visualization and business intelligence features."
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Advanced Analytics Features Coming Soon!"
+          description="We're building comprehensive analytics with advanced reporting, predictive insights, and customizable dashboards. Stay tuned for enhanced data visualization and business intelligence features."
+        />
+      )}
     </div>
   );
 }

@@ -82,16 +82,22 @@ export default function DashboardPage() {
         const response = await fetch('/api/user/session');
         if (response.ok) {
           const data = await response.json();
+          console.log('API Response:', data);
+          console.log('User primaryRole:', data.user?.primaryRole);
           setRealUser(data.user);
-          
+          console.log('Set realUser state:', data.user);
+
           // Set the current role based on real user data
-          if (data.user.isSuperadmin) {
+          if (data.user.primaryRole === 'superadmin') {
             setCurrentRole('superadmin');
-          } else if (data.user.isAdmin) {
+          } else if (data.user.primaryRole === 'admin') {
             setCurrentRole('admin');
           } else if (data.user.primaryRole === 'player') {
             setCurrentRole('player');
+          } else if (data.user.primaryRole === 'coach') {
+            setCurrentRole('coach');
           } else {
+            // Default to coach if no role is set
             setCurrentRole('coach');
           }
         }
@@ -133,13 +139,31 @@ export default function DashboardPage() {
         </span>
         <div className="flex flex-col items-end">
           <span className="text-base font-semibold text-white leading-tight">
-            {realUser ? `User ${realUser.id}` : user.name}
+            {realUser
+              ? realUser.name ||
+                `${realUser.firstName || ''} ${realUser.lastName || ''}`.trim() ||
+                `User ${realUser.id}`
+              : user.name}
           </span>
           <span className="text-xs text-[#d8cc97] leading-tight">
-            {realUser ? `Role: ${realUser.primaryRole}` : user.email}
+            {realUser && realUser.email ? realUser.email : user.email}
           </span>
           <span className="text-xs text-white leading-tight capitalize">
-            {realUser ? (realUser.isSuperadmin ? 'SuperAdmin' : realUser.isAdmin ? 'Admin' : realUser.primaryRole) : user.role}
+            {(() => {
+              console.log('Header render - realUser:', realUser);
+              console.log(
+                'Header render - realUser.personType:',
+                realUser?.personType
+              );
+              return realUser && realUser.personType
+                ? realUser.personType === 'superadmin'
+                  ? 'SuperAdmin'
+                  : realUser.personType === 'admin'
+                    ? 'Admin'
+                    : realUser.personType.charAt(0).toUpperCase() +
+                      realUser.personType.slice(1)
+                : user.role;
+            })()}
           </span>
         </div>
       </header>
@@ -150,7 +174,7 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen">
         {/* LEFT COLUMN: Entity Panel */}
-        <EntityPanel user={user} />
+        <EntityPanel user={realUser || user} />
 
         {/* CENTER COLUMN: Main Panel */}
         <MainPanel>
@@ -205,16 +229,22 @@ export default function DashboardPage() {
           </div>
 
           {/* Modular Dashboard Home */}
-          <DashboardHome user={user} />
+          <DashboardHome user={realUser || user} />
         </MainPanel>
 
         {/* RIGHT COLUMN: Right Panel */}
         <RightPanel>
-          <RecentActivity user={user} />
+          <RecentActivity user={realUser || user} />
           {/* Admin-only tools */}
-          {['admin'].includes(user.role) && <AdminToolsPanel user={user} />}
+          {(realUser?.primaryRole === 'admin' ||
+            realUser?.primaryRole === 'superadmin' ||
+            user.role === 'admin') && (
+            <AdminToolsPanel user={realUser || user} />
+          )}
           {/* Coach quick actions */}
-          {['coach'].includes(user.role) && <CoachQuickActions user={user} />}
+          {(realUser?.primaryRole === 'coach' || user.role === 'coach') && (
+            <CoachQuickActions user={realUser || user} />
+          )}
         </RightPanel>
       </div>
     </div>
@@ -247,7 +277,7 @@ function EntityPanel({ user }) {
 
   return (
     <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen">
-      {user.role === 'admin' ? (
+      {user.primaryRole === 'admin' || user.primaryRole === 'superadmin' ? (
         <>
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             System Overview
@@ -399,43 +429,49 @@ function RightPanel({ children }) {
 function DashboardHome({ user }) {
   return (
     <div className="space-y-6">
+      {/* Superadmin-only widgets */}
+      {user.isSuperadmin && <SystemHealth user={user} />}
+
       {/* Always-on widgets */}
-      <SystemHealth user={user} />
       <TeamStats user={user} />
 
       {/* Player Portal - Feature flag controlled */}
-      {user.role === 'player' && user.features.playerPortal && (
+      {user.primaryRole === 'player' && user.features?.playerPortal && (
         <PlayerPortalDashboard playerId={user.id} features={user.features} />
       )}
 
       {/* Org admin tools, only if correct role */}
-      {['admin'].includes(user.role) && (
+      {user.isAdmin && (
         <>
-          {user.features.userManagement && (
-            <UserManagementPanel orgId={user.orgId} />
+          {user.features?.userManagement && (
+            <UserManagementPanel orgId={user.organizationId} />
           )}
-          <RosterPanel orgId={user.orgId} />
-          {user.features.auditLogs && <AuditLogsPanel orgId={user.orgId} />}
-          {user.features.dataExport && <DataExportPanel orgId={user.orgId} />}
-          {user.features.systemSettings && (
-            <SystemSettingsPanel orgId={user.orgId} />
+          <RosterPanel orgId={user.organizationId} />
+          {user.features?.auditLogs && (
+            <AuditLogsPanel orgId={user.organizationId} />
+          )}
+          {user.features?.dataExport && (
+            <DataExportPanel orgId={user.organizationId} />
+          )}
+          {user.features?.systemSettings && (
+            <SystemSettingsPanel orgId={user.organizationId} />
           )}
         </>
       )}
 
       {/* Payments/Billing, only if feature enabled */}
-      {user.features.billing && <BillingPanel orgId={user.orgId} />}
+      {user.features?.billing && <BillingPanel orgId={user.organizationId} />}
 
       {/* Advanced analytics, only if feature enabled */}
-      {user.features.advancedAnalytics && (
-        <AdvancedAnalyticsPanel orgId={user.orgId} />
+      {user.features?.advancedAnalytics && (
+        <AdvancedAnalyticsPanel orgId={user.organizationId} />
       )}
 
       {/* Coach specific widgets */}
-      {['coach'].includes(user.role) && (
+      {user.primaryRole === 'coach' && (
         <>
           <RosterPanel teamId={user.teamId} />
-          {user.features.teamFees && <TeamFeesPanel teamId={user.teamId} />}
+          {user.features?.teamFees && <TeamFeesPanel teamId={user.teamId} />}
           <PracticeScheduleCard />
           <RecentTeamActivity />
         </>
@@ -446,22 +482,32 @@ function DashboardHome({ user }) {
 
 // Admin Tools Panel - Actions only for admins
 function AdminToolsPanel({ user }) {
+  // Provide default features if not available
+  const features = user.features || {
+    teamFees: false,
+    playerPortal: false,
+    userManagement: false,
+    auditLogs: false,
+    dataExport: false,
+    systemSettings: false,
+    billing: false,
+    advancedAnalytics: false,
+  };
+
   return (
     <div className="bg-zinc-900 border-l-4 border-yellow-400 rounded-lg p-4 space-y-3 shadow-md mt-6">
       <div className="flex items-center gap-2 font-bold text-lg">
         <span className="text-yellow-400">🛡️ Admin Tools</span>
       </div>
       <div className="grid gap-2">
-        {user.features.userManagement && <ActionButton label="Manage Users" />}
+        {features.userManagement && <ActionButton label="Manage Users" />}
         <ActionButton label="Team Management" />
-        {user.features.advancedAnalytics && (
+        {features.advancedAnalytics && (
           <ActionButton label="System Analytics" />
         )}
-        {user.features.auditLogs && <ActionButton label="Audit Logs" />}
-        {user.features.dataExport && <ActionButton label="Data Export" />}
-        {user.features.systemSettings && (
-          <ActionButton label="System Settings" />
-        )}
+        {features.auditLogs && <ActionButton label="Audit Logs" />}
+        {features.dataExport && <ActionButton label="Data Export" />}
+        {features.systemSettings && <ActionButton label="System Settings" />}
       </div>
     </div>
   );
@@ -469,6 +515,18 @@ function AdminToolsPanel({ user }) {
 
 // Coach Quick Actions - Team-focused actions
 function CoachQuickActions({ user }) {
+  // Provide default features if not available
+  const features = user.features || {
+    teamFees: false,
+    playerPortal: false,
+    userManagement: false,
+    auditLogs: false,
+    dataExport: false,
+    systemSettings: false,
+    billing: false,
+    advancedAnalytics: false,
+  };
+
   return (
     <div className="bg-zinc-900 border-l-4 border-blue-400 rounded-lg p-4 space-y-3 shadow-md mt-6">
       <div className="flex items-center gap-2 font-bold text-lg">
@@ -479,7 +537,7 @@ function CoachQuickActions({ user }) {
         <ActionButton label="Schedule Practice" />
         <ActionButton label="Create Development Plan" />
         <ActionButton label="Log Observation" />
-        {user.features.teamFees && <ActionButton label="Manage Team Fees" />}
+        {features.teamFees && <ActionButton label="Manage Team Fees" />}
       </div>
     </div>
   );
@@ -487,102 +545,101 @@ function CoachQuickActions({ user }) {
 
 // Recent Activity Component
 function RecentActivity({ user }) {
-  const activities =
-    user.role === 'admin'
-      ? [
-          {
-            id: 1,
-            type: 'system',
-            message: 'System backup completed successfully',
-            time: '2 hours ago',
-            icon: Database,
-            color: 'green',
-            severity: 'success',
-          },
-          {
-            id: 2,
-            type: 'user',
-            message: 'New user invitation sent to coach@team.com',
-            time: '3 hours ago',
-            icon: Mail,
-            color: 'blue',
-            severity: 'info',
-          },
-          {
-            id: 3,
-            type: 'alert',
-            message: 'High CPU usage detected on server',
-            time: '4 hours ago',
-            icon: AlertTriangle,
-            color: 'yellow',
-            severity: 'warning',
-          },
-          {
-            id: 4,
-            type: 'billing',
-            message: 'Monthly subscription payment processed',
-            time: '1 day ago',
-            icon: CreditCard,
-            color: 'green',
-            severity: 'success',
-          },
-          {
-            id: 5,
-            type: 'security',
-            message: 'Failed login attempt from unknown IP',
-            time: '1 day ago',
-            icon: Shield,
-            color: 'red',
-            severity: 'error',
-          },
-        ]
-      : [
-          {
-            id: 1,
-            type: 'user',
-            message: 'New player added to Team Alpha',
-            time: '2 hours ago',
-            icon: UserPlus,
-            color: 'green',
-            severity: 'info',
-          },
-          {
-            id: 2,
-            type: 'plan',
-            message: 'Development plan updated for John Doe',
-            time: '4 hours ago',
-            icon: FileText,
-            color: 'blue',
-            severity: 'info',
-          },
-          {
-            id: 3,
-            type: 'observation',
-            message: 'New observation recorded for Team Beta',
-            time: '6 hours ago',
-            icon: Eye,
-            color: 'purple',
-            severity: 'info',
-          },
-          {
-            id: 4,
-            type: 'team',
-            message: 'Team Gamma created',
-            time: '8 hours ago',
-            icon: Shield,
-            color: 'orange',
-            severity: 'info',
-          },
-          {
-            id: 5,
-            type: 'coach',
-            message: 'Coach Sarah joined the platform',
-            time: '12 hours ago',
-            icon: Users,
-            color: 'cyan',
-            severity: 'info',
-          },
-        ];
+  const activities = user.isAdmin
+    ? [
+        {
+          id: 1,
+          type: 'system',
+          message: 'System backup completed successfully',
+          time: '2 hours ago',
+          icon: Database,
+          color: 'green',
+          severity: 'success',
+        },
+        {
+          id: 2,
+          type: 'user',
+          message: 'New user invitation sent to coach@team.com',
+          time: '3 hours ago',
+          icon: Mail,
+          color: 'blue',
+          severity: 'info',
+        },
+        {
+          id: 3,
+          type: 'alert',
+          message: 'High CPU usage detected on server',
+          time: '4 hours ago',
+          icon: AlertTriangle,
+          color: 'yellow',
+          severity: 'warning',
+        },
+        {
+          id: 4,
+          type: 'billing',
+          message: 'Monthly subscription payment processed',
+          time: '1 day ago',
+          icon: CreditCard,
+          color: 'green',
+          severity: 'success',
+        },
+        {
+          id: 5,
+          type: 'security',
+          message: 'Failed login attempt from unknown IP',
+          time: '1 day ago',
+          icon: Shield,
+          color: 'red',
+          severity: 'error',
+        },
+      ]
+    : [
+        {
+          id: 1,
+          type: 'user',
+          message: 'New player added to Team Alpha',
+          time: '2 hours ago',
+          icon: UserPlus,
+          color: 'green',
+          severity: 'info',
+        },
+        {
+          id: 2,
+          type: 'plan',
+          message: 'Development plan updated for John Doe',
+          time: '4 hours ago',
+          icon: FileText,
+          color: 'blue',
+          severity: 'info',
+        },
+        {
+          id: 3,
+          type: 'observation',
+          message: 'New observation recorded for Team Beta',
+          time: '6 hours ago',
+          icon: Eye,
+          color: 'purple',
+          severity: 'info',
+        },
+        {
+          id: 4,
+          type: 'team',
+          message: 'Team Gamma created',
+          time: '8 hours ago',
+          icon: Shield,
+          color: 'orange',
+          severity: 'info',
+        },
+        {
+          id: 5,
+          type: 'coach',
+          message: 'Coach Sarah joined the platform',
+          time: '12 hours ago',
+          icon: Users,
+          color: 'cyan',
+          severity: 'info',
+        },
+      ];
 
   return (
     <>

@@ -1,57 +1,13 @@
 import { desc, eq } from 'drizzle-orm';
 import { db } from './drizzle';
-import {
-  infrastructureActivityLogs,
-  mpCorePerson,
-  mpCorePersonGroup,
-  mpCoreGroup,
-} from './schema';
+import { infrastructureActivityLogs, currentParticipants } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
 export async function getUser(): Promise<
-  typeof mpCorePerson.$inferSelect | null
+  typeof currentParticipants.$inferSelect | null
 > {
-  // Database might be undefined in environments without POSTGRES_URL.
-  if (!db) {
-    // console.log('getUser: Database not available');
-    return null;
-  }
-
-  const sessionCookie = (await cookies()).get('session');
-  // console.log('getUser: Session cookie exists:', !!sessionCookie);
-  if (!sessionCookie || !sessionCookie.value) {
-    // console.log('getUser: No session cookie or value');
-    return null;
-  }
-
-  const sessionData = await verifyToken(sessionCookie.value);
-  // console.log('getUser: Session data:', sessionData ? 'valid' : 'invalid');
-  if (
-    !sessionData ||
-    !sessionData.user ||
-    typeof sessionData.user.id !== 'string' // UUIDs are strings
-  ) {
-    // console.log('getUser: Invalid session data');
-    return null;
-  }
-
-  if (new Date(sessionData.expires) < new Date()) {
-    // console.log('getUser: Session expired');
-    return null;
-  }
-
-  const userResult = await db
-    .select()
-    .from(mpCorePerson)
-    .where(eq(mpCorePerson.id, sessionData.user.id))
-    .limit(1);
-
-  if (userResult.length === 0) {
-    return null;
-  }
-
-  return userResult[0];
+  return await getCurrentParticipant();
 }
 
 export async function getUserWithTeam(personId: string) {
@@ -61,36 +17,24 @@ export async function getUserWithTeam(personId: string) {
 
   const userResult = await db
     .select()
-    .from(mpCorePerson)
-    .where(eq(mpCorePerson.id, personId))
+    .from(currentParticipants)
+    .where(eq(currentParticipants.id, personId))
     .limit(1);
 
   if (!userResult.length || !userResult[0]) return null;
 
   const user = userResult[0];
 
-  // Get the user's team information from mpCorePersonGroup
-  const teamResult = await db
-    .select({
-      groupId: mpCorePersonGroup.groupId,
-      groupName: mpCoreGroup.name,
-    })
-    .from(mpCorePersonGroup)
-    .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
-    .where(eq(mpCorePersonGroup.personId, personId))
-    .limit(1);
-
-  const team = teamResult.length > 0 ? teamResult[0] : null;
-
   return {
     ...user,
-    team: team
-      ? {
-          id: team.groupId,
-          name: team.groupName,
-        }
-      : null,
-    teamId: team?.groupId || null,
+    team:
+      user.groupId && user.groupName
+        ? {
+            id: user.groupId,
+            name: user.groupName,
+          }
+        : null,
+    teamId: user.groupId || null,
   };
 }
 
@@ -110,12 +54,12 @@ export async function getActivityLogs() {
       action: infrastructureActivityLogs.action,
       timestamp: infrastructureActivityLogs.timestamp,
       ipAddress: infrastructureActivityLogs.ipAddress,
-      userName: mpCorePerson.firstName,
+      userName: currentParticipants.firstName,
     })
     .from(infrastructureActivityLogs)
     .leftJoin(
-      mpCorePerson,
-      eq(infrastructureActivityLogs.personId, mpCorePerson.id)
+      currentParticipants,
+      eq(infrastructureActivityLogs.personId, currentParticipants.id)
     )
     .where(eq(infrastructureActivityLogs.personId, user.id))
     .orderBy(desc(infrastructureActivityLogs.timestamp))
@@ -132,25 +76,50 @@ export async function getTeamForUser() {
     return null;
   }
 
-  // Get the user's team information from mpCorePersonGroup
-  const teamResult = await db
-    .select({
-      groupId: mpCorePersonGroup.groupId,
-      groupName: mpCoreGroup.name,
-    })
-    .from(mpCorePersonGroup)
-    .leftJoin(mpCoreGroup, eq(mpCorePersonGroup.groupId, mpCoreGroup.id))
-    .where(eq(mpCorePersonGroup.personId, user.id))
-    .limit(1);
-
-  if (teamResult.length > 0 && teamResult[0]) {
-    const team = teamResult[0];
+  // The user data from current_participants already includes team information
+  if (user.groupId && user.groupName) {
     return {
-      id: team.groupId,
-      name: team.groupName || null,
+      id: user.groupId,
+      name: user.groupName,
       // Add other team properties as needed
     };
   }
 
   return null;
+}
+
+// Function to get current participant data by ID
+export async function getParticipantById(
+  participantId: string
+): Promise<typeof currentParticipants.$inferSelect | null> {
+  if (!db) {
+    return null;
+  }
+
+  const result = await db
+    .select()
+    .from(currentParticipants)
+    .where(eq(currentParticipants.id, participantId))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+// Function to get current user's participant data from session
+export async function getCurrentParticipant() {
+  const sessionCookie = (await cookies()).get('session');
+  if (!sessionCookie || !sessionCookie.value) {
+    return null;
+  }
+
+  const sessionData = await verifyToken(sessionCookie.value);
+  if (!sessionData || !sessionData.user || !sessionData.user.mpbcPersonId) {
+    return null;
+  }
+
+  if (new Date(sessionData.expires) < new Date()) {
+    return null;
+  }
+
+  return await getParticipantById(sessionData.user.mpbcPersonId);
 }

@@ -84,6 +84,7 @@ export default function SessionsPage() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
@@ -114,6 +115,22 @@ export default function SessionsPage() {
       setSelectedSessionId(sessionId);
     }
   };
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Fetch real data
   useEffect(() => {
@@ -321,12 +338,14 @@ export default function SessionsPage() {
       className="flex min-h-screen h-full bg-black text-white"
       style={{ background: 'black' }}
     >
-      {/* Coming Soon Overlay */}
-      <ComingSoonOverlay
-        title="Sessions Coming Soon!"
-        description="Our session management system is in development. You can see the layout and structure, but the scheduling and management features are being built. Let us know what session features you'd like to see!"
-        feedbackLink="mailto:coach@example.com?subject=MPB%20Sessions%20Feedback"
-      />
+      {/* Coming Soon Overlay - Hidden for superadmin */}
+      {user?.personType !== 'superadmin' && (
+        <ComingSoonOverlay
+          title="Sessions Coming Soon!"
+          description="Our session management system is in development. You can see the layout and structure, but the scheduling and management features are being built. Let us know what session features you'd like to see!"
+          feedbackLink="mailto:coach@example.com?subject=MPB%20Sessions%20Feedback"
+        />
+      )}
       {/* Header - exact replica with coach info */}
       <header
         className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
