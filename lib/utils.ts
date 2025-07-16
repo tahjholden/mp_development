@@ -12,19 +12,25 @@ export const UserSchema = z.object({
   displayName: z.string().optional(),
   name: z.string().optional(),
   email: z.string(),
-  role: z.string(),
+  role: z.string().optional(),
   isSuperadmin: z.boolean().optional(),
+  isAdmin: z.boolean().optional(),
   firstName: z.string().nullable().optional(),
   lastName: z.string().nullable().optional(),
   personType: z.string().nullable().optional(),
   groupId: z.string().nullable().optional(),
   groupName: z.string().nullable().optional(),
   position: z.string().nullable().optional(),
+  organizationId: z.string().optional(),
+  organizationName: z.string().optional(),
+  active: z.boolean().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  authUid: z.string().optional(),
 });
 
-export const UserResponseSchema = z.object({
-  user: UserSchema.nullable(),
-});
+// The API returns user data directly, not wrapped in a user property
+export const UserResponseSchema = UserSchema;
 
 export type User = z.infer<typeof UserSchema>;
 export type UserResponse = z.infer<typeof UserResponseSchema>;

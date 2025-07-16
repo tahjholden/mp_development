@@ -6,7 +6,6 @@ import { eq, and, isNotNull } from 'drizzle-orm';
 export async function GET() {
   try {
     const user = await getUser();
-    console.log('getUser result:', user);
 
     if (!db) {
       return Response.json(
@@ -17,7 +16,7 @@ export async function GET() {
 
     // If no user session, still fetch data for development
     if (!user) {
-      console.log('No user session found, fetching all teams for development');
+      // No user session found, fetching all teams for development
     }
 
     // Get teams by joining with mpbcPersonGroup and mpbcGroup tables
@@ -50,19 +49,21 @@ export async function GET() {
         mpbcPerson.personType
       );
 
-    console.log('Raw teams data:', teams);
-
     // Transform the data to match the expected format
-    const formattedTeams = teams.map(team => ({
-      id: team.id || 'unknown',
-      name: team.name || 'Unknown Team',
-      coachName:
+    const formattedTeams = teams.map(team => {
+      const coachName =
         team.coachName && team.coachLastName
           ? `${team.coachName} ${team.coachLastName}`.trim()
-          : team.coachName || team.coachLastName || 'Unknown Coach',
-      role: team.role || 'Coach',
-      personType: team.personType || 'coach',
-    }));
+          : team.coachName || team.coachLastName || 'Unknown Coach';
+
+      return {
+        id: team.id || 'unknown',
+        name: team.name || 'Unknown Team',
+        coachName,
+        role: team.role || 'Coach',
+        personType: team.personType || 'coach',
+      };
+    });
 
     return Response.json(formattedTeams);
   } catch (error) {

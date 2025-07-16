@@ -11,7 +11,7 @@ import { z } from 'zod';
 const TeamSchema = z.object({
   id: z.string(),
   name: z.string(),
-  coachName: z.string().optional(),
+  coachName: z.string(),
 });
 const TeamsArraySchema = z.array(TeamSchema);
 
@@ -27,7 +27,7 @@ const PlayersArraySchema = z.array(PlayerSchema);
 interface Team {
   id: string;
   name: string;
-  coachName?: string | undefined;
+  coachName: string;
 }
 
 interface Player {
@@ -66,45 +66,27 @@ export default function TeamsPage() {
           throw new Error('Invalid user data received');
         }
 
-        if (!validatedUser.data.user) {
+        if (!validatedUser.data) {
           console.error('No user data available');
           throw new Error('No user data available');
         }
 
-        setCurrentUser(validatedUser.data.user);
+        setCurrentUser(validatedUser.data);
 
-        // Fetch teams - either all teams for superadmin or only teams user is part of
-        let teamsData: Team[] = [];
+        // Fetch teams - all users see their teams
+        const userTeamsResponse = await fetch(`/api/user/teams`);
+        if (!userTeamsResponse.ok)
+          throw new Error('Failed to fetch user teams');
+        const rawUserTeamsData = await userTeamsResponse.json();
 
-        if (validatedUser.data.user.isSuperadmin) {
-          // Superadmin sees all teams
-          const teamsResponse = await fetch('/api/teams');
-          if (!teamsResponse.ok) throw new Error('Failed to fetch teams');
-          const rawTeamsData = await teamsResponse.json();
-
-          // Validate teams data
-          const validatedTeams = TeamsArraySchema.safeParse(rawTeamsData);
-          if (!validatedTeams.success) {
-            console.error('Invalid teams data:', validatedTeams.error);
-            throw new Error('Invalid teams data received');
-          }
-          teamsData = validatedTeams.data;
-        } else {
-          // Regular user only sees their teams
-          const userTeamsResponse = await fetch(`/api/user/teams`);
-          if (!userTeamsResponse.ok)
-            throw new Error('Failed to fetch user teams');
-          const rawUserTeamsData = await userTeamsResponse.json();
-
-          // Validate user teams data
-          const validatedUserTeams =
-            TeamsArraySchema.safeParse(rawUserTeamsData);
-          if (!validatedUserTeams.success) {
-            console.error('Invalid user teams data:', validatedUserTeams.error);
-            throw new Error('Invalid user teams data received');
-          }
-          teamsData = validatedUserTeams.data;
+        // Validate user teams data
+        const validatedUserTeams =
+          TeamsArraySchema.safeParse(rawUserTeamsData);
+        if (!validatedUserTeams.success) {
+          console.error('Invalid user teams data:', validatedUserTeams.error);
+          throw new Error('Invalid user teams data received');
         }
+        const teamsData = validatedUserTeams.data;
 
         // Filter out any invalid teams and deduplicate by id
         const validTeams = teamsData.filter(
@@ -113,8 +95,10 @@ export default function TeamsPage() {
             typeof team === 'object' &&
             typeof team.id === 'string' &&
             typeof team.name === 'string' &&
+            typeof team.coachName === 'string' &&
             team.id.trim() !== '' &&
-            team.name.trim() !== ''
+            team.name.trim() !== '' &&
+            team.coachName.trim() !== ''
         );
 
         const uniqueTeams = Array.from(
@@ -318,23 +302,26 @@ export default function TeamsPage() {
                 </p>
               </div>
             ) : (
-              filteredTeams.map(team => (
-                <div
-                  key={team.id}
-                  onClick={() => handleTeamSelect(team)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all flex items-center justify-between border ${selectedTeam?.id === team.id ? 'bg-[#d8cc97]/20 border-[#d8cc97]' : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'}`}
-                >
-                  <div>
-                    <p className="font-medium text-white">{team.name}</p>
-                    <p className="text-sm text-zinc-400">
-                      {team.coachName ||
-                        currentUser?.displayName ||
-                        'Not assigned'}
-                    </p>
+              filteredTeams.map(team => {
+                
+                return (
+                  <div
+                    key={team.id}
+                    onClick={() => handleTeamSelect(team)}
+                    className={`p-3 rounded-lg cursor-pointer transition-all flex items-center justify-between border ${selectedTeam?.id === team.id ? 'bg-[#d8cc97]/20 border-[#d8cc97]' : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'}`}
+                  >
+                    <div>
+                      <p className="font-medium text-white">{team.name}</p>
+                      <p className="text-sm text-zinc-400">
+                        {team.coachName ||
+                          currentUser?.displayName ||
+                          'Not assigned'}
+                      </p>
+                    </div>
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
                   </div>
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

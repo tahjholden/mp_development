@@ -44,17 +44,21 @@ export async function GET() {
       );
 
     // Transform the data to match the expected format
-    const formattedTeams = teams.map(team => ({
-      id: team.id || 'unknown',
-      name: team.name || 'Unknown Team',
-      coachName:
+    const formattedTeams = teams.map(team => {
+      const coachName =
         team.coachFirstName && team.coachLastName
           ? `${team.coachFirstName} ${team.coachLastName}`.trim()
-          : team.coachFirstName || team.coachLastName || 'Unknown Coach',
-      role: team.role || 'Coach',
-      personType: team.personType || 'coach',
-      email: team.email,
-    }));
+          : team.coachFirstName || team.coachLastName || 'Unknown Coach';
+
+      return {
+        id: team.id || 'unknown',
+        name: team.name || 'Unknown Team',
+        coachName,
+        role: team.role || 'Coach',
+        personType: team.personType || 'coach',
+        email: team.email,
+      };
+    });
 
     return Response.json(formattedTeams);
   } catch (error) {

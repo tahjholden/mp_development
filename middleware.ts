@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { signToken, verifyToken } from '@/lib/auth/session';
-// Temporarily disable Supabase session refresh until the package is installed
-// import { refreshSession } from '@/lib/supabase/middleware';
+import { getCurrentUser } from '@/lib/db/user-service';
 
 const protectedRoutes = ['/dashboard', '/admin'];
-// const adminRoutes = ['/admin']; // Temporarily disabled
+const adminRoutes = ['/admin'];
+const superadminRoutes = ['/admin/superadmin'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -14,28 +14,53 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route =>
     pathname.startsWith(route)
   );
-  // const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route)); // Temporarily disabled
+  const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+  const isSuperadminRoute = superadminRoutes.some(route => pathname.startsWith(route));
 
   if (isProtectedRoute && !sessionCookie) {
     return NextResponse.redirect(new URL('/sign-in', request.url));
   }
 
-  // Refresh Supabase auth session if needed
-  // const supabaseRes = await refreshSession(request);
-
-  // Use the response from Supabase refresh (if any) as our base response
-  let res = /* supabaseRes ?? */ NextResponse.next();
+  let res = NextResponse.next();
 
   if (sessionCookie) {
     try {
       const parsed = await verifyToken(sessionCookie.value);
 
-      // For now, allow all authenticated users to access admin routes
-      // We'll implement proper role checking once we have the MPBC Person data available
-      // if (isAdminRoute && !parsed.user.isSuperadmin) {
-      //   // Redirect non-admins trying to access admin routes
-      //   return NextResponse.redirect(new URL('/dashboard', request.url));
-      // }
+      // Get current user data for role checking
+      const currentUser = await getCurrentUser();
+
+      if (currentUser) {
+        const userRole = currentUser.personType || 'coach';
+        const isSuperadmin = userRole === 'superadmin';
+        const isAdmin = userRole === 'admin' || isSuperadmin;
+
+        // Enforce role-based access control
+        if (isSuperadminRoute && !isSuperadmin) {
+          // Redirect non-superadmins trying to access superadmin routes
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+
+        if (isAdminRoute && !isAdmin) {
+          // Redirect non-admins trying to access admin routes
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+
+        // Role-based dashboard routing
+        if (pathname === '/dashboard') {
+          // Redirect users to role-specific dashboards if they exist
+          if (userRole === 'player') {
+            // Players might have a different dashboard
+            // For now, keep them on the main dashboard
+          } else if (userRole === 'superadmin') {
+            // Superadmins can access everything, stay on main dashboard
+          } else if (userRole === 'admin') {
+            // Admins can access everything, stay on main dashboard
+          } else {
+            // Coaches and other roles stay on main dashboard
+          }
+        }
+      }
 
       // Refresh the session token on GET requests to keep the user logged in
       if (request.method === 'GET') {

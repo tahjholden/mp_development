@@ -103,6 +103,20 @@ export async function signIn(prevState: any, formData: FormData) {
     ActivityType.SIGN_IN
   );
 
+  // Role-based redirect after successful signin
+  // For now, all users go to the main dashboard
+  // In the future, you could implement role-specific dashboards:
+  // const userRole = foundPerson.person_type || 'coach';
+  // if (userRole === 'player') {
+  //   redirect('/player-dashboard');
+  // } else if (userRole === 'admin') {
+  //   redirect('/admin-dashboard');
+  // } else if (userRole === 'superadmin') {
+  //   redirect('/superadmin-dashboard');
+  // } else {
+  //   redirect('/dashboard');
+  // }
+
   redirect('/dashboard');
 }
 

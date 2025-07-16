@@ -22,110 +22,118 @@ import {
   CreditCard,
   Mail,
   UserCheck,
+  Loader2,
 } from 'lucide-react';
 import PlayerPortalDashboard from '@/components/basketball/PlayerPortalDashboard';
 
-// Mock user context with roles and feature flags
-const createMockUser = (role: string) => {
-  const baseUser = {
-    id: '1',
-    name:
-      role === 'admin'
-        ? 'Admin'
-        : role === 'player'
-          ? 'Player'
-          : role === 'superadmin'
-            ? 'SuperAdmin'
-            : 'Coach',
-    email:
-      role === 'admin'
-        ? 'admin@example.com'
-        : role === 'player'
-          ? 'player@example.com'
-          : role === 'superadmin'
-            ? 'superadmin@example.com'
-            : 'coach@example.com',
-    role: role,
-    orgId: 'org_123',
-    teamId: 'team_456',
-  };
-
-  // Feature flags based on role
-  const features = {
-    billing: role === 'admin' || role === 'superadmin',
-    advancedAnalytics: role === 'admin' || role === 'superadmin',
-    customBranding: role === 'admin' || role === 'superadmin',
-    teamFees: role === 'admin' || role === 'superadmin',
-    userManagement: role === 'admin' || role === 'superadmin',
-    systemSettings: role === 'admin' || role === 'superadmin',
-    auditLogs: role === 'admin' || role === 'superadmin',
-    dataExport: role === 'admin' || role === 'superadmin',
-    playerPortal: role === 'player' || role === 'superadmin',
-  };
-
-  return { ...baseUser, features };
-};
-
-// Role-aware main component
+// Role-based dashboard component
 export default function DashboardPage() {
-  const [currentRole, setCurrentRole] = useState<
-    'coach' | 'admin' | 'player' | 'superadmin'
-  >('coach');
-  const [user, setUser] = useState(createMockUser('coach'));
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [realUser, setRealUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch real user data on component mount
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUser = async () => {
       try {
+        console.log('Fetching user data...');
         const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          console.log('API Response:', data);
-          console.log('User primaryRole:', data.user?.primaryRole);
-          setRealUser(data.user);
-          console.log('Set realUser state:', data.user);
-
-          // Set the current role based on real user data
-          if (data.user.primaryRole === 'superadmin') {
-            setCurrentRole('superadmin');
-          } else if (data.user.primaryRole === 'admin') {
-            setCurrentRole('admin');
-          } else if (data.user.primaryRole === 'player') {
-            setCurrentRole('player');
-          } else if (data.user.primaryRole === 'coach') {
-            setCurrentRole('coach');
-          } else {
-            // Default to coach if no role is set
-            setCurrentRole('coach');
-          }
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+        const userData = await response.json();
+        console.log('User data received:', userData);
+        setUser(userData);
+      } catch (err) {
+        console.error('Error fetching user:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch user');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUserData();
+    fetchUser();
   }, []);
-
-  // Update user when role changes (for demo mode)
-  useEffect(() => {
-    setUser(createMockUser(currentRole));
-  }, [currentRole]);
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen h-full bg-black text-white items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
-          <p className="text-[#d8cc97]">Loading...</p>
+      <div className="flex min-h-screen h-full bg-black text-white">
+        <Sidebar
+          user={{ name: 'Coach', email: 'coach@example.com', role: 'Coach' }}
+        />
+        <div className="flex-1 flex flex-col min-h-screen">
+          <header
+            className="w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+            style={{ boxShadow: 'none' }}
+          >
+            <span
+              className="text-2xl font-bold tracking-wide text-[#d8cc97]"
+              style={{ letterSpacing: '0.04em' }}
+            >
+              MP Player Development
+            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-base font-semibold text-white leading-tight">
+                Coach
+              </span>
+              <span className="text-xs text-[#d8cc97] leading-tight">
+                coach@example.com
+              </span>
+              <span className="text-xs text-white leading-tight">Coach</span>
+            </div>
+          </header>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
+              <p className="text-zinc-400">Loading dashboard...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen h-full bg-black text-white">
+        <Sidebar
+          user={{ name: 'Coach', email: 'coach@example.com', role: 'Coach' }}
+        />
+        <div className="flex-1 flex flex-col min-h-screen">
+          <header
+            className="w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+            style={{ boxShadow: 'none' }}
+          >
+            <span
+              className="text-2xl font-bold tracking-wide text-[#d8cc97]"
+              style={{ letterSpacing: '0.04em' }}
+            >
+              MP Player Development
+            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-base font-semibold text-white leading-tight">
+                Coach
+              </span>
+              <span className="text-xs text-[#d8cc97] leading-tight">
+                coach@example.com
+              </span>
+              <span className="text-xs text-white leading-tight">Coach</span>
+            </div>
+          </header>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <AlertTriangle className="h-8 w-8 text-red-500 mb-4" />
+              <p className="text-red-400">Error: {error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Determine user role for conditional rendering
+  const userRole = user?.personType || 'coach';
+  const isSuperadmin = userRole === 'superadmin';
+  const isCoach = userRole === 'coach' || userRole === 'admin' || isSuperadmin;
 
   return (
     <div className="flex min-h-screen h-full bg-black text-white">
@@ -139,31 +147,19 @@ export default function DashboardPage() {
         </span>
         <div className="flex flex-col items-end">
           <span className="text-base font-semibold text-white leading-tight">
-            {realUser
-              ? realUser.name ||
-                `${realUser.firstName || ''} ${realUser.lastName || ''}`.trim() ||
-                `User ${realUser.id}`
-              : user.name}
+            {user.name ||
+              `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+              `User ${user.id}`}
           </span>
           <span className="text-xs text-[#d8cc97] leading-tight">
-            {realUser && realUser.email ? realUser.email : user.email}
+            {user.email}
           </span>
           <span className="text-xs text-white leading-tight capitalize">
-            {(() => {
-              console.log('Header render - realUser:', realUser);
-              console.log(
-                'Header render - realUser.personType:',
-                realUser?.personType
-              );
-              return realUser && realUser.personType
-                ? realUser.personType === 'superadmin'
-                  ? 'SuperAdmin'
-                  : realUser.personType === 'admin'
-                    ? 'Admin'
-                    : realUser.personType.charAt(0).toUpperCase() +
-                      realUser.personType.slice(1)
-                : user.role;
-            })()}
+            {userRole === 'superadmin'
+              ? 'SuperAdmin'
+              : userRole === 'admin'
+                ? 'Admin'
+                : userRole.charAt(0).toUpperCase() + userRole.slice(1)}
           </span>
         </div>
       </header>
@@ -174,77 +170,21 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen">
         {/* LEFT COLUMN: Entity Panel */}
-        <EntityPanel user={realUser || user} />
+        <EntityPanel user={user} />
 
         {/* CENTER COLUMN: Main Panel */}
         <MainPanel>
-          {/* Demo Mode Toggle */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">Demo Mode</h2>
-            <p className="text-sm text-zinc-400 mb-4">
-              Switch between roles to see different views
-            </p>
-            <div className="flex bg-zinc-800 rounded-lg p-1">
-              <button
-                onClick={() => setCurrentRole('coach')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  currentRole === 'coach'
-                    ? 'bg-[#d8cc97] text-black'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                Coach
-              </button>
-              <button
-                onClick={() => setCurrentRole('admin')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  currentRole === 'admin'
-                    ? 'bg-[#d8cc97] text-black'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                Admin
-              </button>
-              <button
-                onClick={() => setCurrentRole('player')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  currentRole === 'player'
-                    ? 'bg-[#d8cc97] text-black'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                Player
-              </button>
-              <button
-                onClick={() => setCurrentRole('superadmin')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  currentRole === 'superadmin'
-                    ? 'bg-[#d8cc97] text-black'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                SuperAdmin
-              </button>
-            </div>
-          </div>
-
-          {/* Modular Dashboard Home */}
-          <DashboardHome user={realUser || user} />
+          {/* Role-based Dashboard Content */}
+          <DashboardHome user={user} />
         </MainPanel>
 
         {/* RIGHT COLUMN: Right Panel */}
         <RightPanel>
-          <RecentActivity user={realUser || user} />
+          <RecentActivity user={user} />
           {/* Admin-only tools */}
-          {(realUser?.primaryRole === 'admin' ||
-            realUser?.primaryRole === 'superadmin' ||
-            user.role === 'admin') && (
-            <AdminToolsPanel user={realUser || user} />
-          )}
+          <AdminToolsPanel user={user} />
           {/* Coach quick actions */}
-          {(realUser?.primaryRole === 'coach' || user.role === 'coach') && (
-            <CoachQuickActions user={realUser || user} />
-          )}
+          <CoachQuickActions user={user} />
         </RightPanel>
       </div>
     </div>

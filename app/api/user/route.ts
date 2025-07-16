@@ -31,22 +31,21 @@ export async function GET() {
   const transformedUser = {
     id: user.id,
     displayName:
-      user.displayName ||
       `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
       user.email,
     name: user.firstName || '',
     email: user.email,
-    role: user.primaryRole,
+    role: user.personType || 'coach',
     isSuperadmin: user.isSuperadmin,
     isAdmin: user.isAdmin,
     firstName: user.firstName,
     lastName: user.lastName,
-    personType: user.primaryRole,
+    personType: user.personType,
     organizationId: user.organizationId,
     organizationName: user.organizationName,
     active: user.active,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    createdAt: user.createdAt?.toISOString(),
+    updatedAt: user.updatedAt?.toISOString(),
     authUid: user.authUid,
   };
 
