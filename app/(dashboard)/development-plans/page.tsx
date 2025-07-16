@@ -113,6 +113,15 @@ export default function DevelopmentPlansPage() {
     combined: any[];
   }>({ drills: [], constraints: [], combined: [] });
 
+  // ADD: Development plan state for styling
+  const [allDevelopmentPlans, setAllDevelopmentPlans] = useState<
+    DevelopmentPlan[]
+  >([]);
+
+  // ADD: Function to check if a player has a development plan
+  const hasDevelopmentPlan = (playerId: string) =>
+    allDevelopmentPlans.some(plan => plan.playerId === playerId);
+
   // Handler for selecting a player - EXACT SAME AS PLAYERS PAGE
   const handlePlayerSelect = (player: Player) => {
     // NEW: Support multiple player selection
@@ -224,6 +233,8 @@ export default function DevelopmentPlansPage() {
               new Map(validPlans.map(plan => [plan.id, plan])).values()
             );
             setPlans(uniquePlans);
+            // ADD: Set all development plans for styling
+            setAllDevelopmentPlans(uniquePlans);
           } else {
             setPlans([]);
           }
@@ -276,6 +287,7 @@ export default function DevelopmentPlansPage() {
   );
   const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
   const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
+  const [allHasMore, setAllHasMore] = useState(true);
 
   // Infinite scroll fetch for All Teams
   const fetchAllPlayers = useCallback(
@@ -287,6 +299,8 @@ export default function DevelopmentPlansPage() {
         );
         const data = await response.json();
         if (data.players) {
+          // ADD: Check if there are more players
+          setAllHasMore(data.players.length === 20);
           const transformedPlayers = data.players.map((player: ApiPlayer) => ({
             id: player.id,
             name: player.name || 'Unknown Player',
@@ -329,6 +343,19 @@ export default function DevelopmentPlansPage() {
     []
   );
 
+  // ADD: Scroll handler for infinite scroll
+  const handleAllScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (
+      scrollHeight - scrollTop <= clientHeight * 1.5 &&
+      !allLoadingPlayers &&
+      allHasMore &&
+      teamFilter === 'all'
+    ) {
+      fetchAllPlayers(allPlayerIds.length);
+    }
+  };
+
   // Fetch all players on mount or when All Teams is selected
   useEffect(() => {
     if (teamFilter === 'all') {
@@ -345,11 +372,10 @@ export default function DevelopmentPlansPage() {
     .sort((a, b) => a.name.localeCompare(b.name));
   const playersToShow =
     teamFilter === 'all' ? sortedAllPlayers : sortedTeamPlayers;
-  const isLoadingPlayers = teamFilter === 'all' ? allLoadingPlayers : false;
 
   // In the player list UI:
   // - Use playersToShow for rendering
-  // - For 'All Teams', use onScroll={handleAllScroll} and show a loading spinner at the bottom if isLoadingPlayers
+  // - For 'All Teams', use onScroll={handleAllScroll} and show a loading spinner at the bottom if allLoadingPlayers
   // - For a specific team, no infinite scroll
   // - Never show blank unless playersToShow.length === 0
 
@@ -491,6 +517,7 @@ export default function DevelopmentPlansPage() {
           <div
             className="flex-1 overflow-y-auto space-y-2"
             style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
+            onScroll={handleAllScroll}
           >
             {playersToShow.length === 0 ? (
               <div className="text-center py-8">
@@ -502,10 +529,14 @@ export default function DevelopmentPlansPage() {
                 <div
                   key={player.id}
                   onClick={() => handlePlayerSelect(player)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all ${
+                  className={`p-3 rounded-lg cursor-pointer transition-all border-2 ${
+                    hasDevelopmentPlan(player.id)
+                      ? 'border-[#d8cc97]'
+                      : 'border-red-500'
+                  } ${
                     selectedPlayerIds.includes(player.id)
-                      ? 'bg-[#d8cc97]/20 border border-[#d8cc97]'
-                      : 'bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'
+                      ? 'bg-[#d8cc97]/20'
+                      : 'bg-zinc-800/50 hover:bg-zinc-800'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -526,7 +557,7 @@ export default function DevelopmentPlansPage() {
                 </div>
               ))
             )}
-            {isLoadingPlayers && teamFilter === 'all' && (
+            {allLoadingPlayers && teamFilter === 'all' && allHasMore && (
               <div className="flex justify-center py-4">
                 <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
               </div>
