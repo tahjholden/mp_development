@@ -281,87 +281,50 @@ export default function DevelopmentPlansPage() {
     fetchData();
   }, []);
 
-  // State for infinite scroll (All Teams)
+  // State for all players (no infinite scroll)
   const [allPlayersById, setAllPlayersById] = useState<Record<string, Player>>(
     {}
   );
   const [allPlayerIds, setAllPlayerIds] = useState<string[]>([]);
   const [allLoadingPlayers, setAllLoadingPlayers] = useState(false);
-  const [allHasMore, setAllHasMore] = useState(true);
 
-  // Infinite scroll fetch for All Teams
-  const fetchAllPlayers = useCallback(
-    async (currentOffset: number = 0, reset: boolean = false) => {
-      setAllLoadingPlayers(true);
-      try {
-        const response = await fetch(
-          `/api/dashboard/players?offset=${currentOffset}&limit=20`
-        );
-        const data = await response.json();
-        if (data.players) {
-          // ADD: Check if there are more players
-          setAllHasMore(data.players.length === 20);
-          const transformedPlayers = data.players.map((player: ApiPlayer) => ({
-            id: player.id,
-            name: player.name || 'Unknown Player',
-            team: player.team || 'No Team',
-            status: (player.status as PlayerStatus) || 'active',
-          }));
-          if (reset) {
-            const playersMap: Record<string, Player> = {};
-            const ids: string[] = [];
-            transformedPlayers.forEach((player: Player) => {
-              if (!playersMap[player.id]) {
-                playersMap[player.id] = player;
-                ids.push(player.id);
-              }
-            });
-            setAllPlayersById(playersMap);
-            setAllPlayerIds(ids);
-          } else {
-            setAllPlayersById(prev => {
-              const newPlayersById = { ...prev };
-              const newIds: string[] = [];
-              transformedPlayers.forEach((player: Player) => {
-                if (!newPlayersById[player.id]) {
-                  newPlayersById[player.id] = player;
-                  newIds.push(player.id);
-                }
-              });
-              setAllPlayerIds(prevIds => [...prevIds, ...newIds]);
-              return newPlayersById;
-            });
+  // Fetch all players (no infinite scroll)
+  const fetchAllPlayers = useCallback(async () => {
+    setAllLoadingPlayers(true);
+    try {
+      const response = await fetch('/api/dashboard/players?limit=1000');
+      const data = await response.json();
+      if (data.players) {
+        const transformedPlayers = data.players.map((player: ApiPlayer) => ({
+          id: player.id,
+          name: player.name || 'Unknown Player',
+          team: player.team || 'No Team',
+          status: (player.status as PlayerStatus) || 'active',
+        }));
+        const playersMap: Record<string, Player> = {};
+        const ids: string[] = [];
+        transformedPlayers.forEach((player: Player) => {
+          if (!playersMap[player.id]) {
+            playersMap[player.id] = player;
+            ids.push(player.id);
           }
-        }
-      } catch {
-        // Error handling without console.log
-        setError('Failed to fetch all players');
-      } finally {
-        setAllLoadingPlayers(false);
+        });
+        setAllPlayersById(playersMap);
+        setAllPlayerIds(ids);
       }
-    },
-    []
-  );
-
-  // ADD: Scroll handler for infinite scroll
-  const handleAllScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (
-      scrollHeight - scrollTop <= clientHeight * 1.5 &&
-      !allLoadingPlayers &&
-      allHasMore &&
-      teamFilter === 'all'
-    ) {
-      fetchAllPlayers(allPlayerIds.length);
+    } catch {
+      setError('Failed to fetch all players');
+    } finally {
+      setAllLoadingPlayers(false);
     }
-  };
+  }, []);
 
   // Fetch all players on mount or when All Teams is selected
   useEffect(() => {
     if (teamFilter === 'all') {
-      fetchAllPlayers(0, true);
+      fetchAllPlayers();
     }
-  }, [teamFilter]); // Remove fetchAllPlayers from dependency array to prevent infinite loop
+  }, [teamFilter, fetchAllPlayers]);
 
   // Player list rendering logic
   const sortedAllPlayers = [...allPlayerIds.map(id => allPlayersById[id])]
@@ -375,8 +338,8 @@ export default function DevelopmentPlansPage() {
 
   // In the player list UI:
   // - Use playersToShow for rendering
-  // - For 'All Teams', use onScroll={handleAllScroll} and show a loading spinner at the bottom if allLoadingPlayers
-  // - For a specific team, no infinite scroll
+  // - For 'All Teams', show a loading spinner at the bottom if allLoadingPlayers
+  // - No infinite scroll - all players loaded at once
   // - Never show blank unless playersToShow.length === 0
 
   // Helper function to format dates
@@ -517,7 +480,6 @@ export default function DevelopmentPlansPage() {
           <div
             className="flex-1 overflow-y-auto space-y-2"
             style={{ maxHeight: '400px' }} // Exactly 10 player cards (10 * 40px)
-            onScroll={handleAllScroll}
           >
             {playersToShow.length === 0 ? (
               <div className="text-center py-8">
@@ -557,7 +519,7 @@ export default function DevelopmentPlansPage() {
                 </div>
               ))
             )}
-            {allLoadingPlayers && teamFilter === 'all' && allHasMore && (
+            {allLoadingPlayers && teamFilter === 'all' && (
               <div className="flex justify-center py-4">
                 <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
               </div>
