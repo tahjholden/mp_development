@@ -233,6 +233,89 @@ export async function getCurrentUser(): Promise<UnifiedUser | null> {
 }
 
 /**
+ * Get a user by email with unified role data
+ */
+export async function getUserByEmail(email: string): Promise<UnifiedUser | null> {
+  try {
+    const supabase = createClient();
+
+    // Get core user data by email
+    const { data: coreUser, error: coreError } = await supabase
+      .from('mp_core_person')
+      .select(
+        'id, auth_uid, email, first_name, last_name, organization_id, active, created_at, updated_at'
+      )
+      .eq('email', email)
+      .single();
+
+    if (coreError || !coreUser) {
+      console.error('Error fetching core user by email:', coreError);
+      return null;
+    }
+
+    // Get basketball user data
+    const { data: basketballUser, error: basketballError } = await supabase
+      .from('mpbc_person')
+      .select(
+        'id, person_id, person_type, organization_id, display_name, is_admin, is_superadmin, created_at, updated_at'
+      )
+      .eq('person_id', coreUser.id)
+      .maybeSingle();
+
+    // Get organization name
+    const { data: organization } = await supabase
+      .from('mp_core_organizations')
+      .select('name')
+      .eq('id', coreUser.organization_id)
+      .maybeSingle();
+
+    // Get all roles
+    const roles = await getAllPersonRoles(coreUser.id);
+
+    // Get basketball-specific roles
+    const basketballRoles = await getBasketballRoles(coreUser.id);
+
+    // Get pack features
+    const packFeatures = await getPackFeatures(coreUser.organization_id);
+
+    // Build unified user object
+    const unifiedUser: UnifiedUser = {
+      id: coreUser.id,
+      authUid: coreUser.auth_uid,
+      email: coreUser.email,
+      firstName: coreUser.first_name,
+      lastName: coreUser.last_name,
+      displayName:
+        basketballUser?.display_name ||
+        `${coreUser.first_name || ''} ${coreUser.last_name || ''}`.trim(),
+
+      organizationId: coreUser.organization_id,
+      organizationName: organization?.name,
+
+      active: coreUser.active,
+      createdAt: new Date(coreUser.created_at),
+      ...(coreUser.updated_at
+        ? { updatedAt: new Date(coreUser.updated_at) }
+        : {}),
+
+      primaryRole:
+        (basketballUser?.person_type as PersonType) || PersonType.PLAYER,
+      isAdmin: basketballUser?.is_admin || false,
+      isSuperadmin: basketballUser?.is_superadmin || false,
+      roles,
+      basketballRoles,
+
+      packFeatures: packFeatures as unknown as Record<string, boolean>,
+    };
+
+    return unifiedUser;
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
+}
+
+/**
  * Get a user by ID with unified role data
  */
 export async function getUserById(userId: string): Promise<UnifiedUser | null> {

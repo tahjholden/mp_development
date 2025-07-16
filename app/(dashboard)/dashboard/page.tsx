@@ -72,11 +72,54 @@ export default function DashboardPage() {
     'coach' | 'admin' | 'player' | 'superadmin'
   >('coach');
   const [user, setUser] = useState(createMockUser('coach'));
+  const [isLoading, setIsLoading] = useState(true);
+  const [realUser, setRealUser] = useState<any>(null);
 
-  // Update user when role changes
+  // Fetch real user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/session');
+        if (response.ok) {
+          const data = await response.json();
+          setRealUser(data.user);
+          
+          // Set the current role based on real user data
+          if (data.user.isSuperadmin) {
+            setCurrentRole('superadmin');
+          } else if (data.user.isAdmin) {
+            setCurrentRole('admin');
+          } else if (data.user.primaryRole === 'player') {
+            setCurrentRole('player');
+          } else {
+            setCurrentRole('coach');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Update user when role changes (for demo mode)
   useEffect(() => {
     setUser(createMockUser(currentRole));
   }, [currentRole]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen h-full bg-black text-white items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d8cc97] mx-auto mb-4"></div>
+          <p className="text-[#d8cc97]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen h-full bg-black text-white">
@@ -90,13 +133,13 @@ export default function DashboardPage() {
         </span>
         <div className="flex flex-col items-end">
           <span className="text-base font-semibold text-white leading-tight">
-            {user.name}
+            {realUser ? `User ${realUser.id}` : user.name}
           </span>
           <span className="text-xs text-[#d8cc97] leading-tight">
-            {user.email}
+            {realUser ? `Role: ${realUser.primaryRole}` : user.email}
           </span>
           <span className="text-xs text-white leading-tight capitalize">
-            {user.role}
+            {realUser ? (realUser.isSuperadmin ? 'SuperAdmin' : realUser.isAdmin ? 'Admin' : realUser.primaryRole) : user.role}
           </span>
         </div>
       </header>

@@ -1,13 +1,17 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { Person } from '@/lib/db/schema';
+import { mpCorePerson } from '@/lib/db/schema';
+import { UnifiedUser } from '@/lib/db/user-service';
 
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 
 type SessionData = {
   user: {
     id: string;
-    isSuperadmin?: boolean;
+    isSuperadmin: boolean;
+    isAdmin: boolean;
+    primaryRole: string;
+    organizationId: string;
   };
   expires: string;
 };
@@ -33,12 +37,16 @@ export async function getSession() {
   return await verifyToken(session);
 }
 
-export async function setSession(user: Person) {
+// Legacy function for backward compatibility
+export async function setSession(user: typeof mpCorePerson.$inferSelect) {
   const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const session: SessionData = {
     user: {
       id: user.id,
-      isSuperadmin: false, // Default to false since this field doesn't exist in the schema
+      isSuperadmin: false, // Default to false for legacy compatibility
+      isAdmin: false,
+      primaryRole: 'player',
+      organizationId: user.organizationId || '',
     },
     expires: expiresInOneDay.toISOString(),
   };
@@ -46,7 +54,29 @@ export async function setSession(user: Person) {
   (await cookies()).set('session', encryptedSession, {
     expires: expiresInOneDay,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Only secure in production
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+}
+
+// New function for unified user data with proper role information
+export async function setUnifiedSession(user: UnifiedUser) {
+  const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const session: SessionData = {
+    user: {
+      id: user.id,
+      isSuperadmin: user.isSuperadmin,
+      isAdmin: user.isAdmin,
+      primaryRole: user.primaryRole,
+      organizationId: user.organizationId,
+    },
+    expires: expiresInOneDay.toISOString(),
+  };
+  const encryptedSession = await signToken(session);
+  (await cookies()).set('session', encryptedSession, {
+    expires: expiresInOneDay,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   });
 }

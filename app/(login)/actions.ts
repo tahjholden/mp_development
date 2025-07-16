@@ -9,11 +9,12 @@ import {
   infrastructureInvitations,
   infrastructureActivityLogs,
 } from '@/lib/db/schema';
-import { setSession } from '@/lib/auth/session';
+import { setSession, setUnifiedSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 // import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
+import { getCurrentUser, getUserByEmail } from '@/lib/db/user-service';
 
 // Define ActivityType enum since it's not in the schema
 export enum ActivityType {
@@ -83,6 +84,7 @@ export async function signIn(prevState: any, formData: FormData) {
     };
   }
 
+  // First, find the user in mpCorePerson
   const userWithTeam = await db
     .select({
       user: mpCorePerson,
@@ -106,10 +108,27 @@ export async function signIn(prevState: any, formData: FormData) {
     };
   }
 
-  await Promise.all([
-    setSession(foundUser),
-    logActivity(foundUser.organizationId, foundUser.id, ActivityType.SIGN_IN),
-  ]);
+  // Try to get unified user data with role information
+  try {
+    const unifiedUser = await getUserByEmail(email);
+    if (unifiedUser) {
+      // Use unified session with proper role information
+      await Promise.all([
+        setUnifiedSession(unifiedUser),
+        logActivity(foundUser.organizationId, foundUser.id, ActivityType.SIGN_IN),
+      ]);
+    } else {
+      // Fallback to legacy session
+      await Promise.all([
+        setSession(foundUser),
+        logActivity(foundUser.organizationId, foundUser.id, ActivityType.SIGN_IN),
+      ]);
+    }
+  } catch (error) {
+    console.error('Error setting session:', error);
+    // Fallback to legacy session
+    await setSession(foundUser);
+  }
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
@@ -376,8 +395,6 @@ export async function updateProfile(prevState: any, formData: FormData) {
     return { error: result.error.errors[0]?.message || 'Validation failed' };
   }
   const { displayName } = result.data;
-
-  const userWithTeam = await getUserWithTeam(user.id);
 
   if (!db) {
     return { error: 'Database connection not available.' };
