@@ -132,8 +132,6 @@ export default function DashboardPage() {
 
   // Determine user role for conditional rendering
   const userRole = user?.personType || 'coach';
-  const isSuperadmin = userRole === 'superadmin';
-  const isCoach = userRole === 'coach' || userRole === 'admin' || isSuperadmin;
 
   return (
     <div className="flex min-h-screen h-full bg-black text-white">

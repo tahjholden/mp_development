@@ -66,8 +66,7 @@ export async function GET() {
     });
 
     return Response.json(formattedTeams);
-  } catch (error) {
-    console.error('Error fetching user teams:', error);
+  } catch {
     return Response.json({ error: 'Failed to fetch teams' }, { status: 500 });
   }
 }

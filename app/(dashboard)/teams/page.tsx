@@ -62,12 +62,10 @@ export default function TeamsPage() {
         // Validate user data
         const validatedUser = UserResponseSchema.safeParse(userData);
         if (!validatedUser.success) {
-          console.error('Invalid user data:', validatedUser.error);
           throw new Error('Invalid user data received');
         }
 
         if (!validatedUser.data) {
-          console.error('No user data available');
           throw new Error('No user data available');
         }
 
@@ -80,10 +78,8 @@ export default function TeamsPage() {
         const rawUserTeamsData = await userTeamsResponse.json();
 
         // Validate user teams data
-        const validatedUserTeams =
-          TeamsArraySchema.safeParse(rawUserTeamsData);
+        const validatedUserTeams = TeamsArraySchema.safeParse(rawUserTeamsData);
         if (!validatedUserTeams.success) {
-          console.error('Invalid user teams data:', validatedUserTeams.error);
           throw new Error('Invalid user teams data received');
         }
         const teamsData = validatedUserTeams.data;
@@ -112,8 +108,7 @@ export default function TeamsPage() {
           setSelectedTeam(uniqueTeams[0]);
           fetchTeamPlayers(uniqueTeams[0].id);
         }
-      } catch (error) {
-        console.error('Error fetching data:', error);
+      } catch {
         setTeams([]);
         setCurrentUser(null);
       } finally {
@@ -134,7 +129,6 @@ export default function TeamsPage() {
       // Validate players data
       const validatedPlayers = PlayersArraySchema.safeParse(rawPlayersData);
       if (!validatedPlayers.success) {
-        console.error('Invalid players data:', validatedPlayers.error);
         throw new Error('Invalid players data received');
       }
 
@@ -156,8 +150,7 @@ export default function TeamsPage() {
         new Map(validPlayers.map(player => [player.id, player])).values()
       );
       setTeamPlayers(uniquePlayers);
-    } catch (error) {
-      console.error('Error fetching team players:', error);
+    } catch {
       setTeamPlayers([]);
     }
   };
@@ -172,7 +165,6 @@ export default function TeamsPage() {
   const handleAddTeam = () => {
     // This functionality is not yet implemented, so this handler is kept for now
     // but the modal is removed.
-    console.log('Add Team clicked');
   };
 
   // Filter teams based on search
@@ -303,7 +295,6 @@ export default function TeamsPage() {
               </div>
             ) : (
               filteredTeams.map(team => {
-                
                 return (
                   <div
                     key={team.id}
