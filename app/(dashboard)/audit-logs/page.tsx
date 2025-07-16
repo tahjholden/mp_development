@@ -1,60 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ChevronDown,
   ChevronUp,
   Filter,
   Shield,
   AlertTriangle,
-  Clock,
   Settings,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import UniversalCard from '@/components/ui/UniversalCard';
-import UniversalButton from '@/components/ui/UniversalButton';
-import { z } from 'zod';
-
-// Zod schemas for validation
-const AuditLogSchema = z.object({
-  id: z.string(),
-  timestamp: z.string(),
-  user: z.string(),
-  action: z.string(),
-  resource: z.string(),
-  details: z.string(),
-  severity: z.enum(['low', 'medium', 'high', 'critical']),
-  category: z.enum(['security', 'data', 'system', 'user', 'admin']),
-  ipAddress: z.string(),
-  userAgent: z.string(),
-  status: z.enum(['success', 'failure', 'warning']),
-});
-
-const SecurityEventSchema = z.object({
-  id: z.string(),
-  type: z.enum([
-    'login',
-    'logout',
-    'permission_change',
-    'data_access',
-    'system_change',
-  ]),
-  title: z.string(),
-  description: z.string(),
-  timestamp: z.string(),
-  user: z.string(),
-  severity: z.enum(['low', 'medium', 'high', 'critical']),
-  resolved: z.boolean(),
-  resolution: z.string().optional(),
-});
-
-const SystemMetricsSchema = z.object({
-  totalLogs: z.number(),
-  securityEvents: z.number(),
-  failedLogins: z.number(),
-  dataAccessEvents: z.number(),
-  lastUpdated: z.string(),
-});
 
 // Types for audit logs
 interface AuditLog {
@@ -283,7 +239,6 @@ export default function AuditLogsPage() {
 
   // Mock user role - in real app this would come from auth context
   const userRole = 'admin'; // This would be dynamic based on user role
-  const auditContent = useMemo(() => getAuditLogsContent(userRole), [userRole]);
 
   const filteredLogs = logs.filter(log => {
     const matchesCategory =

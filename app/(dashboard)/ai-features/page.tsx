@@ -11,42 +11,6 @@ import {
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import UniversalCard from '@/components/ui/UniversalCard';
-import { z } from 'zod';
-
-// Zod schemas for validation
-const AIInsightSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  category: z.enum(['performance', 'training', 'strategy', 'health']),
-  confidence: z.number(),
-  impact: z.enum(['high', 'medium', 'low']),
-  date: z.string(),
-  actionable: z.boolean(),
-  recommendations: z.array(z.string()),
-});
-
-const AIPredictionSchema = z.object({
-  id: z.string(),
-  type: z.enum(['performance', 'injury', 'development', 'team']),
-  title: z.string(),
-  description: z.string(),
-  probability: z.number(),
-  timeframe: z.string(),
-  factors: z.array(z.string()),
-  confidence: z.number(),
-});
-
-const AISuggestionSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  category: z.enum(['drill', 'training', 'recovery', 'nutrition']),
-  priority: z.enum(['high', 'medium', 'low']),
-  estimatedImpact: z.number(),
-  timeRequired: z.number(),
-  difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
-});
 
 // Types for AI features
 interface AIInsight {

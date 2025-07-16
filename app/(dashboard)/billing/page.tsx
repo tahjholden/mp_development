@@ -1,14 +1,7 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
-import {
-  ChevronDown,
-  ChevronUp,
-  Filter,
-  CreditCard,
-  DollarSign,
-  Receipt,
-} from 'lucide-react';
+
 // Zod schemas for validation (commented out as they're not currently used)
 // ,
 //   name: z.string(),
@@ -168,31 +161,8 @@ export default function BillingPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const searchTerm = ''; // Search functionality not implemented yet
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   // Mock user role - in real app this would come from auth context
   const userRole = 'admin'; // This would be dynamic based on user role
-  const roleContent = useMemo(
-    () => getRoleSpecificContent(userRole),
-    [userRole]
-  );
-  const filteredBillingItems = billingItems.filter(item => {
-    const matchesSearch = item.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' || item.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-  // Handle item selection with toggle functionality
-  const handleItemSelect = (itemId: string) => {
-    if (selectedItemId === itemId) {
-      setSelectedItemId(null);
-    } else {
-      setSelectedItemId(itemId);
-    }
-  };
   // Fetch user data
   useEffect(() => {
     const fetchUserData = async () => {

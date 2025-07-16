@@ -21,8 +21,10 @@ function removeZod(content: string): string {
     /(await\s+)?\w+\.(safeParse|parse|validate)\([^;]*\);?/gms,
     '// validation removed'
   );
+  // Remove zod schema fragments
+  // Cleaned up unnecessary escape characters in regex character class below
   content = content.replace(
-    /^[ \t]*,?[ \t]*\w+:\s*z\.[a-zA-Z0-9_\(\)\.\[\]"'\s,]*,?[ \t]*$/gm,
+    /^[ \t]*,?[ \t]*\w+:\s*z\.[a-zA-Z0-9_()[\]"'\s,]*,?[ \t]*$/gm,
     ''
   );
   content = content.replace(/\n{2,}/g, '\n');
@@ -34,7 +36,25 @@ function replaceReturnWithDashboardLayout(content: string): {
   replaced: boolean;
   returnIndex: number;
 } {
-  const dashboardScaffold = `return (\n  <DashboardLayout\n    left={\n      <div className=\"space-y-4\">\n        {/* TODO: Port your left sidebar content here */}\n      </div>\n    }\n    center={\n      <div className=\"space-y-4\">\n        {/* TODO: Port your main content here */}\n      </div>\n    }\n    right={\n      <div className=\"space-y-4\">\n        {/* TODO: Port your right sidebar content here */}\n      </div>\n    }\n  />\n);`;
+  const dashboardScaffold = `return (
+  <DashboardLayout
+    left={
+      <div className="space-y-4">
+        {/* TODO: Port your left sidebar content here */}
+      </div>
+    }
+    center={
+      <div className="space-y-4">
+        {/* TODO: Port your main content here */}
+      </div>
+    }
+    right={
+      <div className="space-y-4">
+        {/* TODO: Port your right sidebar content here */}
+      </div>
+    }
+  />
+);`;
   let replaced = false;
   let returnIndex = -1;
   content = content.replace(/return\s*\(([^;]*?)\);/gs, (match, p1, offset) => {

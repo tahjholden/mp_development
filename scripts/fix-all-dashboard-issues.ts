@@ -56,8 +56,9 @@ function removeZodReferences(content: string): string {
   );
 
   // Remove zod schema fragments
+  // Cleaned up unnecessary escape characters in regex character class below
   content = content.replace(
-    /^[ \t]*,?[ \t]*\w+:\s*z\.[a-zA-Z0-9_\(\)\.\[\]"'\s,]*,?[ \t]*$/gm,
+    /^[ \t]*,?[ \t]*\w+:\s*z\.[a-zA-Z0-9_()[\]"'\s,]*,?[ \t]*$/gm,
     ''
   );
 

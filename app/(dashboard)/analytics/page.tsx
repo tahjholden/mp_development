@@ -1,13 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Filter,
-  TrendingUp,
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
