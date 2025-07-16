@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { DateRange } from 'react-day-picker';
 import type { Player as SharedPlayer } from '@/components/basketball/PlayerListCard';
 import { z } from 'zod';
+import Link from 'next/link';
 
 // Types for observations (matching actual API response)
 interface Observation {
@@ -446,7 +447,7 @@ export default function ObservationsPage() {
       >
         {/* LEFT PANE: Player List - EXACT SAME AS PLAYERS PAGE */}
         <div
-          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
+          className="w-1/4 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
           style={{ background: 'black' }}
         >
           <div className="flex justify-between items-center mb-6">
@@ -517,10 +518,12 @@ export default function ObservationsPage() {
               </div>
             ) : (
               <>
-                {sortedPlayers.map(
-                  (player: SharedPlayer & { team: string }) => (
-                    <div
-                      key={player.id}
+                {sortedPlayers
+                  .filter(player => player.id)
+                  .map(
+                    (player: SharedPlayer & { team: string }) => (
+                      <div
+                        key={player.id}
                       onClick={() => handlePlayerSelect(player)}
                       className={`p-3 rounded-lg cursor-pointer transition-all ${
                         selectedPlayer?.id === player.id
@@ -571,9 +574,15 @@ export default function ObservationsPage() {
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0">
               {selectedPlayer
                 ? `${selectedPlayer.name}'s Observations`
-                : 'All Observations'}
+                : 'Observations'}
             </h2>
             <div className="flex items-center gap-4">
+              {/* Add Observation Button */}
+              <Link href="/observations/wizard">
+                <button className="px-4 py-2 bg-[#d8cc97] text-black rounded-md text-sm font-medium hover:bg-[#d8cc97]/90 transition-colors">
+                  Add Observation
+                </button>
+              </Link>
               {/* Page size selector */}
               <label className="text-sm text-zinc-400">
                 Show:
@@ -640,9 +649,11 @@ export default function ObservationsPage() {
               }}
               onScroll={handleObsScrollLoad}
             >
-              {paginatedObservations.map(obs => (
-                <div
-                  key={obs.id}
+              {paginatedObservations
+                .filter(obs => obs.id)
+                .map(obs => (
+                  <div
+                    key={obs.id}
                   className="bg-zinc-800 px-6 py-3 rounded transition-all"
                   style={{ background: '#181818' }}
                 >

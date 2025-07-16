@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, sql, isNotNull } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import {
   mpCorePerson,
@@ -14,10 +14,6 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 // import { createCheckoutSession } from '@/lib/payments/stripe';
 import { getUser, getUserWithTeam } from '@/lib/db/queries';
-import {
-  validatedAction,
-  validatedActionWithUser,
-} from '@/lib/auth/middleware';
 
 // Define ActivityType enum since it's not in the schema
 export enum ActivityType {
@@ -72,11 +68,13 @@ const signInSchema = z.object({
   // Password validation is now handled by Supabase on the client
 });
 
-export const signIn = validatedAction(signInSchema, async (data, formData) => {
-  // With Supabase Auth, we assume the user is already authenticated
-  // on the client side. We just need to find their profile in our DB
-  // and set our own application session.
-  const { email } = data;
+export async function signIn(prevState: any, formData: FormData) {
+  'use server';
+  const result = signInSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success) {
+    return { error: result.error.errors[0]?.message || 'Validation failed' };
+  }
+  const { email } = result.data;
 
   if (!db) {
     return {
@@ -115,13 +113,13 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
-    const priceId = formData.get('priceId') as string;
+    // const priceId = formData.get('priceId') as string;
     // return createCheckoutSession({ user: foundUser, priceId });
     redirect('/dashboard');
   }
 
   redirect('/dashboard');
-});
+}
 
 const signUpSchema = z.object({
   email: z.string().email(),
@@ -130,8 +128,13 @@ const signUpSchema = z.object({
   inviteId: z.string().optional(),
 });
 
-export const signUp = validatedAction(signUpSchema, async (data, formData) => {
-  const { email, displayName, authUid, inviteId } = data;
+export async function signUp(prevState: any, formData: FormData) {
+  'use server';
+  const result = signUpSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success) {
+    return { error: result.error.errors[0]?.message || 'Validation failed' };
+  }
+  const { email, displayName, authUid } = result.data;
 
   if (!db) {
     return {
@@ -188,15 +191,16 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
-    const priceId = formData.get('priceId') as string;
+    // const priceId = formData.get('priceId') as string;
     // return createCheckoutSession({ user: createdPerson, priceId });
     redirect('/dashboard');
   }
 
   redirect('/dashboard');
-});
+}
 
 export async function signOut() {
+  'use server';
   const user = await getUser();
   if (!user) return;
   await logActivity(user.organizationId, user.id, ActivityType.SIGN_OUT);
@@ -212,154 +216,187 @@ const updatePasswordSchema = z.object({
   confirmPassword: z.string(),
 });
 
-export const updatePassword = validatedActionWithUser(
-  updatePasswordSchema,
-  async (data, formData, user) => {
-    // This function is deprecated and should not be used.
-    // It is left here to avoid breaking the app if it's still called from somewhere.
-    return {
-      error: 'Password updates are handled by the authentication provider.',
-    };
+export async function updatePassword(prevState: any, formData: FormData) {
+  'use server';
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User is not authenticated');
   }
-);
+
+  const result = updatePasswordSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success) {
+    return { error: result.error.errors[0]?.message || 'Validation failed' };
+  }
+
+  // This function is deprecated and should not be used.
+  // It is left here to avoid breaking the app if it's still called from somewhere.
+  return {
+    error: 'Password updates are handled by the authentication provider.',
+  };
+}
+
 const removeUserSchema = z.object({
   userId: z.string(), // Now a string (UUID)
 });
 
-export const removeUser = validatedActionWithUser(
-  removeUserSchema,
-  async (data, formData, user) => {
-    const { userId } = data;
-    const userWithTeam = await getUserWithTeam(user.id);
-    if (!userWithTeam?.team) {
-      return { error: 'Team not found.' };
-    }
-
-    if (!db) {
-      return { error: 'Database connection not available.' };
-    }
-
-    const membership = await db.query.mpCorePersonGroup.findFirst({
-      where: and(
-        isNotNull(mpCorePersonGroup.groupId),
-        eq(mpCorePersonGroup.groupId, userWithTeam.team.id),
-        eq(mpCorePersonGroup.personId, user.id)
-      ),
-    });
-
-    if (membership?.role !== 'owner') {
-      return { error: 'Only owners can remove members.' };
-    }
-
-    await db
-      .delete(mpCorePersonGroup)
-      .where(
-        and(
-          eq(mpCorePersonGroup.personId, userId),
-          eq(mpCorePersonGroup.groupId, userWithTeam.team.id)
-        )
-      );
-
-    // Note: team.organizationId doesn't exist in the current schema
-    // We'll use the user's organizationId instead
-    if (user.organizationId) {
-      await logActivity(
-        user.organizationId,
-        user.id,
-        ActivityType.REMOVE_TEAM_MEMBER
-      );
-    }
-
-    return { success: true, message: 'User removed.' };
+export async function removeUser(prevState: any, formData: FormData) {
+  'use server';
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User is not authenticated');
   }
-);
+
+  const result = removeUserSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success) {
+    return { error: result.error.errors[0]?.message || 'Validation failed' };
+  }
+  const { userId } = result.data;
+
+  const userWithTeam = await getUserWithTeam(user.id);
+  if (!userWithTeam?.team) {
+    return { error: 'Team not found.' };
+  }
+
+  if (!db) {
+    return { error: 'Database connection not available.' };
+  }
+
+  const membership = await db.query.mpCorePersonGroup.findFirst({
+    where: and(
+      isNotNull(mpCorePersonGroup.groupId),
+      eq(mpCorePersonGroup.groupId, userWithTeam.team.id),
+      eq(mpCorePersonGroup.personId, user.id)
+    ),
+  });
+
+  if (membership?.role !== 'owner') {
+    return { error: 'Only owners can remove members.' };
+  }
+
+  await db
+    .delete(mpCorePersonGroup)
+    .where(
+      and(
+        eq(mpCorePersonGroup.personId, userId),
+        eq(mpCorePersonGroup.groupId, userWithTeam.team.id)
+      )
+    );
+
+  // Note: team.organizationId doesn't exist in the current schema
+  // We'll use the user's organizationId instead
+  if (user.organizationId) {
+    await logActivity(
+      user.organizationId,
+      user.id,
+      ActivityType.REMOVE_TEAM_MEMBER
+    );
+  }
+
+  return { success: true, message: 'User removed.' };
+}
 
 const inviteUserSchema = z.object({
   email: z.string().email(),
   role: z.enum(['owner', 'member']),
 });
 
-export const inviteUser = validatedActionWithUser(
-  inviteUserSchema,
-  async (data, formData, user) => {
-    const { email, role } = data;
-    const userWithTeam = await getUserWithTeam(user.id);
-    const team = userWithTeam?.team;
-    if (!team) {
-      return { error: 'Team not found.' };
-    }
+export async function inviteUser(prevState: any, formData: FormData) {
+  'use server';
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User is not authenticated');
+  }
 
-    if (!db) {
-      return { error: 'Database connection not available.' };
-    }
+  const result = inviteUserSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success) {
+    return { error: result.error.errors[0]?.message || 'Validation failed' };
+  }
+  const { email, role } = result.data;
 
-    if (!team.id || !user.id) {
-      return { error: 'Invalid team or user ID.' };
-    }
-    // Check for existing pending invitation
-    const existingInvitation =
-      await db.query.infrastructureInvitations.findFirst({
-        where: and(
-          eq(infrastructureInvitations.teamId, team.id),
-          eq(infrastructureInvitations.email, email),
-          eq(infrastructureInvitations.status, 'pending')
-        ),
-      });
+  const userWithTeam = await getUserWithTeam(user.id);
+  const team = userWithTeam?.team;
+  if (!team) {
+    return { error: 'Team not found.' };
+  }
 
-    if (existingInvitation) {
-      return { error: 'An invitation has already been sent to this email.' };
-    }
+  if (!db) {
+    return { error: 'Database connection not available.' };
+  }
 
-    await db.insert(infrastructureInvitations).values({
-      teamId: team.id,
-      email,
-      role,
-      invitedBy: user.id,
+  if (!team.id || !user.id) {
+    return { error: 'Invalid team or user ID.' };
+  }
+  // Check for existing pending invitation
+  const existingInvitation =
+    await db.query.infrastructureInvitations.findFirst({
+      where: and(
+        eq(infrastructureInvitations.teamId, team.id),
+        eq(infrastructureInvitations.email, email),
+        eq(infrastructureInvitations.status, 'pending')
+      ),
     });
 
-    // Note: team.organizationId doesn't exist in the current schema
-    // We'll use the user's organizationId instead
-    if (user.organizationId) {
-      await logActivity(
-        user.organizationId,
-        user.id,
-        ActivityType.INVITE_TEAM_MEMBER
-      );
-    }
-    // In a real app, you would also send an email here.
-    return { success: true, message: 'Invitation sent.' };
+  if (existingInvitation) {
+    return { error: 'An invitation has already been sent to this email.' };
   }
-);
+
+  await db.insert(infrastructureInvitations).values({
+    teamId: team.id,
+    email,
+    role,
+    invitedBy: user.id,
+  });
+
+  // Note: team.organizationId doesn't exist in the current schema
+  // We'll use the user's organizationId instead
+  if (user.organizationId) {
+    await logActivity(
+      user.organizationId,
+      user.id,
+      ActivityType.INVITE_TEAM_MEMBER
+    );
+  }
+  // In a real app, you would also send an email here.
+  return { success: true, message: 'Invitation sent.' };
+}
 
 const updateProfileSchema = z.object({
   displayName: z.string().min(1, 'Name cannot be empty.'),
 });
 
-export const updateProfile = validatedActionWithUser(
-  updateProfileSchema,
-  async (data, formData, user) => {
-    const { displayName } = data;
-    const userWithTeam = await getUserWithTeam(user.id);
-
-    if (!db) {
-      return { error: 'Database connection not available.' };
-    }
-
-    await db
-      .update(mpCorePerson)
-      .set({ displayName })
-      .where(eq(mpCorePerson.id, user.id));
-
-    // Note: team.organizationId doesn't exist in the current schema
-    // We'll use the user's organizationId instead
-    if (user.organizationId) {
-      await logActivity(
-        user.organizationId,
-        user.id,
-        ActivityType.UPDATE_ACCOUNT
-      );
-    }
-
-    return { success: true, message: 'Profile updated successfully.' };
+export async function updateProfile(prevState: any, formData: FormData) {
+  'use server';
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User is not authenticated');
   }
-);
+
+  const result = updateProfileSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success) {
+    return { error: result.error.errors[0]?.message || 'Validation failed' };
+  }
+  const { displayName } = result.data;
+
+  const userWithTeam = await getUserWithTeam(user.id);
+
+  if (!db) {
+    return { error: 'Database connection not available.' };
+  }
+
+  await db
+    .update(mpCorePerson)
+    .set({ displayName })
+    .where(eq(mpCorePerson.id, user.id));
+
+  // Note: team.organizationId doesn't exist in the current schema
+  // We'll use the user's organizationId instead
+  if (user.organizationId) {
+    await logActivity(
+      user.organizationId,
+      user.id,
+      ActivityType.UPDATE_ACCOUNT
+    );
+  }
+
+  return { success: true, message: 'Profile updated successfully.' };
+}

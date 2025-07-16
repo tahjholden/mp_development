@@ -1,5 +1,7 @@
+'use server';
+
 import { z } from 'zod';
-import { Person } from '@/lib/db/schema';
+import { mpCorePerson } from '@/lib/db/schema';
 import { getTeamForUser, getUser } from '@/lib/db/queries';
 import { redirect } from 'next/navigation';
 
@@ -22,7 +24,7 @@ export function validatedAction<S extends z.ZodType<any, any>, T>(
   return async (prevState: ActionState, formData: FormData) => {
     const result = schema.safeParse(Object.fromEntries(formData));
     if (!result.success) {
-      return { error: result.error.errors[0].message };
+      return { error: result.error.errors[0]?.message || 'Validation failed' };
     }
 
     return action(result.data, formData);
@@ -32,7 +34,7 @@ export function validatedAction<S extends z.ZodType<any, any>, T>(
 type ValidatedActionWithUserFunction<S extends z.ZodType<any, any>, T> = (
   data: z.infer<S>,
   formData: FormData,
-  user: Person
+  user: typeof mpCorePerson.$inferSelect
 ) => Promise<T>;
 
 export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
@@ -47,7 +49,7 @@ export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
 
     const result = schema.safeParse(Object.fromEntries(formData));
     if (!result.success) {
-      return { error: result.error.errors[0].message };
+      return { error: result.error.errors[0]?.message || 'Validation failed' };
     }
 
     return action(result.data, formData, user);
