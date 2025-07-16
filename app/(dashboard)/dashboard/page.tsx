@@ -42,7 +42,7 @@ export default function DashboardPage() {
         }
         const userData = await response.json();
         console.log('User data received:', userData);
-        setUser(userData);
+        setUser(userData.user);
       } catch (err) {
         console.error('Error fetching user:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch user');
