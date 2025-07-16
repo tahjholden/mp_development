@@ -13,9 +13,14 @@ interface Player {
 interface PlayerSelectorProps {
   teamId?: string;
   onSelect: (playerId: string, playerName: string) => void;
+  onBack?: () => void;
 }
 
-export function PlayerSelector({ teamId, onSelect }: PlayerSelectorProps) {
+export function PlayerSelector({
+  teamId,
+  onSelect,
+  onBack,
+}: PlayerSelectorProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,9 +89,20 @@ export function PlayerSelector({ teamId, onSelect }: PlayerSelectorProps) {
           className="border-2 border-yellow-500"
         >
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-center text-white">
-              Select Player
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-center text-white">
+                Select Player
+              </h2>
+              {onBack && (
+                <UniversalButton.Secondary
+                  size="sm"
+                  onClick={onBack}
+                  className="text-sm"
+                >
+                  ← Back
+                </UniversalButton.Secondary>
+              )}
+            </div>
 
             <input
               type="text"

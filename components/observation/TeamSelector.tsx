@@ -12,9 +12,10 @@ interface Team {
 
 interface TeamSelectorProps {
   onSelect: (teamId: string) => void;
+  onBack?: () => void;
 }
 
-export function TeamSelector({ onSelect }: TeamSelectorProps) {
+export function TeamSelector({ onSelect, onBack }: TeamSelectorProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,9 +75,20 @@ export function TeamSelector({ onSelect }: TeamSelectorProps) {
           className="border-2 border-yellow-500"
         >
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-center text-white">
-              Select Team
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-center text-white">
+                Select Team
+              </h2>
+              {onBack && (
+                <UniversalButton.Secondary
+                  size="sm"
+                  onClick={onBack}
+                  className="text-sm"
+                >
+                  ← Back
+                </UniversalButton.Secondary>
+              )}
+            </div>
 
             <input
               type="text"

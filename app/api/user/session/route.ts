@@ -1,6 +1,8 @@
 import { getSession } from '@/lib/auth/session';
-import { getCurrentParticipant } from '@/lib/db/queries';
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/db/drizzle';
+import { mpbcPerson } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
@@ -12,34 +14,51 @@ export async function GET() {
 
     console.log('Session MPBC Person ID:', session.user.mpbcPersonId);
 
-    // Get the current participant data for display
-    const participant = await getCurrentParticipant();
+    // Query mpbc_person directly using the mpbcPersonId from session
+    if (db) {
+      try {
+        const personResult = await db
+          .select({
+            id: mpbcPerson.id,
+            firstName: mpbcPerson.firstName,
+            lastName: mpbcPerson.lastName,
+            email: mpbcPerson.email,
+            personType: mpbcPerson.personType,
+            organizationId: mpbcPerson.organizationId,
+          })
+          .from(mpbcPerson)
+          .where(eq(mpbcPerson.id, session.user.mpbcPersonId))
+          .limit(1);
 
-    console.log('Current participant data:', {
-      id: participant?.id,
-      firstName: participant?.firstName,
-      lastName: participant?.lastName,
-      personType: participant?.personType,
-    });
+        if (personResult.length > 0 && personResult[0]) {
+          const person = personResult[0];
+          console.log('mpbc_person query result:', {
+            id: person.id,
+            firstName: person.firstName,
+            lastName: person.lastName,
+            personType: person.personType,
+          });
 
-    if (participant) {
-      return NextResponse.json({
-        user: {
-          id: participant.id,
-          name:
-            [participant.firstName, participant.lastName]
-              .filter(Boolean)
-              .join(' ') || 'Unknown User',
-          firstName: participant.firstName,
-          lastName: participant.lastName,
-          email: participant.email,
-          personType: participant.personType, // This is the role/type
-          organizationId: participant.organizationId,
-        },
-      });
+          return NextResponse.json({
+            user: {
+              id: person.id,
+              name:
+                [person.firstName, person.lastName].filter(Boolean).join(' ') ||
+                'Unknown User',
+              firstName: person.firstName,
+              lastName: person.lastName,
+              email: person.email,
+              personType: person.personType,
+              organizationId: person.organizationId,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Error querying mpbc_person:', error);
+      }
     }
 
-    // Fallback to session data if MPBC Person data not available
+    // Final fallback to session data if no person data available
     return NextResponse.json({
       user: {
         id: session.user.mpbcPersonId,

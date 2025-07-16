@@ -15,7 +15,6 @@ import {
   LogOut,
   Menu,
   X,
-  Award,
   Calendar,
   BarChart3,
   BookOpen,
@@ -236,23 +235,13 @@ export function Sidebar({ user, onSignOut }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-40 h-screen bg-zinc-900 border-r border-zinc-800 transition-all duration-300 ease-in-out',
+          'fixed top-16 left-0 z-50 h-[calc(100vh-4rem)] bg-zinc-900 border-r border-zinc-800 transition-all duration-300 ease-in-out',
           'w-64 md:w-64 md:translate-x-0',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Logo & Brand */}
-        <div className="flex items-center justify-center h-16 border-b border-zinc-800">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Award size={24} className="text-gold-500" />
-            <span className="text-lg font-semibold text-white">
-              MP Basketball
-            </span>
-          </Link>
-        </div>
-
         {/* Navigation */}
-        <nav className="px-3 py-4 overflow-y-auto h-[calc(100vh-16rem)]">
+        <nav className="px-3 py-4 overflow-y-auto h-[calc(100vh-8rem)]">
           <ul className="space-y-1">
             {navItems.map(item => (
               <li key={item.title}>

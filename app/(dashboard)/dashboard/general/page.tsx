@@ -1,6 +1,6 @@
 'use client';
-
 import { useActionState } from 'react';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,114 +11,60 @@ import { updateProfile } from '@/app/(login)/actions';
 import useSWR from 'swr';
 import { Suspense } from 'react';
 import { UserResponse } from '@/lib/utils';
-
 const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 type ActionState = {
   displayName?: string;
   error?: string;
   success?: boolean;
   message?: string;
 };
-
 type AccountFormProps = {
   state: ActionState;
   nameValue?: string;
   emailValue?: string;
 };
-
 function AccountForm({
   state,
   nameValue = '',
   emailValue = '',
 }: AccountFormProps) {
   return (
-    <>
-      <div>
-        <Label htmlFor="displayName" className="mb-2">
-          Name
-        </Label>
-        <Input
-          id="displayName"
-          name="displayName"
-          placeholder="Enter your name"
-          defaultValue={state.displayName || nameValue}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="email" className="mb-2">
-          Email
-        </Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="Enter your email"
-          defaultValue={emailValue}
-          disabled // Email should not be editable from here
-        />
-      </div>
-    </>
-  );
-}
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">General</h2>
+          </div>
+        </div>
+      }
+      center={
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">General Settings</h1>
+          </div>
 
-function AccountFormWithData({ state }: { state: ActionState }) {
-  const { data: userResponse } = useSWR<UserResponse>('/api/user', fetcher);
-  const user = userResponse?.user;
-  return (
-    <AccountForm
-      state={state}
-      nameValue={user?.displayName ?? ''}
-      emailValue={user?.email ?? ''}
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Account settings coming soon...</p>
+            </CardContent>
+          </Card>
+        </div>
+      }
+      right={
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <h3 className="font-semibold mb-2">Quick Actions</h3>
+            <div className="space-y-2">
+              <button className="w-full text-left p-2 text-sm text-gray-600 hover:bg-gray-50 rounded">
+                Update Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     />
-  );
-}
-
-export default function GeneralPage() {
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
-    updateProfile,
-    {}
-  );
-
-  return (
-    <section className="flex-1 p-4 lg:p-8">
-      <h1 className="text-lg lg:text-2xl font-medium text-gray-900 mb-6">
-        General Settings
-      </h1>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" action={formAction}>
-            <Suspense fallback={<AccountForm state={state} />}>
-              <AccountFormWithData state={state} />
-            </Suspense>
-            {state.error && (
-              <p className="text-red-500 text-sm">{state.error}</p>
-            )}
-            {state.message && (
-              <p className="text-green-500 text-sm">{state.message}</p>
-            )}
-            <Button
-              type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={isPending}
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </section>
   );
 }

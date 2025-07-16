@@ -1,10 +1,9 @@
 import { Check } from 'lucide-react';
-
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 export default async function PricingPage() {
   // Mock data since Stripe is not implemented yet
   const basePlan = { name: 'Base', id: 'prod_base' };
   const plusPlan = { name: 'Plus', id: 'prod_plus' };
-
   const basePrice = {
     id: 'price_base',
     unitAmount: 800,
@@ -17,82 +16,91 @@ export default async function PricingPage() {
     interval: 'month',
     trialPeriodDays: 7,
   };
-
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="grid md:grid-cols-2 gap-8 max-w-xl mx-auto">
-        <PricingCard
-          name={basePlan?.name || 'Base'}
-          price={basePrice?.unitAmount || 800}
-          interval={basePrice?.interval || 'month'}
-          trialDays={basePrice?.trialPeriodDays || 7}
-          features={[
-            'Unlimited Usage',
-            'Unlimited Workspace Members',
-            'Email Support',
-          ]}
-        />
-        <PricingCard
-          name={plusPlan?.name || 'Plus'}
-          price={plusPrice?.unitAmount || 1200}
-          interval={plusPrice?.interval || 'month'}
-          trialDays={plusPrice?.trialPeriodDays || 7}
-          features={[
-            'Everything in Base, and:',
-            'Early Access to New Features',
-            '24/7 Support + Slack Access',
-          ]}
-        />
-      </div>
-    </main>
-  );
-}
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Pricing</h2>
+          </div>
+        </div>
+      }
+      center={
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Pricing Plans</h1>
+          </div>
 
-function PricingCard({
-  name,
-  price,
-  interval,
-  trialDays,
-  features,
-}: {
-  name: string;
-  price: number;
-  interval: string;
-  trialDays: number;
-  features: string[];
-}) {
-  return (
-    <div className="pt-6">
-      <h2 className="text-2xl font-medium text-gray-900 mb-2">{name}</h2>
-      <p className="text-sm text-gray-600 mb-4">
-        with {trialDays} day free trial
-      </p>
-      <p className="text-4xl font-medium text-gray-900 mb-6">
-        ${price / 100}{' '}
-        <span className="text-xl font-normal text-gray-600">
-          per user / {interval}
-        </span>
-      </p>
-      <ul className="space-y-4 mb-8">
-        {features.map((feature, index) => (
-          <li key={index} className="flex items-start">
-            <Check className="h-5 w-5 text-orange-500 mr-2 mt-0.5 flex-shrink-0" />
-            <span className="text-gray-700">{feature}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="text-center">
-        <p className="text-sm text-gray-500 mb-4">
-          Payment integration coming soon
-        </p>
-        <button
-          type="button"
-          className="w-full bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 transition-colors"
-          disabled
-        >
-          Coming Soon
-        </button>
-      </div>
-    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-xl font-semibold mb-4">{basePlan.name}</h3>
+              <div className="text-3xl font-bold mb-4">
+                ${basePrice.unitAmount / 100}/month
+              </div>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  Basic features
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  Up to 10 players
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  Standard support
+                </li>
+              </ul>
+              <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                Choose {basePlan.name}
+              </button>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-xl font-semibold mb-4">{plusPlan.name}</h3>
+              <div className="text-3xl font-bold mb-4">
+                ${plusPrice.unitAmount / 100}/month
+              </div>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  All basic features
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  Unlimited players
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  Priority support
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  Advanced analytics
+                </li>
+              </ul>
+              <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                Choose {plusPlan.name}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+      right={
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <h3 className="font-semibold mb-2">Quick Actions</h3>
+            <div className="space-y-2">
+              <button className="w-full text-left p-2 text-sm text-gray-600 hover:bg-gray-50 rounded">
+                Contact Sales
+              </button>
+              <button className="w-full text-left p-2 text-sm text-gray-600 hover:bg-gray-50 rounded">
+                View Features
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    />
   );
 }

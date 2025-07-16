@@ -11,9 +11,13 @@ interface Organization {
 
 interface OrganizationSelectorProps {
   onSelect: (orgId: string) => void;
+  onBack?: () => void;
 }
 
-export function OrganizationSelector({ onSelect }: OrganizationSelectorProps) {
+export function OrganizationSelector({
+  onSelect,
+  onBack,
+}: OrganizationSelectorProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,9 +75,20 @@ export function OrganizationSelector({ onSelect }: OrganizationSelectorProps) {
           className="border-2 border-yellow-500"
         >
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-center text-white">
-              Select Organization
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-center text-white">
+                Select Organization
+              </h2>
+              {onBack && (
+                <UniversalButton.Secondary
+                  size="sm"
+                  onClick={onBack}
+                  className="text-sm"
+                >
+                  ← Back
+                </UniversalButton.Secondary>
+              )}
+            </div>
 
             <input
               type="text"
@@ -107,4 +122,4 @@ export function OrganizationSelector({ onSelect }: OrganizationSelectorProps) {
       </div>
     </div>
   );
-} 
+}

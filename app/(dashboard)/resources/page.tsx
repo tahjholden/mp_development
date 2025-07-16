@@ -13,8 +13,9 @@ import {
   Instagram,
   Mic,
 } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import UniversalCard from '@/components/ui/UniversalCard';
+import UniversalButton from '@/components/ui/UniversalButton';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -91,7 +92,6 @@ export default function ResourcesPage() {
     useState<Inspiration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   const [selectedInspirationId, setSelectedInspirationId] = useState<
     string | null
@@ -118,22 +118,6 @@ export default function ResourcesPage() {
       setSelectedInspirationId(inspirationId);
     }
   };
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   // Fetch real data with validation
   useEffect(() => {
@@ -293,82 +277,51 @@ export default function ResourcesPage() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-[#161616] flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center w-full">
-          <span className="text-zinc-400 text-lg font-semibold mb-4">
-            Loading resources & inspirations...
-          </span>
-          <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Resources</h2>
+            </div>
+          </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading resources & inspirations...</p>
+            </div>
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen p-4 bg-[#161616] flex items-center justify-center">
-        <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
-          {error}
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="space-y-4"></div>}
+        center={
+          <div className="min-h-screen p-4 flex items-center justify-center">
+            <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+              {error}
+            </div>
+          </div>
+        }
+        right={<div className="space-y-4"></div>}
+      />
     );
   }
 
   return (
-    <div
-      className="flex min-h-screen h-full bg-black text-white"
-      style={{ background: 'black' }}
-    >
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="Resources & Inspirations Coming Soon!"
-          description="Our inspiration curation and resource sharing system is in development. You can see the layout and structure, but the full curation and sharing features are being built. Let us know what inspires you!"
-          feedbackLink="mailto:coach@example.com?subject=MPB%20Inspirations%20Feedback"
-        />
-      )}
-
-      {/* Header - exact replica with coach info */}
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            Coach
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            coach@example.com
-          </span>
-          <span className="text-xs text-white leading-tight">Coach</span>
-        </div>
-      </header>
-
-      {/* Sidebar */}
-      <Sidebar
-        user={{
-          name: 'Coach',
-          email: 'coach@example.com',
-          role: 'Coach',
-        }}
-      />
-
-      {/* Main Content */}
-      <div
-        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
-        style={{ background: 'black', minHeight: '100vh' }}
-      >
-        {/* LEFT PANE: Featured Inspirations */}
-        <div
-          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-2 text-[#d8cc97]">
               Resources & Inspirations
@@ -530,12 +483,9 @@ export default function ResourcesPage() {
             )}
           </div>
         </div>
-
-        {/* CENTER PANE: Inspiration Details */}
-        <div
-          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+      }
+      center={
+        <div className="space-y-6">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             {selectedInspirationId
               ? `${inspirations.find(i => i.id === selectedInspirationId)?.name}`
@@ -545,9 +495,10 @@ export default function ResourcesPage() {
           {selectedInspiration ? (
             <div className="space-y-6">
               {/* Inspiration Details Card */}
-              <div
-                className="bg-zinc-800 p-6 rounded-lg"
-                style={{ background: '#181818' }}
+              <UniversalCard.Default
+                title={selectedInspiration.name}
+                subtitle={`${selectedInspiration.category} • ${selectedInspiration.type}`}
+                size="lg"
               >
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-[#d8cc97] rounded-full flex items-center justify-center">
@@ -634,24 +585,18 @@ export default function ResourcesPage() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </UniversalCard.Default>
 
               {/* Personal Note */}
-              <div
-                className="bg-zinc-800 p-6 rounded-lg"
-                style={{ background: '#181818' }}
-              >
-                <h4 className="text-base font-bold text-[#d8cc97] mb-3">
-                  Personal Note
-                </h4>
+              <UniversalCard.Default title="Personal Note" size="lg">
                 <p className="text-sm text-zinc-300 leading-relaxed mb-4">
                   I'm always learning. If you think there's someone or something
                   missing, reach out and put me on.
                 </p>
-                <button className="px-4 py-2 bg-[#d8cc97] text-black font-semibold rounded hover:bg-[#c4b883] transition-colors">
+                <UniversalButton.Primary>
                   Suggest an Inspiration
-                </button>
-              </div>
+                </UniversalButton.Primary>
+              </UniversalCard.Default>
             </div>
           ) : (
             <div className="text-sm text-gray-500 text-center py-8">
@@ -659,24 +604,19 @@ export default function ResourcesPage() {
             </div>
           )}
         </div>
-
-        {/* RIGHT PANE: Resources & Community */}
-        <div
-          className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+      }
+      right={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Resources & Community
           </h2>
 
           {/* Quick Downloads */}
-          <div
-            className="bg-zinc-800 p-6 rounded-lg mb-6"
-            style={{ background: '#181818' }}
+          <UniversalCard.Default
+            title="Quick Downloads"
+            size="sm"
+            className="mb-6"
           >
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Quick Downloads
-            </h3>
             <div className="space-y-3">
               {resources.map(resource => (
                 <div key={resource.id} className="p-3 bg-zinc-700 rounded">
@@ -700,16 +640,10 @@ export default function ResourcesPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Community Stats */}
-          <div
-            className="bg-zinc-800 p-6 rounded-lg mb-6"
-            style={{ background: '#181818' }}
-          >
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Community
-            </h3>
+          <UniversalCard.Default title="Community" size="sm" className="mb-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-zinc-400">
@@ -732,27 +666,21 @@ export default function ResourcesPage() {
                 </span>
               </div>
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Get Involved */}
-          <div
-            className="bg-zinc-800 p-6 rounded-lg"
-            style={{ background: '#181818' }}
-          >
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Get Involved
-            </h3>
+          <UniversalCard.Default title="Get Involved" size="sm">
             <div className="space-y-3">
-              <button className="w-full p-3 bg-[#d8cc97] text-black font-semibold rounded hover:bg-[#c4b883] transition-colors text-sm">
+              <UniversalButton.Primary className="w-full">
                 Nominate an Inspiration
-              </button>
-              <button className="w-full p-3 border border-[#d8cc97] text-[#d8cc97] font-semibold rounded hover:bg-[#d8cc97] hover:text-black transition-colors text-sm">
+              </UniversalButton.Primary>
+              <UniversalButton.Secondary className="w-full">
                 Share Your Story
-              </button>
+              </UniversalButton.Secondary>
             </div>
-          </div>
+          </UniversalCard.Default>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

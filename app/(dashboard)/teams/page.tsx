@@ -1,32 +1,37 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
-import { Shield, Users, Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import UniversalButton from '@/components/ui/UniversalButton';
-import { UserResponseSchema } from '@/lib/utils';
+import { UniversalCard } from '@/components/ui/UniversalCard';
+import TeamListCard from '@/components/basketball/TeamListCard';
 import { z } from 'zod';
-import UniversalCard from '@/components/ui/UniversalCard';
-import TeamListCard, {
-  type Team as SharedTeam,
-} from '@/components/basketball/TeamListCard';
 
 // Define schemas for teams and players
-const TeamSchema = z.object({
+const TeamsResponseSchema = z.array(
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    coachName: z.string(),
+  })
+);
+
+const PlayersResponseSchema = z.array(
+  z.object({
+    id: z.string(),
+    displayName: z.string(),
+    teamId: z.string(),
+    personType: z.string().optional(),
+    position: z.string().optional(),
+  })
+);
+
+const UserResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
-  coachName: z.string(),
+  email: z.string(),
+  role: z.string(),
 });
-
-const PlayerSchema = z.object({
-  id: z.string(),
-  displayName: z.string(),
-  teamId: z.string(),
-  personType: z.string().optional(),
-  position: z.string().optional(),
-});
-
-const TeamsResponseSchema = z.array(TeamSchema);
-const PlayersResponseSchema = z.array(PlayerSchema);
 
 interface Team {
   id: string;
@@ -44,11 +49,11 @@ interface Player {
 }
 
 export default function TeamsPage() {
-  const [isLoading, setIsLoading] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamPlayers, setTeamPlayers] = useState<Player[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   // Fetch current user and their teams
   useEffect(() => {
     const fetchUserAndTeams = async () => {
@@ -64,7 +69,6 @@ export default function TeamsPage() {
         if (!validatedUser.data) {
           throw new Error('No user data available');
         }
-        setCurrentUser(validatedUser.data);
         // Fetch teams - all users see their teams
         const userTeamsResponse = await fetch(`/api/user/teams`);
         if (!userTeamsResponse.ok)
@@ -99,7 +103,6 @@ export default function TeamsPage() {
         }
       } catch {
         setTeams([]);
-        setCurrentUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -152,9 +155,6 @@ export default function TeamsPage() {
     // but the modal is removed.
   };
 
-  // Check if there are any teams
-  const hasTeams = teams.length > 0;
-
   if (isLoading) {
     return (
       <DashboardLayout
@@ -192,6 +192,7 @@ export default function TeamsPage() {
       }
       center={
         <div className="space-y-6">
+          {/* Team Management Header - Always visible */}
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-[#d8cc97]">
               Team Management
@@ -246,18 +247,15 @@ export default function TeamsPage() {
                     </div>
                   ))}
                 </div>
-                {teamPlayers.length === 0 && (
-                  <p className="text-center text-zinc-400 py-4">
-                    No players found for this team
-                  </p>
-                )}
+                {/* No empty state card for empty lists - just show nothing */}
               </UniversalCard.Default>
             </div>
           ) : (
-            <UniversalCard.EmptyState
-              title="Select a Team"
+            /* Empty state card that maintains the same layout position and sizing */
+            <UniversalCard.SelectTeamState
               message="Choose a team from the left sidebar to view details and manage players."
               icon={<Users className="h-16 w-16 text-zinc-600" />}
+              className="min-h-[400px] flex items-center justify-center"
             />
           )}
         </div>

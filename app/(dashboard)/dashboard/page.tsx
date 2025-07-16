@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from '@/components/ui/Sidebar';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import UniversalButton from '@/components/ui/UniversalButton';
+import UniversalCard from '@/components/ui/UniversalCard';
 import {
   Users,
   Award,
@@ -24,7 +25,6 @@ import {
   UserCheck,
   Loader2,
 } from 'lucide-react';
-import PlayerPortalDashboard from '@/components/basketball/PlayerPortalDashboard';
 
 // Role-based dashboard component
 export default function DashboardPage() {
@@ -50,83 +50,38 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-
     fetchUser();
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen h-full bg-black text-white">
-        <Sidebar
-          user={{ name: 'Coach', email: 'coach@example.com', role: 'Coach' }}
-        />
-        <div className="flex-1 flex flex-col min-h-screen">
-          <header
-            className="w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-            style={{ boxShadow: 'none' }}
-          >
-            <span
-              className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-              style={{ letterSpacing: '0.04em' }}
-            >
-              MP Player Development
-            </span>
-            <div className="flex flex-col items-end">
-              <span className="text-base font-semibold text-white leading-tight">
-                Coach
-              </span>
-              <span className="text-xs text-[#d8cc97] leading-tight">
-                coach@example.com
-              </span>
-              <span className="text-xs text-white leading-tight">Coach</span>
-            </div>
-          </header>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
-              <p className="text-zinc-400">Loading dashboard...</p>
-            </div>
+      <DashboardLayout
+        left={
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-[#d8cc97]" />
           </div>
-        </div>
-      </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-[#d8cc97]" />
+          </div>
+        }
+        right={
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-[#d8cc97]" />
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen h-full bg-black text-white">
-        <Sidebar
-          user={{ name: 'Coach', email: 'coach@example.com', role: 'Coach' }}
-        />
-        <div className="flex-1 flex flex-col min-h-screen">
-          <header
-            className="w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-            style={{ boxShadow: 'none' }}
-          >
-            <span
-              className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-              style={{ letterSpacing: '0.04em' }}
-            >
-              MP Player Development
-            </span>
-            <div className="flex flex-col items-end">
-              <span className="text-base font-semibold text-white leading-tight">
-                Coach
-              </span>
-              <span className="text-xs text-[#d8cc97] leading-tight">
-                coach@example.com
-              </span>
-              <span className="text-xs text-white leading-tight">Coach</span>
-            </div>
-          </header>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <AlertTriangle className="h-8 w-8 text-red-500 mb-4" />
-              <p className="text-red-400">Error: {error}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="text-red-400">Error: {error}</div>}
+        center={<div className="text-red-400">Error: {error}</div>}
+        right={<div className="text-red-400">Error: {error}</div>}
+      />
     );
   }
 
@@ -134,49 +89,14 @@ export default function DashboardPage() {
   const userRole = user?.personType || 'coach';
 
   return (
-    <div className="flex min-h-screen h-full bg-black text-white">
-      {/* Header */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between">
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            {user.name ||
-              `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-              `User ${user.id}`}
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            {user.email}
-          </span>
-          <span className="text-xs text-white leading-tight capitalize">
-            {userRole === 'superadmin'
-              ? 'SuperAdmin'
-              : userRole === 'admin'
-                ? 'Admin'
-                : userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-          </span>
-        </div>
-      </header>
-
-      {/* Sidebar */}
-      <Sidebar user={user} onSignOut={() => {}} />
-
-      {/* Main Content */}
-      <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen">
-        {/* LEFT COLUMN: Entity Panel */}
-        <EntityPanel user={user} />
-
-        {/* CENTER COLUMN: Main Panel */}
+    <DashboardLayout
+      left={<EntityPanel user={user} />}
+      center={
         <MainPanel>
-          {/* Role-based Dashboard Content */}
           <DashboardHome user={user} />
         </MainPanel>
-
-        {/* RIGHT COLUMN: Right Panel */}
+      }
+      right={
         <RightPanel>
           <RecentActivity user={user} />
           {/* Admin-only tools */}
@@ -184,8 +104,8 @@ export default function DashboardPage() {
           {/* Coach quick actions */}
           <CoachQuickActions user={user} />
         </RightPanel>
-      </div>
-    </div>
+      }
+    />
   );
 }
 
@@ -214,130 +134,157 @@ function EntityPanel({ user }) {
   };
 
   return (
-    <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen">
+    <div className="space-y-6">
       {user.primaryRole === 'admin' || user.primaryRole === 'superadmin' ? (
         <>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
-            System Overview
-          </h2>
+          <h2 className="text-xl font-bold text-[#d8cc97]">System Overview</h2>
           <div className="space-y-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-blue-500/20">
-                <Users className="h-6 w-6 text-blue-500" />
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <Users className="h-6 w-6 text-blue-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    Total Users
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {adminStats.totalUsers}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">Total Users</p>
-                <p className="text-2xl font-bold text-white">
-                  {adminStats.totalUsers}
-                </p>
+            </UniversalCard.StatCard>
+
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-green-500/20">
+                  <Shield className="h-6 w-6 text-green-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    Total Teams
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {adminStats.totalTeams}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-green-500/20">
-                <Shield className="h-6 w-6 text-green-500" />
+            </UniversalCard.StatCard>
+
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-purple-500/20">
+                  <Calendar className="h-6 w-6 text-purple-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    Active Plans
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {adminStats.activePlans}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">Total Teams</p>
-                <p className="text-2xl font-bold text-white">
-                  {adminStats.totalTeams}
-                </p>
+            </UniversalCard.StatCard>
+
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-orange-500/20">
+                  <UserCheck className="h-6 w-6 text-orange-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    Total Coaches
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {adminStats.totalCoaches}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <Calendar className="h-6 w-6 text-purple-500" />
+            </UniversalCard.StatCard>
+
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-red-500/20">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    System Alerts
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {adminStats.systemAlerts}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">
-                  Active Plans
-                </p>
-                <p className="text-2xl font-bold text-white">
-                  {adminStats.activePlans}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-orange-500/20">
-                <UserCheck className="h-6 w-6 text-orange-500" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">
-                  Total Coaches
-                </p>
-                <p className="text-2xl font-bold text-white">
-                  {adminStats.totalCoaches}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-red-500/20">
-                <AlertTriangle className="h-6 w-6 text-red-500" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">
-                  System Alerts
-                </p>
-                <p className="text-2xl font-bold text-white">
-                  {adminStats.systemAlerts}
-                </p>
-              </div>
-            </div>
+            </UniversalCard.StatCard>
           </div>
         </>
       ) : (
         <>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
-            My Stats
-          </h2>
+          <h2 className="text-xl font-bold text-[#d8cc97]">My Stats</h2>
           <div className="space-y-6">
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-blue-500/20">
-                <Users className="h-6 w-6 text-blue-500" />
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <Users className="h-6 w-6 text-blue-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    My Players
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {coachStats.totalPlayers}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">My Players</p>
-                <p className="text-2xl font-bold text-white">
-                  {coachStats.totalPlayers}
-                </p>
+            </UniversalCard.StatCard>
+
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-green-500/20">
+                  <Award className="h-6 w-6 text-green-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">My Teams</p>
+                  <p className="text-2xl font-bold text-white">
+                    {coachStats.totalTeams}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-green-500/20">
-                <Award className="h-6 w-6 text-green-500" />
+            </UniversalCard.StatCard>
+
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-purple-500/20">
+                  <Calendar className="h-6 w-6 text-purple-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    Active Plans
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {coachStats.activePlans}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">My Teams</p>
-                <p className="text-2xl font-bold text-white">
-                  {coachStats.totalTeams}
-                </p>
+            </UniversalCard.StatCard>
+
+            <UniversalCard.StatCard>
+              <div className="flex items-center">
+                <div className="p-2 rounded-lg bg-orange-500/20">
+                  <Activity className="h-6 w-6 text-orange-500" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-zinc-400">
+                    Recent Observations
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {coachStats.recentObservations}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <Calendar className="h-6 w-6 text-purple-500" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">
-                  Active Plans
-                </p>
-                <p className="text-2xl font-bold text-white">
-                  {coachStats.activePlans}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-2 rounded-lg bg-orange-500/20">
-                <Activity className="h-6 w-6 text-orange-500" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-zinc-400">
-                  Recent Observations
-                </p>
-                <p className="text-2xl font-bold text-white">
-                  {coachStats.recentObservations}
-                </p>
-              </div>
-            </div>
+            </UniversalCard.StatCard>
           </div>
         </>
       )}
@@ -347,20 +294,12 @@ function EntityPanel({ user }) {
 
 // Main Panel wrapper
 function MainPanel({ children }) {
-  return (
-    <div className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen space-y-8">
-      {children}
-    </div>
-  );
+  return <div className="space-y-8">{children}</div>;
 }
 
 // Right Panel wrapper
 function RightPanel({ children }) {
-  return (
-    <div className="w-1/4 p-6 bg-black flex flex-col justify-start min-h-screen">
-      {children}
-    </div>
-  );
+  return <div className="space-y-6">{children}</div>;
 }
 
 // Main Dashboard Home – Modular, Feature-Flag Ready
@@ -433,10 +372,11 @@ function AdminToolsPanel({ user }) {
   };
 
   return (
-    <div className="bg-zinc-900 border-l-4 border-yellow-400 rounded-lg p-4 space-y-3 shadow-md mt-6">
-      <div className="flex items-center gap-2 font-bold text-lg">
-        <span className="text-yellow-400">🛡️ Admin Tools</span>
-      </div>
+    <UniversalCard.Default
+      title="🛡️ Admin Tools"
+      subtitle="Administrative actions"
+      color="gold"
+    >
       <div className="grid gap-2">
         {features.userManagement && <ActionButton label="Manage Users" />}
         <ActionButton label="Team Management" />
@@ -447,7 +387,7 @@ function AdminToolsPanel({ user }) {
         {features.dataExport && <ActionButton label="Data Export" />}
         {features.systemSettings && <ActionButton label="System Settings" />}
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
@@ -466,10 +406,11 @@ function CoachQuickActions({ user }) {
   };
 
   return (
-    <div className="bg-zinc-900 border-l-4 border-blue-400 rounded-lg p-4 space-y-3 shadow-md mt-6">
-      <div className="flex items-center gap-2 font-bold text-lg">
-        <span className="text-blue-400">🏀 Team Actions</span>
-      </div>
+    <UniversalCard.Default
+      title="🏀 Team Actions"
+      subtitle="Team management tools"
+      color="gold"
+    >
       <div className="grid gap-2">
         <ActionButton label="Add Player to Team" />
         <ActionButton label="Schedule Practice" />
@@ -477,7 +418,7 @@ function CoachQuickActions({ user }) {
         <ActionButton label="Log Observation" />
         {features.teamFees && <ActionButton label="Manage Team Fees" />}
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
@@ -581,9 +522,7 @@ function RecentActivity({ user }) {
 
   return (
     <>
-      <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
-        Recent Activity
-      </h2>
+      <h2 className="text-xl font-bold text-[#d8cc97]">Recent Activity</h2>
       <div className="space-y-4">
         {activities.slice(0, 5).map(activity => {
           const IconComponent = activity.icon;
@@ -623,9 +562,7 @@ function ActionButton({ label }) {
 // Modular Panel Components
 
 // System Health - Always visible
-function SystemHealth({ user }: { user: any }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _user = user;
+function SystemHealth({ user }) {
   const systemHealth = {
     status: 'healthy',
     uptime: '99.9%',
@@ -638,10 +575,10 @@ function SystemHealth({ user }: { user: any }) {
   };
 
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
-        System Health & Performance
-      </h2>
+    <UniversalCard.Default
+      title="System Health & Performance"
+      subtitle="Platform monitoring and metrics"
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-zinc-800/50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
@@ -702,17 +639,17 @@ function SystemHealth({ user }: { user: any }) {
           </div>
         </div>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Team Stats - Always visible
-function TeamStats({ user }: { user: any }) {
+function TeamStats({ user }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
-        {user.role === 'admin' ? 'Platform Overview' : 'My Teams'}
-      </h2>
+    <UniversalCard.Default
+      title={user.role === 'admin' ? 'Platform Overview' : 'My Teams'}
+      subtitle="Team and platform statistics"
+    >
       {user.role === 'admin' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-zinc-800/50 rounded-lg p-6">
@@ -826,19 +763,17 @@ function TeamStats({ user }: { user: any }) {
           </div>
         </div>
       )}
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Billing Panel - Feature flag controlled
-export function BillingPanel({ orgId }: { orgId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _orgId = orgId;
+function BillingPanel({ orgId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
-        Billing & Subscription
-      </h3>
+    <UniversalCard.Default
+      title="Billing & Subscription"
+      subtitle="Payment and subscription management"
+    >
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-sm text-zinc-400">Plan</span>
@@ -856,19 +791,17 @@ export function BillingPanel({ orgId }: { orgId: string }) {
           Manage Billing
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // User Management Panel - Role controlled
-function UserManagementPanel({ orgId }: { orgId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _orgId = orgId;
+function UserManagementPanel({ orgId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
-        User Management
-      </h3>
+    <UniversalCard.Default
+      title="User Management"
+      subtitle="User administration and roles"
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Primary>
           <UserPlus className="h-4 w-4 mr-2" />
@@ -887,19 +820,17 @@ function UserManagementPanel({ orgId }: { orgId: string }) {
           Security Alerts
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Roster Panel - Always visible
-function RosterPanel({ orgId, teamId }: { orgId?: string; teamId?: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _teamId = teamId;
+function RosterPanel({ orgId, teamId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
-        {orgId ? 'Organization Roster' : 'Team Roster'}
-      </h3>
+    <UniversalCard.Default
+      title={orgId ? 'Organization Roster' : 'Team Roster'}
+      subtitle="Player and team management"
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Primary>
           <Plus className="h-4 w-4 mr-2" />
@@ -918,19 +849,17 @@ function RosterPanel({ orgId, teamId }: { orgId?: string; teamId?: string }) {
           Roster Analytics
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Team Fees Panel - Feature flag controlled
-function TeamFeesPanel({ teamId }: { teamId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _teamId = teamId;
+function TeamFeesPanel({ teamId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
-        Team Fees Management
-      </h3>
+    <UniversalCard.Default
+      title="Team Fees Management"
+      subtitle="Financial tracking and payments"
+    >
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-sm text-zinc-400">Total Collected</span>
@@ -948,19 +877,17 @@ function TeamFeesPanel({ teamId }: { teamId: string }) {
           Manage Fees
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Advanced Analytics Panel - Feature flag controlled
-function AdvancedAnalyticsPanel({ orgId }: { orgId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _orgId = orgId;
+function AdvancedAnalyticsPanel({ orgId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
-        Advanced Analytics
-      </h3>
+    <UniversalCard.Default
+      title="Advanced Analytics"
+      subtitle="Performance and usage metrics"
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Secondary>
           <BarChart3 className="h-4 w-4 mr-2" />
@@ -979,17 +906,17 @@ function AdvancedAnalyticsPanel({ orgId }: { orgId: string }) {
           Error Reports
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Audit Logs Panel - Feature flag controlled
-function AuditLogsPanel({ orgId }: { orgId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _orgId = orgId;
+function AuditLogsPanel({ orgId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">Audit Logs</h3>
+    <UniversalCard.Default
+      title="Audit Logs"
+      subtitle="Security and activity tracking"
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Secondary>
           <Clipboard className="h-4 w-4 mr-2" />
@@ -1008,19 +935,17 @@ function AuditLogsPanel({ orgId }: { orgId: string }) {
           User Activity
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Data Export Panel - Feature flag controlled
-function DataExportPanel({ orgId }: { orgId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _orgId = orgId;
+function DataExportPanel({ orgId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
-        Data Management
-      </h3>
+    <UniversalCard.Default
+      title="Data Management"
+      subtitle="Import, export, and backup"
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Secondary>
           <Download className="h-4 w-4 mr-2" />
@@ -1039,19 +964,17 @@ function DataExportPanel({ orgId }: { orgId: string }) {
           Data Security
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // System Settings Panel - Feature flag controlled
-function SystemSettingsPanel({ orgId }: { orgId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _orgId = orgId;
+function SystemSettingsPanel({ orgId }) {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4 text-[#d8cc97]">
-        System Settings
-      </h3>
+    <UniversalCard.Default
+      title="System Settings"
+      subtitle="Configuration and preferences"
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <UniversalButton.Secondary>
           <Settings className="h-4 w-4 mr-2" />
@@ -1070,17 +993,17 @@ function SystemSettingsPanel({ orgId }: { orgId: string }) {
           System Config
         </UniversalButton.Secondary>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
 // Practice Schedule Card - Coach specific
 function PracticeScheduleCard() {
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
-        Practice Schedule
-      </h2>
+    <UniversalCard.Default
+      title="Practice Schedule"
+      subtitle="Upcoming team sessions"
+    >
       <div className="space-y-4">
         <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/50">
           <div>
@@ -1105,7 +1028,7 @@ function PracticeScheduleCard() {
           </UniversalButton.Secondary>
         </div>
       </div>
-    </div>
+    </UniversalCard.Default>
   );
 }
 
@@ -1160,10 +1083,10 @@ function RecentTeamActivity() {
   ];
 
   return (
-    <div className="bg-zinc-800/50 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-[#d8cc97]">
-        Recent Team Activity
-      </h2>
+    <UniversalCard.Default
+      title="Recent Team Activity"
+      subtitle="Latest team updates and events"
+    >
       <div className="space-y-4">
         {activities.slice(0, 5).map(activity => {
           const IconComponent = activity.icon;
@@ -1187,6 +1110,18 @@ function RecentTeamActivity() {
           );
         })}
       </div>
-    </div>
+    </UniversalCard.Default>
+  );
+}
+
+// Placeholder for PlayerPortalDashboard
+function PlayerPortalDashboard({ playerId, features }) {
+  return (
+    <UniversalCard.Default
+      title="Player Portal"
+      subtitle="Player-specific dashboard"
+    >
+      <p className="text-zinc-400">Player portal content would go here</p>
+    </UniversalCard.Default>
   );
 }

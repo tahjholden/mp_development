@@ -10,8 +10,48 @@ import {
   Calendar,
   BarChart3,
 } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import UniversalCard from '@/components/ui/UniversalCard';
+import UniversalButton from '@/components/ui/UniversalButton';
+import { z } from 'zod';
+
+// Zod schemas for validation
+const PlayerGoalSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  target: z.number(),
+  current: z.number(),
+  unit: z.string(),
+  deadline: z.string(),
+  status: z.enum(['on_track', 'behind', 'completed']),
+  category: z.enum(['skill', 'fitness', 'mental', 'team']),
+});
+const PlayerGoalsArraySchema = z.array(PlayerGoalSchema);
+
+const PlayerSessionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  date: z.string(),
+  time: z.string(),
+  type: z.enum(['practice', 'game', 'training', 'recovery']),
+  duration: z.number(),
+  coach: z.string(),
+  status: z.enum(['upcoming', 'completed', 'missed']),
+  notes: z.string().optional(),
+});
+const PlayerSessionsArraySchema = z.array(PlayerSessionSchema);
+
+const PlayerProgressSchema = z.object({
+  id: z.string(),
+  skill: z.string(),
+  currentLevel: z.number(),
+  targetLevel: z.number(),
+  improvement: z.number(),
+  lastUpdated: z.string(),
+  category: z.enum(['shooting', 'dribbling', 'defense', 'passing', 'fitness']),
+});
+const PlayerProgressArraySchema = z.array(PlayerProgressSchema);
 
 // Types for player portal
 interface PlayerGoal {
@@ -161,7 +201,6 @@ export default function PlayerPortalPage() {
   const [progress, setProgress] = useState<PlayerProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   // Filter states
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -183,22 +222,6 @@ export default function PlayerPortalPage() {
       setSelectedGoalId(goalId);
     }
   };
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -226,311 +249,301 @@ export default function PlayerPortalPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-black text-white">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-zinc-800 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-zinc-800 rounded w-1/2 mb-8"></div>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="h-64 bg-zinc-800 rounded"></div>
-              <div className="h-64 bg-zinc-800 rounded"></div>
-              <div className="h-64 bg-zinc-800 rounded"></div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Player Portal</h2>
             </div>
           </div>
-        </div>
-      </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading player portal...</p>
+            </div>
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-black text-white">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="text-red-400">Error: {error}</div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="space-y-4"></div>}
+        center={
+          <div className="min-h-screen p-4 flex items-center justify-center">
+            <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+              {error}
+            </div>
+          </div>
+        }
+        right={<div className="space-y-4"></div>}
+      />
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
-      <Sidebar />
-
-      {/* Main Content */}
-      <div className="flex-1 ml-64 p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#d8cc97] mb-2">
-            {playerContent.title}
-          </h1>
-          <p className="text-zinc-400">{playerContent.description}</p>
-        </div>
-
-        {/* Three Column Layout */}
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left Column - Goals */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[#d8cc97] flex items-center gap-2">
-                <Target size={20} />
-                My Goals
-              </h2>
-              <div className="relative">
-                <button
-                  onClick={() =>
-                    setIsGoalCategoryDropdownOpen(!isGoalCategoryDropdownOpen)
-                  }
-                  className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
-                >
-                  <Filter size={16} />
-                  {goalCategoryFilter === 'all' ? 'All' : goalCategoryFilter}
-                  {isGoalCategoryDropdownOpen ? (
-                    <ChevronUp size={16} />
-                  ) : (
-                    <ChevronDown size={16} />
-                  )}
-                </button>
-                {isGoalCategoryDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
-                    {['all', 'skill', 'fitness', 'mental', 'team'].map(
-                      category => (
-                        <button
-                          key={category}
-                          onClick={() => {
-                            setGoalCategoryFilter(category);
-                            setIsGoalCategoryDropdownOpen(false);
-                          }}
-                          className="block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 transition-colors capitalize"
-                        >
-                          {category}
-                        </button>
-                      )
-                    )}
-                  </div>
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[#d8cc97] flex items-center gap-2">
+              <Target size={20} />
+              My Goals
+            </h2>
+            <div className="relative">
+              <button
+                onClick={() =>
+                  setIsGoalCategoryDropdownOpen(!isGoalCategoryDropdownOpen)
+                }
+                className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
+              >
+                <Filter size={16} />
+                {goalCategoryFilter === 'all' ? 'All' : goalCategoryFilter}
+                {isGoalCategoryDropdownOpen ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
                 )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {filteredGoals.map(goal => {
-                const progress = (goal.current / goal.target) * 100;
-                return (
-                  <div
-                    key={goal.id}
-                    onClick={() => handleGoalSelect(goal.id)}
-                    className={`p-3 rounded border cursor-pointer transition-colors ${
-                      selectedGoalId === goal.id
-                        ? 'border-[#d8cc97] bg-zinc-800'
-                        : 'border-zinc-700 hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-white">{goal.title}</h3>
-                      <span
-                        className={`px-2 py-1 rounded text-xs capitalize ${
-                          goal.status === 'completed'
-                            ? 'bg-green-900 text-green-300'
-                            : goal.status === 'on_track'
-                              ? 'bg-blue-900 text-blue-300'
-                              : 'bg-yellow-900 text-yellow-300'
-                        }`}
+              </button>
+              {isGoalCategoryDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
+                  {['all', 'skill', 'fitness', 'mental', 'team'].map(
+                    category => (
+                      <button
+                        key={category}
+                        onClick={() => {
+                          setGoalCategoryFilter(category);
+                          setIsGoalCategoryDropdownOpen(false);
+                        }}
+                        className="block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 transition-colors capitalize"
                       >
-                        {goal.status.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    <p className="text-sm text-zinc-400 mb-3">
-                      {goal.description}
-                    </p>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-zinc-400">Progress</span>
-                        <span className="text-white">
-                          {goal.current}/{goal.target} {goal.unit}
-                        </span>
-                      </div>
-                      <div className="w-full bg-zinc-700 rounded-full h-2">
-                        <div
-                          className="bg-[#d8cc97] h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min(progress, 100)}%` }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-xs text-zinc-400">
-                        <span>Deadline: {goal.deadline}</span>
-                        <span>{Math.round(progress)}%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                        {category}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Center Column - Sessions */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
-              <Calendar size={20} />
-              Upcoming Sessions
-            </h2>
-
-            <div className="space-y-3">
-              {sessions
-                .filter(session => session.status === 'upcoming')
-                .map(session => (
-                  <div
-                    key={session.id}
-                    className="border border-zinc-700 rounded p-4"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-white">
-                        {session.title}
-                      </h3>
-                      <span
-                        className={`px-2 py-1 rounded text-xs capitalize ${
-                          session.type === 'game'
-                            ? 'bg-red-900 text-red-300'
-                            : session.type === 'practice'
-                              ? 'bg-blue-900 text-blue-300'
-                              : 'bg-green-900 text-green-300'
-                        }`}
-                      >
-                        {session.type}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 text-sm text-zinc-400">
-                      <p>
-                        {session.date} at {session.time}
-                      </p>
-                      <p>Duration: {session.duration} minutes</p>
-                      <p>Coach: {session.coach}</p>
-                      {session.notes && (
-                        <p className="text-zinc-300 italic">
-                          "{session.notes}"
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-
-            <div className="mt-6">
-              <h3 className="text-lg font-medium text-[#d8cc97] mb-3">
-                Recent Sessions
-              </h3>
-              <div className="space-y-2">
-                {sessions
-                  .filter(session => session.status === 'completed')
-                  .slice(0, 3)
-                  .map(session => (
-                    <div
-                      key={session.id}
-                      className="flex justify-between items-center p-2 bg-zinc-800 rounded"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-white">
-                          {session.title}
-                        </p>
-                        <p className="text-xs text-zinc-400">{session.date}</p>
-                      </div>
-                      <span className="text-xs text-green-300">Completed</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Progress */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
-              <BarChart3 size={20} />
-              Skill Progress
-            </h2>
-
-            <div className="space-y-4">
-              {progress.map(skill => (
+          <div className="space-y-3">
+            {filteredGoals.map(goal => {
+              const progress = (goal.current / goal.target) * 100;
+              return (
                 <div
-                  key={skill.id}
-                  className="border border-zinc-700 rounded p-4"
+                  key={goal.id}
+                  onClick={() => handleGoalSelect(goal.id)}
+                  className={`p-3 rounded border cursor-pointer transition-colors ${
+                    selectedGoalId === goal.id
+                      ? 'border-[#d8cc97] bg-zinc-800'
+                      : 'border-zinc-700 hover:border-zinc-600'
+                  }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-white">{skill.skill}</h3>
-                    <div className="text-right">
-                      <p className="text-[#d8cc97] font-bold">
-                        Level {skill.currentLevel}/{skill.targetLevel}
-                      </p>
-                      <p className="text-xs text-green-300">
-                        +{skill.improvement}% this month
-                      </p>
-                    </div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-medium text-white">{goal.title}</h3>
+                    <span
+                      className={`px-2 py-1 rounded text-xs capitalize ${
+                        goal.status === 'completed'
+                          ? 'bg-green-900 text-green-300'
+                          : goal.status === 'on_track'
+                            ? 'bg-blue-900 text-blue-300'
+                            : 'bg-yellow-900 text-yellow-300'
+                      }`}
+                    >
+                      {goal.status.replace('_', ' ')}
+                    </span>
                   </div>
+
+                  <p className="text-sm text-zinc-400 mb-3">
+                    {goal.description}
+                  </p>
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-400">Progress</span>
                       <span className="text-white">
-                        {Math.round(
-                          (skill.currentLevel / skill.targetLevel) * 100
-                        )}
-                        %
+                        {goal.current}/{goal.target} {goal.unit}
                       </span>
                     </div>
                     <div className="w-full bg-zinc-700 rounded-full h-2">
                       <div
                         className="bg-[#d8cc97] h-2 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${(skill.currentLevel / skill.targetLevel) * 100}%`,
-                        }}
+                        style={{ width: `${Math.min(progress, 100)}%` }}
                       ></div>
                     </div>
-                    <p className="text-xs text-zinc-400">
-                      Last updated: {skill.lastUpdated}
-                    </p>
+                    <div className="flex justify-between text-xs text-zinc-400">
+                      <span>Deadline: {goal.deadline}</span>
+                      <span>{Math.round(progress)}%</span>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+        </div>
+      }
+      center={
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
+            <Calendar size={20} />
+            Upcoming Sessions
+          </h2>
 
-            <div className="mt-6 p-4 bg-zinc-800 rounded">
-              <h3 className="text-lg font-medium text-[#d8cc97] mb-2 flex items-center gap-2">
-                <Trophy size={18} />
-                Achievements
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
-                  <span className="text-zinc-300">
-                    Completed 50 practice sessions
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
-                  <span className="text-zinc-300">
-                    Improved shooting accuracy by 15%
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-zinc-600 rounded-full"></div>
-                  <span className="text-zinc-500">
-                    Reach Level 9 in Ball Handling
-                  </span>
-                </div>
-              </div>
+          <div className="space-y-3">
+            {sessions
+              .filter(session => session.status === 'upcoming')
+              .map(session => (
+                <UniversalCard.Default
+                  key={session.id}
+                  title={session.title}
+                  subtitle={`${session.date} at ${session.time}`}
+                  size="lg"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-semibold text-white">
+                        {session.title}
+                      </h3>
+                      <p className="text-sm text-zinc-400">
+                        {session.date} at {session.time}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-2 py-1 rounded text-xs capitalize ${
+                        session.type === 'game'
+                          ? 'bg-red-900 text-red-300'
+                          : session.type === 'practice'
+                            ? 'bg-blue-900 text-blue-300'
+                            : 'bg-green-900 text-green-300'
+                      }`}
+                    >
+                      {session.type}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-sm text-zinc-400">
+                    <p>Duration: {session.duration} minutes</p>
+                    <p>Coach: {session.coach}</p>
+                    {session.notes && (
+                      <p className="text-zinc-300 italic">"{session.notes}"</p>
+                    )}
+                  </div>
+                </UniversalCard.Default>
+              ))}
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-medium text-[#d8cc97] mb-3">
+              Recent Sessions
+            </h3>
+            <div className="space-y-2">
+              {sessions
+                .filter(session => session.status === 'completed')
+                .slice(0, 3)
+                .map(session => (
+                  <div
+                    key={session.id}
+                    className="flex justify-between items-center p-2 bg-zinc-800 rounded"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-white">
+                        {session.title}
+                      </p>
+                      <p className="text-xs text-zinc-400">{session.date}</p>
+                    </div>
+                    <span className="text-xs text-green-300">Completed</span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
-      </div>
+      }
+      right={
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
+            <BarChart3 size={20} />
+            Skill Progress
+          </h2>
 
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="Player Portal Features Coming Soon!"
-          description="We're building an advanced player portal with personalized training plans, AI-powered insights, and real-time progress tracking. Stay tuned for enhanced player development tools."
-        />
-      )}
-    </div>
+          <div className="space-y-4">
+            {progress.map(skill => (
+              <UniversalCard.Default
+                key={skill.id}
+                title={skill.skill}
+                subtitle={`Level ${skill.currentLevel}/${skill.targetLevel}`}
+                size="lg"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-white">{skill.skill}</h3>
+                  <div className="text-right">
+                    <p className="text-[#d8cc97] font-bold">
+                      Level {skill.currentLevel}/{skill.targetLevel}
+                    </p>
+                    <p className="text-xs text-green-300">
+                      +{skill.improvement}% this month
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Progress</span>
+                    <span className="text-white">
+                      {Math.round(
+                        (skill.currentLevel / skill.targetLevel) * 100
+                      )}
+                      %
+                    </span>
+                  </div>
+                  <div className="w-full bg-zinc-700 rounded-full h-2">
+                    <div
+                      className="bg-[#d8cc97] h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${(skill.currentLevel / skill.targetLevel) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Last updated: {skill.lastUpdated}
+                  </p>
+                </div>
+              </UniversalCard.Default>
+            ))}
+          </div>
+
+          <UniversalCard.Default title="Achievements" size="sm">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
+                <span className="text-zinc-300">
+                  Completed 50 practice sessions
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
+                <span className="text-zinc-300">
+                  Improved shooting accuracy by 15%
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-zinc-600 rounded-full"></div>
+                <span className="text-zinc-500">
+                  Reach Level 9 in Ball Handling
+                </span>
+              </div>
+            </div>
+          </UniversalCard.Default>
+        </div>
+      }
+    />
   );
 }

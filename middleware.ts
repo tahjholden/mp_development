@@ -15,7 +15,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
-  const isSuperadminRoute = superadminRoutes.some(route => pathname.startsWith(route));
+  const isSuperadminRoute = superadminRoutes.some(route =>
+    pathname.startsWith(route)
+  );
 
   if (isProtectedRoute && !sessionCookie) {
     return NextResponse.redirect(new URL('/sign-in', request.url));

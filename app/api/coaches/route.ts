@@ -21,7 +21,8 @@ export async function GET() {
       );
     }
 
-    // Query for coaches using mpbc_person.person_type = 'coach' as source of truth
+    // Query for coaches: include users with person_type = 'coach' OR admin/superadmin users associated with teams
+    // BUT exclude admin/superadmin users who are already listed as players or parents
     const coaches = await db
       .select({
         id: mpbcPerson.id,
@@ -32,6 +33,7 @@ export async function GET() {
         teamId: mpbcGroup.id,
         status: mpbcPersonGroup.status,
         role: mpbcPersonGroup.role,
+        personType: mpbcPerson.personType,
         createdAt: mpbcPerson.createdAt,
         updatedAt: mpbcPerson.updatedAt,
         playerCount: sql<number>`
@@ -47,8 +49,18 @@ export async function GET() {
       .where(
         and(
           isNotNull(mpbcPerson.id),
-          // Use person_type from mpbc_person as source of truth for coaches
-          eq(mpbcPerson.personType, 'coach')
+          isNotNull(mpbcPersonGroup.groupId), // Must be associated with a team
+          // Include coaches OR admin/superadmin users
+          sql`(
+            ${mpbcPerson.personType} = 'coach' OR 
+            (${mpbcPerson.personType} IN ('admin', 'superadmin') AND ${mpbcPersonGroup.role} = 'coach')
+          )`,
+          // Exclude admin/superadmin users who are also players or parents
+          sql`NOT EXISTS (
+            SELECT 1 FROM ${mpbcPersonGroup} pg2
+            WHERE pg2.person_id = ${mpbcPerson.id}
+            AND pg2.role IN ('player', 'parent')
+          )`
         )
       );
 
@@ -61,6 +73,7 @@ export async function GET() {
       teamId: coach.teamId,
       status: coach.status || 'active',
       role: coach.role || 'Coach',
+      personType: coach.personType, // Include personType for role display
       experience: 0, // Placeholder, as experience is not in schema
       playerCount: coach.playerCount || 0,
       createdAt: coach.createdAt,

@@ -53,23 +53,27 @@ export const RoleBasedAccess: React.FC<RoleBasedAccessProps> = ({
 };
 
 // Convenience components for common role checks
-export const AdminOnly: React.FC<Omit<RoleBasedAccessProps, 'requireAdmin'>> = (props) => (
-  <RoleBasedAccess {...props} requireAdmin={true} />
-);
+export const AdminOnly: React.FC<
+  Omit<RoleBasedAccessProps, 'requireAdmin'>
+> = props => <RoleBasedAccess {...props} requireAdmin={true} />;
 
-export const SuperadminOnly: React.FC<Omit<RoleBasedAccessProps, 'requireSuperadmin'>> = (props) => (
-  <RoleBasedAccess {...props} requireSuperadmin={true} />
-);
+export const SuperadminOnly: React.FC<
+  Omit<RoleBasedAccessProps, 'requireSuperadmin'>
+> = props => <RoleBasedAccess {...props} requireSuperadmin={true} />;
 
-export const CoachOnly: React.FC<Omit<RoleBasedAccessProps, 'allowedRoles'>> = (props) => (
-  <RoleBasedAccess {...props} allowedRoles={['coach']} />
-);
+export const CoachOnly: React.FC<
+  Omit<RoleBasedAccessProps, 'allowedRoles'>
+> = props => <RoleBasedAccess {...props} allowedRoles={['coach']} />;
 
-export const PlayerOnly: React.FC<Omit<RoleBasedAccessProps, 'allowedRoles'>> = (props) => (
-  <RoleBasedAccess {...props} allowedRoles={['player']} />
-);
+export const PlayerOnly: React.FC<
+  Omit<RoleBasedAccessProps, 'allowedRoles'>
+> = props => <RoleBasedAccess {...props} allowedRoles={['player']} />;
 
-export const NonPlayerOnly: React.FC<RoleBasedAccessProps> = ({ user, children, fallback }) => {
+export const NonPlayerOnly: React.FC<RoleBasedAccessProps> = ({
+  user,
+  children,
+  fallback,
+}) => {
   if (!user) {
     return fallback;
   }
@@ -80,4 +84,4 @@ export const NonPlayerOnly: React.FC<RoleBasedAccessProps> = ({ user, children, 
   }
 
   return <>{children}</>;
-}; 
+};

@@ -331,13 +331,13 @@ export default function PlayersPage() {
       }
       center={
         <div className="space-y-6">
+          {/* Player Profile Header - Always visible */}
+          <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">
+            Profile
+          </h2>
+
           {selectedPlayer ? (
             <>
-              {/* Player Profile Header */}
-              <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">
-                Profile
-              </h2>
-
               {/* Player Profile Card */}
               <UniversalCard.Default
                 size="lg"
@@ -377,6 +377,11 @@ export default function PlayersPage() {
                   </DropdownMenu>
                 </div>
               </UniversalCard.Default>
+
+              {/* Development Plan Header - Always visible */}
+              <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">
+                Development Plan
+              </h2>
 
               {/* Development Plan Section */}
               <UniversalCard.Default
@@ -443,21 +448,18 @@ export default function PlayersPage() {
               </UniversalCard.Default>
             </>
           ) : (
-            <div className="text-center py-12">
-              <Shield className="h-16 w-16 mx-auto mb-4 text-zinc-300" />
-              <h3 className="text-lg font-medium text-white mb-2">
-                Select a Player
-              </h3>
-              <p className="text-zinc-400">
-                Choose a player from the left sidebar to view details and
-                development plans.
-              </p>
-            </div>
+            /* Empty state card that maintains the same layout position and sizing */
+            <UniversalCard.SelectPlayerState
+              message="Choose a player from the left sidebar to view details and development plans."
+              icon={<Shield className="h-16 w-16 text-zinc-600" />}
+              className="min-h-[400px] flex items-center justify-center"
+            />
           )}
         </div>
       }
       right={
         <div className="space-y-4">
+          {/* Observations Header - Always visible */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-[#d8cc97] mt-0 mb-6">
               Observations
@@ -473,12 +475,8 @@ export default function PlayersPage() {
           </div>
 
           {selectedPlayer ? (
-            playerObservations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full">
-                <Shield className="text-zinc-700 w-16 h-16 mb-4" />
-                <p className="text-zinc-400 text-sm">No observations yet</p>
-              </div>
-            ) : (
+            /* Show observations list or nothing - no empty state card for empty lists */
+            playerObservations.length > 0 && (
               <div className="space-y-4">
                 {playerObservations.slice(0, 3).map(obs => (
                   <UniversalCard.Default
@@ -501,10 +499,13 @@ export default function PlayersPage() {
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center h-full">
-              <Shield className="text-zinc-700 w-16 h-16 mb-4" />
-              <p className="text-zinc-400 text-sm">No observations yet</p>
-            </div>
+            /* Empty state card for when no player is selected */
+            <UniversalCard.EmptyState
+              title="No observations yet"
+              message="Select a player to view their observations."
+              icon={<Shield className="h-16 w-16 text-zinc-600" />}
+              className="min-h-[300px] flex items-center justify-center"
+            />
           )}
         </div>
       }

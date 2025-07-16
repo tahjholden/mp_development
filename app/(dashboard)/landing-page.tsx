@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import UniversalCard from '@/components/ui/UniversalCard';
 import UniversalButton from '@/components/ui/UniversalButton';
 import { Users, Award, Calendar, TrendingUp, Activity } from 'lucide-react';

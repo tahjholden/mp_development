@@ -1,9 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import {
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Filter,
+  TrendingUp,
+} from 'lucide-react';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import UniversalCard from '@/components/ui/UniversalCard';
+import UniversalButton from '@/components/ui/UniversalButton';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -80,7 +87,6 @@ export default function AnalyticsPage() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
@@ -109,22 +115,6 @@ export default function AnalyticsPage() {
       setSelectedMetricId(metricId);
     }
   };
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   // Fetch real data with validation
   useEffect(() => {
@@ -336,73 +326,51 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-[#161616] flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center w-full">
-          <span className="text-zinc-400 text-lg font-semibold mb-4">
-            Loading analytics...
-          </span>
-          <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Analytics</h2>
+            </div>
+          </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading analytics...</p>
+            </div>
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen p-4 bg-[#161616] flex items-center justify-center">
-        <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
-          {error}
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="space-y-4"></div>}
+        center={
+          <div className="min-h-screen p-4 flex items-center justify-center">
+            <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+              {error}
+            </div>
+          </div>
+        }
+        right={<div className="space-y-4"></div>}
+      />
     );
   }
 
   return (
-    <div className="flex min-h-screen h-full bg-black text-white">
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="Analytics Coming Soon!"
-          description="Our analytics dashboard is in development. You can see the layout and structure, but the data and charts are being built. Let us know what metrics you'd like to see!"
-          feedbackLink="mailto:coach@example.com?subject=MPB%20Analytics%20Feedback"
-        />
-      )}
-
-      {/* Header - exact replica with coach info */}
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            Coach
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            coach@example.com
-          </span>
-          <span className="text-xs text-white leading-tight">Coach</span>
-        </div>
-      </header>
-
-      {/* Sidebar */}
-      <Sidebar
-        user={{
-          name: 'Coach',
-          email: 'coach@example.com',
-          role: 'Coach',
-        }}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 flex ml-64 pt-16 bg-black min-h-screen">
-        {/* LEFT PANE: Metrics List */}
-        <div className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen">
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Metrics
           </h2>
@@ -491,9 +459,9 @@ export default function AnalyticsPage() {
             )}
           </div>
         </div>
-
-        {/* CENTER PANE: Metric Details */}
-        <div className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen">
+      }
+      center={
+        <div className="space-y-6">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             {selectedMetricId
               ? `${metrics.find(m => m.id === selectedMetricId)?.name}`
@@ -503,9 +471,10 @@ export default function AnalyticsPage() {
           {selectedMetric ? (
             <div className="space-y-6">
               {/* Metric Details Card */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
+              <UniversalCard.Default
+                title={selectedMetric.name}
+                subtitle={`${selectedMetric.category} • ${selectedMetric.period}`}
+                size="lg"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -517,12 +486,15 @@ export default function AnalyticsPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent">
+                    <UniversalButton.Ghost size="xs">
                       Export
-                    </button>
-                    <button className="text-xs text-red-400 font-semibold hover:underline bg-transparent">
+                    </UniversalButton.Ghost>
+                    <UniversalButton.Ghost
+                      size="xs"
+                      className="text-red-400 hover:text-red-300"
+                    >
                       Share
-                    </button>
+                    </UniversalButton.Ghost>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
@@ -535,7 +507,13 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="text-zinc-400">Change</p>
                     <p
-                      className={`text-white text-lg font-bold ${selectedMetric.changeType === 'increase' ? 'text-green-400' : selectedMetric.changeType === 'decrease' ? 'text-red-400' : 'text-gray-400'}`}
+                      className={`text-white text-lg font-bold ${
+                        selectedMetric.changeType === 'increase'
+                          ? 'text-green-400'
+                          : selectedMetric.changeType === 'decrease'
+                            ? 'text-red-400'
+                            : 'text-gray-400'
+                      }`}
                     >
                       {selectedMetric.change > 0 ? '+' : ''}
                       {selectedMetric.change}%
@@ -548,7 +526,11 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="text-zinc-400">Status</p>
                     <p
-                      className={`text-white ${selectedMetric.value >= (selectedMetric.target || 0) ? 'text-green-400' : 'text-yellow-400'}`}
+                      className={`text-white ${
+                        selectedMetric.value >= (selectedMetric.target || 0)
+                          ? 'text-green-400'
+                          : 'text-yellow-400'
+                      }`}
                     >
                       {selectedMetric.value >= (selectedMetric.target || 0)
                         ? 'On Track'
@@ -562,16 +544,10 @@ export default function AnalyticsPage() {
                     style={{ width: `${Math.min(selectedMetric.value, 100)}%` }}
                   ></div>
                 </div>
-              </div>
+              </UniversalCard.Default>
 
               {/* Top Performers */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
-              >
-                <h4 className="text-base font-bold text-[#d8cc97] mb-4">
-                  Top Performers
-                </h4>
+              <UniversalCard.Default title="Top Performers" size="lg">
                 <div className="space-y-2">
                   {players
                     .sort((a, b) => b.performance - a.performance)
@@ -590,7 +566,7 @@ export default function AnalyticsPage() {
                       </div>
                     ))}
                 </div>
-              </div>
+              </UniversalCard.Default>
             </div>
           ) : (
             <div className="text-sm text-gray-500 text-center py-8">
@@ -598,21 +574,15 @@ export default function AnalyticsPage() {
             </div>
           )}
         </div>
-
-        {/* RIGHT PANE: Analytics Dashboard */}
-        <div className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen">
+      }
+      right={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Dashboard
           </h2>
 
           {/* Quick Stats */}
-          <div
-            className="bg-zinc-800 p-6 rounded mb-6"
-            style={{ background: '#181818' }}
-          >
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Quick Stats
-            </h3>
+          <UniversalCard.Default title="Quick Stats" size="sm" className="mb-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-zinc-400">Total Players</span>
@@ -647,16 +617,14 @@ export default function AnalyticsPage() {
                 </span>
               </div>
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Team Performance */}
-          <div
-            className="bg-zinc-800 p-6 rounded mb-6"
-            style={{ background: '#181818' }}
+          <UniversalCard.Default
+            title="Team Performance"
+            size="sm"
+            className="mb-6"
           >
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Team Performance
-            </h3>
             <div className="space-y-3">
               {teams
                 .sort((a, b) => (b.performance || 0) - (a.performance || 0))
@@ -672,16 +640,10 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Recent Trends */}
-          <div
-            className="bg-zinc-800 p-6 rounded"
-            style={{ background: '#181818' }}
-          >
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Recent Trends
-            </h3>
+          <UniversalCard.Default title="Recent Trends" size="sm">
             <div className="space-y-3">
               {metrics
                 .filter(m => m.changeType === 'increase')
@@ -697,17 +659,9 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
             </div>
-          </div>
+          </UniversalCard.Default>
         </div>
-      </div>
-
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="Advanced Analytics Features Coming Soon!"
-          description="We're building comprehensive analytics with advanced reporting, predictive insights, and customizable dashboards. Stay tuned for enhanced data visualization and business intelligence features."
-        />
-      )}
-    </div>
+      }
+    />
   );
 }

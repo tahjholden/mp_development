@@ -6,49 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
-### Fixed
-
-- **TypeScript/Drizzle ORM Schema Issues**: Resolved multiple critical TypeScript errors in database schema definitions
-  - Fixed `securityInvoker` type error: Changed from string `'on'` to boolean `true` in PostgreSQL view configurations
-  - Resolved missing `users` table references: Commented out foreign key constraints with TODO notes for future auth integration
-  - Corrected array field definitions: Fixed `permissions` and `scopeIds` fields in `mpbcPersonRole` table to use proper `.array()` modifiers
-  - Reduced lint error count from 355 to 353 problems through systematic type fixes
-- **Process and Documentation Standards**: Comprehensive process tracking and documentation system
-  - `assistant-fix-log.md`: Logs all assistant-driven changes, mistakes, and process breakdowns
-  - Enhanced `CONTRIBUTING.md`: Detailed process rules, code quality standards, and workflow requirements
-  - Updated `README.md`: Includes process and standards documentation
-- **Stricter Code Quality Standards**: Industry-standard linting and formatting enforcement
-  - Enhanced ESLint configuration with strict TypeScript and React rules
-  - Comprehensive Prettier configuration for consistent formatting
-  - Automated pre-commit hooks via Husky and lint-staged
-  - Code quality rules: no console.log, no any types, complexity limits, line limits
-
 ### Added
 
-- **Process and Documentation Standards**: Comprehensive process tracking and documentation system
-  - `assistant-fix-log.md`: Logs all assistant-driven changes, mistakes, and process breakdowns
-  - Enhanced `CONTRIBUTING.md`: Detailed process rules, code quality standards, and workflow requirements
-  - Updated `README.md`: Includes process and standards documentation
-- **Stricter Code Quality Standards**: Industry-standard linting and formatting enforcement
-  - Enhanced ESLint configuration with strict TypeScript and React rules
-  - Comprehensive Prettier configuration for consistent formatting
-  - Automated pre-commit hooks via Husky and lint-staged
-  - Code quality rules: no console.log, no any types, complexity limits, line limits
+- **Observations Wizard Flow Enhancement**: Comprehensive overhaul of the observations creation process
+  - **New TargetSelector Component**: Added first step for selecting individual vs team context
+  - **Back Navigation**: Implemented back button navigation throughout all wizard steps
+  - **Dark Theme Styling**: Added dark theme styling for observation textarea with high contrast
+  - **Mobile Voice-to-Text Support**: Updated placeholder text to guide mobile users for voice input
+  - **Context-Aware Filtering**: Team and player selector components now filter based on selected context
+  - **Role-Based Access**: Proper user permission checking throughout the wizard flow
+  - **API Integration**: Updated POST endpoint to save observations with context field in database
 
 ### Changed
 
-- **ESLint Configuration**: Upgraded to strict industry standards
-  - No explicit `any` types (error instead of warning)
-  - No console.log statements (error instead of warning)
-  - Added comprehensive code quality rules (complexity, depth, line limits)
-  - Enhanced TypeScript-specific rules for better type safety
-- **Prettier Configuration**: Added comprehensive formatting options
-  - JSX single quotes, quote props handling, prose wrapping
-  - HTML whitespace sensitivity and embedded language formatting
-- **Development Workflow**: Enforced PR-based workflow for all non-trivial changes
-  - Pre-commit hooks automatically run linting and formatting
-  - All changes must pass automated checks before merging
-  - Explicit code review and approval process
+- **Empty State Card Layout Consistency**: Improved empty state handling across all pages
+  - **Consistent Positioning**: Empty state cards now maintain the same layout position and sizing as populated cards
+  - **No Layout Shifts**: Eliminated layout shifts when transitioning between empty and populated states
+  - **Title Consistency**: Page titles are always visible outside cards regardless of content state
+  - **List Empty States**: Removed empty state cards from lists (only show for "not selected" scenarios)
+  - **Proper Sizing**: Added `min-height` classes to ensure empty state cards match populated card dimensions
+  - **Universal Components**: Updated players, teams, and coaches pages to use proper `UniversalCard` empty state variants
+
+- **API Endpoints**: Updated observations API to handle context field and improved error handling
+- **Component Architecture**: Enhanced ObservationStepper with back navigation and context-aware filtering
+- **User Experience**: Improved mobile experience with voice-to-text guidance and better navigation flow
+
+### Fixed
+
+- **Layout Consistency**: Ensured all pages follow the universal dashboard layout with consistent three-column structure
+- **Component Reusability**: Standardized empty state usage across all pages using universal components
+- **Type Safety**: Fixed TypeScript errors and improved type definitions throughout the observations flow
 
 ### Security
 

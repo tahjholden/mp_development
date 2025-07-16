@@ -8,10 +8,45 @@ import {
   Brain,
   Lightbulb,
   Target,
-  Zap,
 } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import UniversalCard from '@/components/ui/UniversalCard';
+import { z } from 'zod';
+
+// Zod schemas for validation
+const AIInsightSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  category: z.enum(['performance', 'training', 'strategy', 'health']),
+  confidence: z.number(),
+  impact: z.enum(['high', 'medium', 'low']),
+  date: z.string(),
+  actionable: z.boolean(),
+  recommendations: z.array(z.string()),
+});
+
+const AIPredictionSchema = z.object({
+  id: z.string(),
+  type: z.enum(['performance', 'injury', 'development', 'team']),
+  title: z.string(),
+  description: z.string(),
+  probability: z.number(),
+  timeframe: z.string(),
+  factors: z.array(z.string()),
+  confidence: z.number(),
+});
+
+const AISuggestionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  category: z.enum(['drill', 'training', 'recovery', 'nutrition']),
+  priority: z.enum(['high', 'medium', 'low']),
+  estimatedImpact: z.number(),
+  timeRequired: z.number(),
+  difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
+});
 
 // Types for AI features
 interface AIInsight {
@@ -295,7 +330,6 @@ export default function AIFeaturesPage() {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   // Filter states
   const [selectedInsightId, setSelectedInsightId] = useState<string | null>(
@@ -324,22 +358,6 @@ export default function AIFeaturesPage() {
     }
   };
 
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
-
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
@@ -366,83 +384,77 @@ export default function AIFeaturesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-black text-white">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-zinc-800 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-zinc-800 rounded w-1/2 mb-8"></div>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="h-64 bg-zinc-800 rounded"></div>
-              <div className="h-64 bg-zinc-800 rounded"></div>
-              <div className="h-64 bg-zinc-800 rounded"></div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">AI Features</h2>
             </div>
           </div>
-        </div>
-      </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading AI features...</p>
+            </div>
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-black text-white">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="text-red-400">Error: {error}</div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="space-y-4"></div>}
+        center={
+          <div className="min-h-screen p-4 flex items-center justify-center">
+            <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+              {error}
+            </div>
+          </div>
+        }
+        right={<div className="space-y-4"></div>}
+      />
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
-      <Sidebar />
-
-      {/* Main Content */}
-      <div className="flex-1 ml-64 p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#d8cc97] mb-2">
-            {aiContent.title}
-          </h1>
-          <p className="text-zinc-400">{aiContent.description}</p>
-        </div>
-
-        {/* Three Column Layout */}
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left Column - AI Insights */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[#d8cc97] flex items-center gap-2">
-                <Brain size={20} />
-                AI Insights
-              </h2>
-              <div className="relative">
-                <button
-                  onClick={() =>
-                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
-                  }
-                  className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
-                >
-                  <Filter size={16} />
-                  {insightCategoryFilter === 'all'
-                    ? 'All'
-                    : insightCategoryFilter}
-                  {isCategoryDropdownOpen ? (
-                    <ChevronUp size={16} />
-                  ) : (
-                    <ChevronDown size={16} />
-                  )}
-                </button>
-                {isCategoryDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
-                    {[
-                      'all',
-                      'performance',
-                      'training',
-                      'strategy',
-                      'health',
-                    ].map(category => (
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[#d8cc97] flex items-center gap-2">
+              <Brain size={20} />
+              AI Insights
+            </h2>
+            <div className="relative">
+              <button
+                onClick={() =>
+                  setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                }
+                className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
+              >
+                <Filter size={16} />
+                {insightCategoryFilter === 'all'
+                  ? 'All'
+                  : insightCategoryFilter}
+                {isCategoryDropdownOpen ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </button>
+              {isCategoryDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
+                  {['all', 'performance', 'training', 'strategy', 'health'].map(
+                    category => (
                       <button
                         key={category}
                         onClick={() => {
@@ -453,236 +465,226 @@ export default function AIFeaturesPage() {
                       >
                         {category}
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {filteredInsights.map(insight => (
-                <div
-                  key={insight.id}
-                  onClick={() => handleInsightSelect(insight.id)}
-                  className={`p-3 rounded border cursor-pointer transition-colors ${
-                    selectedInsightId === insight.id
-                      ? 'border-[#d8cc97] bg-zinc-800'
-                      : 'border-zinc-700 hover:border-zinc-600'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-white">{insight.title}</h3>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs capitalize ${
-                          insight.impact === 'high'
-                            ? 'bg-red-900 text-red-300'
-                            : insight.impact === 'medium'
-                              ? 'bg-yellow-900 text-yellow-300'
-                              : 'bg-green-900 text-green-300'
-                        }`}
-                      >
-                        {insight.impact}
-                      </span>
-                      <span className="text-xs text-zinc-400">
-                        {insight.confidence}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-zinc-400 mb-3">
-                    {insight.description}
-                  </p>
-
-                  {insight.actionable && (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-[#d8cc97]">
-                        Recommendations:
-                      </h4>
-                      <ul className="space-y-1">
-                        {insight.recommendations.map((rec, index) => (
-                          <li
-                            key={index}
-                            className="text-sm text-zinc-400 flex items-center gap-2"
-                          >
-                            <div className="w-1.5 h-1.5 bg-[#d8cc97] rounded-full"></div>
-                            {rec}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    )
                   )}
-
-                  <p className="text-xs text-zinc-500 mt-2">{insight.date}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
-          {/* Center Column - AI Predictions */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
-              <Target size={20} />
-              AI Predictions
-            </h2>
-
-            <div className="space-y-4">
-              {predictions.map(prediction => (
-                <div
-                  key={prediction.id}
-                  className="border border-zinc-700 rounded p-4"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-white">
-                      {prediction.title}
-                    </h3>
-                    <div className="text-right">
-                      <p className="text-[#d8cc97] font-bold">
-                        {prediction.probability}%
-                      </p>
-                      <p className="text-xs text-zinc-400">
-                        Confidence: {prediction.confidence}%
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-zinc-400 mb-3">
-                    {prediction.description}
-                  </p>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-400">Timeframe</span>
-                      <span className="text-white">{prediction.timeframe}</span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium text-zinc-300">
-                        Key Factors:
-                      </h4>
-                      <ul className="space-y-1">
-                        {prediction.factors.map((factor, index) => (
-                          <li
-                            key={index}
-                            className="text-sm text-zinc-400 flex items-center gap-2"
-                          >
-                            <div className="w-1 h-1 bg-zinc-500 rounded-full"></div>
-                            {factor}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column - AI Suggestions */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
-              <Lightbulb size={20} />
-              AI Suggestions
-            </h2>
-
-            <div className="space-y-4">
-              {suggestions.map(suggestion => (
-                <div
-                  key={suggestion.id}
-                  className="border border-zinc-700 rounded p-4"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-white">
-                      {suggestion.title}
-                    </h3>
+          <div className="space-y-3">
+            {filteredInsights.map(insight => (
+              <div
+                key={insight.id}
+                onClick={() => handleInsightSelect(insight.id)}
+                className={`p-3 rounded border cursor-pointer transition-colors ${
+                  selectedInsightId === insight.id
+                    ? 'border-[#d8cc97] bg-zinc-800'
+                    : 'border-zinc-700 hover:border-zinc-600'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-medium text-white">{insight.title}</h3>
+                  <div className="flex items-center gap-2">
                     <span
                       className={`px-2 py-1 rounded text-xs capitalize ${
-                        suggestion.priority === 'high'
+                        insight.impact === 'high'
                           ? 'bg-red-900 text-red-300'
-                          : suggestion.priority === 'medium'
+                          : insight.impact === 'medium'
                             ? 'bg-yellow-900 text-yellow-300'
                             : 'bg-green-900 text-green-300'
                       }`}
                     >
-                      {suggestion.priority}
+                      {insight.impact}
+                    </span>
+                    <span className="text-xs text-zinc-400">
+                      {insight.confidence}%
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-sm text-zinc-400 mb-3">
+                  {insight.description}
+                </p>
+
+                {insight.actionable && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-[#d8cc97]">
+                      Recommendations:
+                    </h4>
+                    <ul className="space-y-1">
+                      {insight.recommendations.map((rec, index) => (
+                        <li
+                          key={index}
+                          className="text-sm text-zinc-400 flex items-center gap-2"
+                        >
+                          <div className="w-1.5 h-1.5 bg-[#d8cc97] rounded-full"></div>
+                          {rec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <p className="text-xs text-zinc-500 mt-2">{insight.date}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      }
+      center={
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
+            <Target size={20} />
+            AI Predictions
+          </h2>
+
+          <div className="space-y-4">
+            {predictions.map(prediction => (
+              <UniversalCard.Default
+                key={prediction.id}
+                title={prediction.title}
+                subtitle={`${prediction.probability}% probability`}
+                size="lg"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-white">
+                    {prediction.title}
+                  </h3>
+                  <div className="text-right">
+                    <p className="text-[#d8cc97] font-bold">
+                      {prediction.probability}%
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      Confidence: {prediction.confidence}%
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-zinc-400 mb-3">
+                  {prediction.description}
+                </p>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Timeframe</span>
+                    <span className="text-white">{prediction.timeframe}</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-zinc-300">
+                      Key Factors:
+                    </h4>
+                    <ul className="space-y-1">
+                      {prediction.factors.map((factor, index) => (
+                        <li
+                          key={index}
+                          className="text-sm text-zinc-400 flex items-center gap-2"
+                        >
+                          <div className="w-1 h-1 bg-zinc-500 rounded-full"></div>
+                          {factor}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </UniversalCard.Default>
+            ))}
+          </div>
+        </div>
+      }
+      right={
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
+            <Lightbulb size={20} />
+            AI Suggestions
+          </h2>
+
+          <div className="space-y-4">
+            {suggestions.map(suggestion => (
+              <UniversalCard.Default
+                key={suggestion.id}
+                title={suggestion.title}
+                subtitle={`${suggestion.estimatedImpact}% impact`}
+                size="lg"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-white">
+                    {suggestion.title}
+                  </h3>
+                  <span
+                    className={`px-2 py-1 rounded text-xs capitalize ${
+                      suggestion.priority === 'high'
+                        ? 'bg-red-900 text-red-300'
+                        : suggestion.priority === 'medium'
+                          ? 'bg-yellow-900 text-yellow-300'
+                          : 'bg-green-900 text-green-300'
+                    }`}
+                  >
+                    {suggestion.priority}
+                  </span>
+                </div>
+
+                <p className="text-sm text-zinc-400 mb-3">
+                  {suggestion.description}
+                </p>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Estimated Impact</span>
+                    <span className="text-[#d8cc97] font-semibold">
+                      {suggestion.estimatedImpact}%
                     </span>
                   </div>
 
-                  <p className="text-sm text-zinc-400 mb-3">
-                    {suggestion.description}
-                  </p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Time Required</span>
+                    <span className="text-white">
+                      {suggestion.timeRequired} min
+                    </span>
+                  </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-400">Estimated Impact</span>
-                      <span className="text-[#d8cc97] font-semibold">
-                        {suggestion.estimatedImpact}%
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-400">Time Required</span>
-                      <span className="text-white">
-                        {suggestion.timeRequired} min
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-400">Difficulty</span>
-                      <span
-                        className={`capitalize ${
-                          suggestion.difficulty === 'beginner'
-                            ? 'text-green-300'
-                            : suggestion.difficulty === 'intermediate'
-                              ? 'text-yellow-300'
-                              : 'text-red-300'
-                        }`}
-                      >
-                        {suggestion.difficulty}
-                      </span>
-                    </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Difficulty</span>
+                    <span
+                      className={`capitalize ${
+                        suggestion.difficulty === 'beginner'
+                          ? 'text-green-300'
+                          : suggestion.difficulty === 'intermediate'
+                            ? 'text-yellow-300'
+                            : 'text-red-300'
+                      }`}
+                    >
+                      {suggestion.difficulty}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
+              </UniversalCard.Default>
+            ))}
+          </div>
 
-            <div className="mt-6 p-4 bg-zinc-800 rounded">
-              <h3 className="text-lg font-medium text-[#d8cc97] mb-2 flex items-center gap-2">
-                <Zap size={18} />
-                AI Features
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
-                  <span className="text-zinc-300">
-                    Real-time performance analysis
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
-                  <span className="text-zinc-300">
-                    Predictive injury prevention
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-zinc-600 rounded-full"></div>
-                  <span className="text-zinc-500">
-                    Advanced game strategy AI
-                  </span>
-                </div>
+          <UniversalCard.Default title="AI Features" size="sm">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
+                <span className="text-zinc-300">
+                  Real-time performance analysis
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[#d8cc97] rounded-full"></div>
+                <span className="text-zinc-300">
+                  Predictive injury prevention
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-zinc-600 rounded-full"></div>
+                <span className="text-zinc-500">Advanced game strategy AI</span>
               </div>
             </div>
-          </div>
+          </UniversalCard.Default>
         </div>
-      </div>
-
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="AI Features Coming Soon!"
-          description="We're developing advanced AI-powered features including predictive analytics, personalized training recommendations, and intelligent performance insights. Stay tuned for the future of basketball development."
-        />
-      )}
-    </div>
+      }
+    />
   );
 }

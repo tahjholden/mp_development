@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+
+import UniversalCard from '@/components/ui/UniversalCard';
+import UniversalButton from '@/components/ui/UniversalButton';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -84,7 +86,6 @@ export default function SessionsPage() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   // Player/team data for left column
   const [players, setPlayers] = useState<Player[]>([]);
@@ -115,22 +116,6 @@ export default function SessionsPage() {
       setSelectedSessionId(sessionId);
     }
   };
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   // Fetch real data
   useEffect(() => {
@@ -312,79 +297,51 @@ export default function SessionsPage() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-[#161616] flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center w-full">
-          <span className="text-zinc-400 text-lg font-semibold mb-4">
-            Loading sessions...
-          </span>
-          <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Sessions</h2>
+            </div>
+          </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading sessions...</p>
+            </div>
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen p-4 bg-[#161616] flex items-center justify-center">
-        <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
-          {error}
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="space-y-4"></div>}
+        center={
+          <div className="min-h-screen p-4 flex items-center justify-center">
+            <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+              {error}
+            </div>
+          </div>
+        }
+        right={<div className="space-y-4"></div>}
+      />
     );
   }
 
   return (
-    <div
-      className="flex min-h-screen h-full bg-black text-white"
-      style={{ background: 'black' }}
-    >
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="Sessions Coming Soon!"
-          description="Our session management system is in development. You can see the layout and structure, but the scheduling and management features are being built. Let us know what session features you'd like to see!"
-          feedbackLink="mailto:coach@example.com?subject=MPB%20Sessions%20Feedback"
-        />
-      )}
-      {/* Header - exact replica with coach info */}
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            Coach
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            coach@example.com
-          </span>
-          <span className="text-xs text-white leading-tight">Coach</span>
-        </div>
-      </header>
-      {/* Sidebar */}
-      <Sidebar
-        user={{
-          name: 'Coach',
-          email: 'coach@example.com',
-          role: 'Coach',
-        }}
-      />
-      {/* Main Content */}
-      <div
-        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
-        style={{ background: 'black', minHeight: '100vh' }}
-      >
-        {/* LEFT PANE: Session List */}
-        <div
-          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Sessions
           </h2>
@@ -468,12 +425,9 @@ export default function SessionsPage() {
             )}
           </div>
         </div>
-
-        {/* CENTER PANE: Session Details */}
-        <div
-          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+      }
+      center={
+        <div className="space-y-6">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             {selectedSessionId
               ? `${sessions.find(s => s.id === selectedSessionId)?.title}`
@@ -483,9 +437,10 @@ export default function SessionsPage() {
           {selectedSession ? (
             <div className="space-y-6">
               {/* Session Details Card */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
+              <UniversalCard.Default
+                title={selectedSession.title}
+                subtitle={selectedSession.type}
+                size="lg"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -497,18 +452,15 @@ export default function SessionsPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent"
-                      style={{ background: 'transparent' }}
-                    >
+                    <UniversalButton.Ghost size="xs">
                       Edit
-                    </button>
-                    <button
-                      className="text-xs text-red-400 font-semibold hover:underline bg-transparent"
-                      style={{ background: 'transparent' }}
+                    </UniversalButton.Ghost>
+                    <UniversalButton.Ghost
+                      size="xs"
+                      className="text-red-400 hover:text-red-300"
                     >
                       Cancel
-                    </button>
+                    </UniversalButton.Ghost>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
@@ -539,17 +491,13 @@ export default function SessionsPage() {
                     {selectedSession.description}
                   </p>
                 </div>
-              </div>
+              </UniversalCard.Default>
 
               {/* Attendance */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
+              <UniversalCard.Default
+                title={`Attendance (${selectedSession.attendance}/${selectedSession.maxAttendance})`}
+                size="lg"
               >
-                <h4 className="text-base font-bold text-[#d8cc97] mb-4">
-                  Attendance ({selectedSession.attendance}/
-                  {selectedSession.maxAttendance})
-                </h4>
                 <div className="space-y-2">
                   {players
                     .filter(p => p.team === selectedSession.team)
@@ -566,7 +514,7 @@ export default function SessionsPage() {
                       </div>
                     ))}
                 </div>
-              </div>
+              </UniversalCard.Default>
             </div>
           ) : (
             <div className="text-sm text-gray-500 text-center py-8">
@@ -574,39 +522,38 @@ export default function SessionsPage() {
             </div>
           )}
         </div>
-
-        {/* RIGHT PANE: Session Planning */}
-        <div
-          className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+      }
+      right={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Planning
           </h2>
 
           {/* Quick Session Creation */}
-          <div className="bg-zinc-800 p-6 rounded mb-6">
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Quick Actions
-            </h3>
+          <UniversalCard.Default
+            title="Quick Actions"
+            size="sm"
+            className="mb-6"
+          >
             <div className="space-y-3">
-              <button className="w-full p-3 bg-[#d8cc97] text-black rounded text-sm font-semibold hover:bg-[#b3a14e] transition-colors">
+              <UniversalButton.Primary className="w-full">
                 Create New Session
-              </button>
-              <button className="w-full p-3 bg-zinc-700 text-white rounded text-sm font-semibold hover:bg-zinc-600 transition-colors">
+              </UniversalButton.Primary>
+              <UniversalButton.Secondary className="w-full">
                 Schedule Practice
-              </button>
-              <button className="w-full p-3 bg-zinc-700 text-white rounded text-sm font-semibold hover:bg-zinc-600 transition-colors">
+              </UniversalButton.Secondary>
+              <UniversalButton.Secondary className="w-full">
                 Plan Game Review
-              </button>
+              </UniversalButton.Secondary>
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Session Templates */}
-          <div className="bg-zinc-800 p-6 rounded mb-6">
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Session Templates
-            </h3>
+          <UniversalCard.Default
+            title="Session Templates"
+            size="sm"
+            className="mb-6"
+          >
             <div className="space-y-3">
               <div className="p-3 bg-zinc-700 rounded cursor-pointer hover:bg-zinc-600 transition-colors">
                 <p className="text-sm font-semibold text-white">
@@ -629,13 +576,10 @@ export default function SessionsPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Upcoming Sessions */}
-          <div className="bg-zinc-800 p-6 rounded">
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Upcoming
-            </h3>
+          <UniversalCard.Default title="Upcoming" size="sm">
             <div className="space-y-3">
               {sessions.slice(0, 3).map(session => (
                 <div key={session.id} className="p-3 bg-zinc-700 rounded">
@@ -648,9 +592,9 @@ export default function SessionsPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </UniversalCard.Default>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

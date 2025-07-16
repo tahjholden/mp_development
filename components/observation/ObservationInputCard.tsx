@@ -6,16 +6,16 @@ import { UniversalCard } from '@/components/ui/UniversalCard';
 
 interface ObservationInputCardProps {
   title: string;
-  placeholder: string;
   onSubmit: (note: string) => void;
   playerName?: string;
+  onBack?: () => void;
 }
 
 export function ObservationInputCard({
   title,
-  placeholder,
   onSubmit,
   playerName,
+  onBack,
 }: ObservationInputCardProps) {
   const [note, setNote] = useState('');
 
@@ -48,15 +48,17 @@ export function ObservationInputCard({
             <textarea
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder={placeholder}
-              className="w-full p-3 border border-gray-300 rounded-md bg-white text-black min-h-32 resize-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+              placeholder="Tap the microphone on your mobile keyboard to use voice-to-text, or type your observation here..."
+              className="w-full p-3 border border-zinc-600 rounded-md bg-zinc-800 text-white min-h-32 resize-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 placeholder-zinc-400"
               rows={6}
             />
 
             <div className="flex justify-end space-x-2">
-              <UniversalButton.Secondary onClick={() => window.history.back()}>
-                Back
-              </UniversalButton.Secondary>
+              {onBack && (
+                <UniversalButton.Secondary onClick={onBack}>
+                  ← Back
+                </UniversalButton.Secondary>
+              )}
               <UniversalButton.Primary
                 onClick={handleSubmit}
                 disabled={!note.trim()}

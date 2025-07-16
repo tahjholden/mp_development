@@ -23,7 +23,7 @@ export async function GET() {
       updatedAt: new Date().toISOString(),
       authUid: 'b033cd64-701e-4f8b-ae54-44cabf92276b',
     };
-    
+
     return Response.json(mockUser);
   }
 
@@ -31,8 +31,7 @@ export async function GET() {
   const transformedUser = {
     id: user.id,
     displayName:
-      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-      user.email,
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
     name: user.firstName || '',
     email: user.email,
     role: user.personType || 'coach',

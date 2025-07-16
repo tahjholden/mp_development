@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Search, Filter, Target } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import UniversalCard from '@/components/ui/UniversalCard';
+import UniversalButton from '@/components/ui/UniversalButton';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -78,7 +79,6 @@ export default function DrillsPage() {
   const [selectedDrill, setSelectedDrill] = useState<Drill | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   // Player/team data for left column
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(null);
@@ -111,22 +111,6 @@ export default function DrillsPage() {
       setSelectedDrillId(drillId);
     }
   };
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   // Fetch real data with validation
   useEffect(() => {
@@ -238,63 +222,6 @@ export default function DrillsPage() {
         );
         setDrills(uniqueDrills);
 
-        // Fetch players with validation
-        const playersResponse = await fetch(
-          '/api/dashboard/players?offset=0&limit=10'
-        );
-        if (playersResponse.ok) {
-          const rawPlayersData = await playersResponse.json();
-          // Handle the API response structure: { players: [...], total: number }
-          if (
-            rawPlayersData &&
-            rawPlayersData.players &&
-            Array.isArray(rawPlayersData.players)
-          ) {
-            const transformedRawPlayers = rawPlayersData.players.map(
-              (player: any) => ({
-                id: player.id,
-                name: player.name || 'Unknown Player',
-                team: player.team || 'No Team',
-                status: player.status || 'active',
-              })
-            );
-
-            // Validate players data
-            const validatedPlayers = PlayersArraySchema.safeParse(
-              transformedRawPlayers
-            );
-            if (!validatedPlayers.success) {
-              console.error('Invalid players data:', validatedPlayers.error);
-              throw new Error('Invalid players data received');
-            }
-
-            // Deduplicate players by id
-            // setPlayers(uniquePlayers); // This line was removed as per the edit hint.
-          } else {
-            console.error(
-              'Invalid API response structure for players:',
-              rawPlayersData
-            );
-            // setPlayers([]); // This line was removed as per the edit hint.
-          }
-        }
-
-        // Fetch teams with validation
-        const teamsResponse = await fetch('/api/user/teams');
-        if (teamsResponse.ok) {
-          const rawTeamsData = await teamsResponse.json();
-
-          // Validate teams data
-          const validatedTeams = TeamsArraySchema.safeParse(rawTeamsData);
-          if (!validatedTeams.success) {
-            console.error('Invalid teams data:', validatedTeams.error);
-            throw new Error('Invalid teams data received');
-          }
-
-          // Deduplicate teams by id
-          // setTeams(uniqueTeams); // This line was removed as per the edit hint.
-        }
-
         if (uniqueDrills.length > 0 && uniqueDrills[0]) {
           setSelectedDrill(uniqueDrills[0]);
         }
@@ -302,8 +229,6 @@ export default function DrillsPage() {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
         setDrills([]);
-        // setPlayers([]); // This line was removed as per the edit hint.
-        // setTeams([]); // This line was removed as per the edit hint.
       } finally {
         setLoading(false);
       }
@@ -319,79 +244,51 @@ export default function DrillsPage() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-[#161616] flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center w-full">
-          <span className="text-zinc-400 text-lg font-semibold mb-4">
-            Loading drills...
-          </span>
-          <div className="w-8 h-8 border-2 border-[#d8cc97] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Drills</h2>
+            </div>
+          </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading drills...</p>
+            </div>
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen p-4 bg-[#161616] flex items-center justify-center">
-        <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
-          {error}
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="space-y-4"></div>}
+        center={
+          <div className="min-h-screen p-4 flex items-center justify-center">
+            <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+              {error}
+            </div>
+          </div>
+        }
+        right={<div className="space-y-4"></div>}
+      />
     );
   }
 
   return (
-    <div
-      className="flex min-h-screen h-full bg-black text-white"
-      style={{ background: 'black' }}
-    >
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="Drills Coming Soon!"
-          description="Our drill library and management system is in development. You can see the layout and structure, but the drill creation and management features are being built. Let us know what drill features you'd like to see!"
-          feedbackLink="mailto:coach@example.com?subject=MPB%20Drills%20Feedback"
-        />
-      )}
-      {/* Header - exact replica with coach info */}
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            Coach
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            coach@example.com
-          </span>
-          <span className="text-xs text-white leading-tight">Coach</span>
-        </div>
-      </header>
-      {/* Sidebar */}
-      <Sidebar
-        user={{
-          name: 'Coach',
-          email: 'coach@example.com',
-          role: 'Coach',
-        }}
-      />
-      {/* Main Content */}
-      <div
-        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
-        style={{ background: 'black', minHeight: '100vh' }}
-      >
-        {/* LEFT PANE: Drill Categories */}
-        <div
-          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Drills</h2>
 
           {/* Search Input */}
@@ -531,12 +428,9 @@ export default function DrillsPage() {
             )}
           </div>
         </div>
-
-        {/* CENTER PANE: Drill Details */}
-        <div
-          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+      }
+      center={
+        <div className="space-y-6">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             {selectedDrillId
               ? `${drills.find(d => d.id === selectedDrillId)?.name}`
@@ -546,9 +440,10 @@ export default function DrillsPage() {
           {selectedDrill ? (
             <div className="space-y-6">
               {/* Drill Details Card */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
+              <UniversalCard.Default
+                title={selectedDrill.name}
+                subtitle={`${selectedDrill.category.replace('_', ' ')} • ${selectedDrill.difficulty}`}
+                size="lg"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -561,18 +456,15 @@ export default function DrillsPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      className="text-xs text-[#d8cc97] font-semibold hover:underline bg-transparent"
-                      style={{ background: 'transparent' }}
-                    >
+                    <UniversalButton.Ghost size="xs">
                       Edit
-                    </button>
-                    <button
-                      className="text-xs text-red-400 font-semibold hover:underline bg-transparent"
-                      style={{ background: 'transparent' }}
+                    </UniversalButton.Ghost>
+                    <UniversalButton.Ghost
+                      size="xs"
+                      className="text-red-400 hover:text-red-300"
                     >
                       Delete
-                    </button>
+                    </UniversalButton.Ghost>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
@@ -607,16 +499,10 @@ export default function DrillsPage() {
                     {selectedDrill.description}
                   </p>
                 </div>
-              </div>
+              </UniversalCard.Default>
 
               {/* Instructions */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
-              >
-                <h4 className="text-base font-bold text-[#d8cc97] mb-4">
-                  Instructions
-                </h4>
+              <UniversalCard.Default title="Instructions" size="lg">
                 <ol className="list-decimal list-inside space-y-2">
                   {selectedDrill.instructions.map((instruction, index) => (
                     <li key={index} className="text-sm text-white">
@@ -624,16 +510,10 @@ export default function DrillsPage() {
                     </li>
                   ))}
                 </ol>
-              </div>
+              </UniversalCard.Default>
 
               {/* Coaching Cues */}
-              <div
-                className="bg-zinc-800 p-6 rounded"
-                style={{ background: '#181818' }}
-              >
-                <h4 className="text-base font-bold text-[#d8cc97] mb-4">
-                  Coaching Cues
-                </h4>
+              <UniversalCard.Default title="Coaching Cues" size="lg">
                 <div className="flex flex-wrap gap-2">
                   {selectedDrill.cues.map((cue, index) => (
                     <span
@@ -644,7 +524,7 @@ export default function DrillsPage() {
                     </span>
                   ))}
                 </div>
-              </div>
+              </UniversalCard.Default>
             </div>
           ) : (
             <div className="text-sm text-gray-500 text-center py-8">
@@ -652,39 +532,34 @@ export default function DrillsPage() {
             </div>
           )}
         </div>
-
-        {/* RIGHT PANE: Drill Management */}
-        <div
-          className="w-1/4 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
+      }
+      right={
+        <div className="space-y-4">
           <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
             Management
           </h2>
 
           {/* Quick Drill Creation */}
-          <div className="bg-zinc-800 p-6 rounded mb-6">
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Quick Actions
-            </h3>
+          <UniversalCard.Default
+            title="Quick Actions"
+            size="sm"
+            className="mb-6"
+          >
             <div className="space-y-3">
-              <button className="w-full p-3 bg-[#d8cc97] text-black rounded text-sm font-semibold hover:bg-[#b3a14e] transition-colors">
+              <UniversalButton.Primary className="w-full">
                 Create New Drill
-              </button>
-              <button className="w-full p-3 bg-zinc-700 text-white rounded text-sm font-semibold hover:bg-zinc-600 transition-colors">
+              </UniversalButton.Primary>
+              <UniversalButton.Secondary className="w-full">
                 Import Drill Library
-              </button>
-              <button className="w-full p-3 bg-zinc-700 text-white rounded text-sm font-semibold hover:bg-zinc-600 transition-colors">
+              </UniversalButton.Secondary>
+              <UniversalButton.Secondary className="w-full">
                 Share Drill
-              </button>
+              </UniversalButton.Secondary>
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Drill Favorites */}
-          <div className="bg-zinc-800 p-6 rounded mb-6">
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Favorites
-            </h3>
+          <UniversalCard.Default title="Favorites" size="sm" className="mb-6">
             <div className="space-y-3">
               <div className="p-3 bg-zinc-700 rounded cursor-pointer hover:bg-zinc-600 transition-colors">
                 <p className="text-sm font-semibold text-white">
@@ -699,13 +574,10 @@ export default function DrillsPage() {
                 <p className="text-xs text-zinc-400">15 min • Beginner</p>
               </div>
             </div>
-          </div>
+          </UniversalCard.Default>
 
           {/* Related Drills */}
-          <div className="bg-zinc-800 p-6 rounded">
-            <h3 className="text-base font-bold text-[#d8cc97] mb-4">
-              Related Drills
-            </h3>
+          <UniversalCard.Default title="Related Drills" size="sm">
             <div className="space-y-3">
               {drills
                 .filter(
@@ -728,9 +600,9 @@ export default function DrillsPage() {
                   </div>
                 ))}
             </div>
-          </div>
+          </UniversalCard.Default>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

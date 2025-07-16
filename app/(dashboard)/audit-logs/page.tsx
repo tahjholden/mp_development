@@ -10,8 +10,51 @@ import {
   Clock,
   Settings,
 } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import UniversalCard from '@/components/ui/UniversalCard';
+import UniversalButton from '@/components/ui/UniversalButton';
+import { z } from 'zod';
+
+// Zod schemas for validation
+const AuditLogSchema = z.object({
+  id: z.string(),
+  timestamp: z.string(),
+  user: z.string(),
+  action: z.string(),
+  resource: z.string(),
+  details: z.string(),
+  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  category: z.enum(['security', 'data', 'system', 'user', 'admin']),
+  ipAddress: z.string(),
+  userAgent: z.string(),
+  status: z.enum(['success', 'failure', 'warning']),
+});
+
+const SecurityEventSchema = z.object({
+  id: z.string(),
+  type: z.enum([
+    'login',
+    'logout',
+    'permission_change',
+    'data_access',
+    'system_change',
+  ]),
+  title: z.string(),
+  description: z.string(),
+  timestamp: z.string(),
+  user: z.string(),
+  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  resolved: z.boolean(),
+  resolution: z.string().optional(),
+});
+
+const SystemMetricsSchema = z.object({
+  totalLogs: z.number(),
+  securityEvents: z.number(),
+  failedLogins: z.number(),
+  dataAccessEvents: z.number(),
+  lastUpdated: z.string(),
+});
 
 // Types for audit logs
 interface AuditLog {
@@ -230,7 +273,6 @@ export default function AuditLogsPage() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   // Filter states
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
@@ -259,22 +301,6 @@ export default function AuditLogsPage() {
       setSelectedLogId(logId);
     }
   };
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user/session');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -305,83 +331,76 @@ export default function AuditLogsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-black text-white">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-zinc-800 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-zinc-800 rounded w-1/2 mb-8"></div>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="h-64 bg-zinc-800 rounded"></div>
-              <div className="h-64 bg-zinc-800 rounded"></div>
-              <div className="h-64 bg-zinc-800 rounded"></div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Audit Logs</h2>
             </div>
           </div>
-        </div>
-      </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p>Loading audit logs...</p>
+            </div>
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-black text-white">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <div className="text-red-400">Error: {error}</div>
-        </div>
-      </div>
+      <DashboardLayout
+        left={<div className="space-y-4"></div>}
+        center={
+          <div className="min-h-screen p-4 flex items-center justify-center">
+            <div className="bg-red-900/20 border border-red-500 rounded p-4 text-red-300">
+              {error}
+            </div>
+          </div>
+        }
+        right={<div className="space-y-4"></div>}
+      />
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
-      <Sidebar />
-
-      {/* Main Content */}
-      <div className="flex-1 ml-64 p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#d8cc97] mb-2">
-            {auditContent.title}
-          </h1>
-          <p className="text-zinc-400">{auditContent.description}</p>
-        </div>
-
-        {/* Three Column Layout */}
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left Column - Audit Logs */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[#d8cc97] flex items-center gap-2">
-                <Shield size={20} />
-                Activity Logs
-              </h2>
-              <div className="flex gap-2">
-                <div className="relative">
-                  <button
-                    onClick={() =>
-                      setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
-                    }
-                    className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
-                  >
-                    <Filter size={16} />
-                    {categoryFilter === 'all' ? 'All' : categoryFilter}
-                    {isCategoryDropdownOpen ? (
-                      <ChevronUp size={16} />
-                    ) : (
-                      <ChevronDown size={16} />
-                    )}
-                  </button>
-                  {isCategoryDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
-                      {[
-                        'all',
-                        'security',
-                        'data',
-                        'system',
-                        'user',
-                        'admin',
-                      ].map(category => (
+    <DashboardLayout
+      left={
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[#d8cc97] flex items-center gap-2">
+              <Shield size={20} />
+              Activity Logs
+            </h2>
+            <div className="flex gap-2">
+              <div className="relative">
+                <button
+                  onClick={() =>
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                  }
+                  className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
+                >
+                  <Filter size={16} />
+                  {categoryFilter === 'all' ? 'All' : categoryFilter}
+                  {isCategoryDropdownOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+                {isCategoryDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
+                    {['all', 'security', 'data', 'system', 'user', 'admin'].map(
+                      category => (
                         <button
                           key={category}
                           onClick={() => {
@@ -392,254 +411,242 @@ export default function AuditLogsPage() {
                         >
                           {category}
                         </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() =>
-                      setIsSeverityDropdownOpen(!isSeverityDropdownOpen)
-                    }
-                    className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
-                  >
-                    <Filter size={16} />
-                    {severityFilter === 'all' ? 'All' : severityFilter}
-                    {isSeverityDropdownOpen ? (
-                      <ChevronUp size={16} />
-                    ) : (
-                      <ChevronDown size={16} />
+                      )
                     )}
-                  </button>
-                  {isSeverityDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
-                      {['all', 'low', 'medium', 'high', 'critical'].map(
-                        severity => (
-                          <button
-                            key={severity}
-                            onClick={() => {
-                              setSeverityFilter(severity);
-                              setIsSeverityDropdownOpen(false);
-                            }}
-                            className="block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 transition-colors capitalize"
-                          >
-                            {severity}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-            </div>
-
-            <div className="space-y-3">
-              {filteredLogs.map(log => (
-                <div
-                  key={log.id}
-                  onClick={() => handleLogSelect(log.id)}
-                  className={`p-3 rounded border cursor-pointer transition-colors ${
-                    selectedLogId === log.id
-                      ? 'border-[#d8cc97] bg-zinc-800'
-                      : 'border-zinc-700 hover:border-zinc-600'
-                  }`}
+              <div className="relative">
+                <button
+                  onClick={() =>
+                    setIsSeverityDropdownOpen(!isSeverityDropdownOpen)
+                  }
+                  className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded text-sm hover:bg-zinc-700 transition-colors"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-white">{log.action}</h3>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-1 rounded text-xs capitalize ${
-                          log.severity === 'critical'
-                            ? 'bg-red-900 text-red-300'
-                            : log.severity === 'high'
-                              ? 'bg-orange-900 text-orange-300'
-                              : log.severity === 'medium'
-                                ? 'bg-yellow-900 text-yellow-300'
-                                : 'bg-green-900 text-green-300'
-                        }`}
-                      >
-                        {log.severity}
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          log.status === 'success'
-                            ? 'bg-green-900 text-green-300'
-                            : log.status === 'failure'
-                              ? 'bg-red-900 text-red-300'
-                              : 'bg-yellow-900 text-yellow-300'
-                        }`}
-                      >
-                        {log.status}
-                      </span>
-                    </div>
+                  <Filter size={16} />
+                  {severityFilter === 'all' ? 'All' : severityFilter}
+                  {isSeverityDropdownOpen ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                </button>
+                {isSeverityDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded shadow-lg z-10 min-w-[120px]">
+                    {['all', 'low', 'medium', 'high', 'critical'].map(
+                      severity => (
+                        <button
+                          key={severity}
+                          onClick={() => {
+                            setSeverityFilter(severity);
+                            setIsSeverityDropdownOpen(false);
+                          }}
+                          className="block w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 transition-colors capitalize"
+                        >
+                          {severity}
+                        </button>
+                      )
+                    )}
                   </div>
-
-                  <div className="space-y-1 text-sm text-zinc-400">
-                    <p>
-                      <strong>User:</strong> {log.user}
-                    </p>
-                    <p>
-                      <strong>Resource:</strong> {log.resource}
-                    </p>
-                    <p>
-                      <strong>Details:</strong> {log.details}
-                    </p>
-                    <p>
-                      <strong>IP:</strong> {log.ipAddress}
-                    </p>
-                    <p>
-                      <strong>Time:</strong> {log.timestamp}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Center Column - Security Events */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
-              <AlertTriangle size={20} />
-              Security Events
-            </h2>
-
-            <div className="space-y-4">
-              {securityEvents.map(event => (
-                <div
-                  key={event.id}
-                  className="border border-zinc-700 rounded p-4"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-white">{event.title}</h3>
+          <div className="space-y-3">
+            {filteredLogs.map(log => (
+              <div
+                key={log.id}
+                onClick={() => handleLogSelect(log.id)}
+                className={`p-3 rounded border cursor-pointer transition-colors ${
+                  selectedLogId === log.id
+                    ? 'border-[#d8cc97] bg-zinc-800'
+                    : 'border-zinc-700 hover:border-zinc-600'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-medium text-white">{log.action}</h3>
+                  <div className="flex items-center gap-2">
                     <span
                       className={`px-2 py-1 rounded text-xs capitalize ${
-                        event.severity === 'critical'
+                        log.severity === 'critical'
                           ? 'bg-red-900 text-red-300'
-                          : event.severity === 'high'
+                          : log.severity === 'high'
                             ? 'bg-orange-900 text-orange-300'
-                            : event.severity === 'medium'
+                            : log.severity === 'medium'
                               ? 'bg-yellow-900 text-yellow-300'
                               : 'bg-green-900 text-green-300'
                       }`}
                     >
-                      {event.severity}
+                      {log.severity}
+                    </span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${
+                        log.status === 'success'
+                          ? 'bg-green-900 text-green-300'
+                          : log.status === 'failure'
+                            ? 'bg-red-900 text-red-300'
+                            : 'bg-yellow-900 text-yellow-300'
+                      }`}
+                    >
+                      {log.status}
                     </span>
                   </div>
+                </div>
 
-                  <p className="text-sm text-zinc-400 mb-3">
-                    {event.description}
+                <div className="space-y-1 text-sm text-zinc-400">
+                  <p>
+                    <strong>User:</strong> {log.user}
                   </p>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">User:</span>
-                      <span className="text-white">{event.user}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Time:</span>
-                      <span className="text-white">{event.timestamp}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Status:</span>
-                      <span
-                        className={`${
-                          event.resolved ? 'text-green-300' : 'text-yellow-300'
-                        }`}
-                      >
-                        {event.resolved ? 'Resolved' : 'Open'}
-                      </span>
-                    </div>
-                    {event.resolution && (
-                      <div className="mt-2 p-2 bg-zinc-800 rounded">
-                        <p className="text-xs text-zinc-400">Resolution:</p>
-                        <p className="text-sm text-white">{event.resolution}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column - System Metrics */}
-          <div className="bg-zinc-900 rounded-lg p-6 border border-zinc-800">
-            <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
-              <Settings size={20} />
-              System Metrics
-            </h2>
-
-            {metrics && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-zinc-800 rounded">
-                    <p className="text-sm text-zinc-400">Total Logs</p>
-                    <p className="text-2xl font-bold text-[#d8cc97]">
-                      {metrics.totalLogs}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-800 rounded">
-                    <p className="text-sm text-zinc-400">Security Events</p>
-                    <p className="text-2xl font-bold text-red-400">
-                      {metrics.securityEvents}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-800 rounded">
-                    <p className="text-sm text-zinc-400">Failed Logins</p>
-                    <p className="text-2xl font-bold text-yellow-400">
-                      {metrics.failedLogins}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-800 rounded">
-                    <p className="text-sm text-zinc-400">Data Access</p>
-                    <p className="text-2xl font-bold text-blue-400">
-                      {metrics.dataAccessEvents}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-zinc-800 rounded">
-                  <h3 className="text-lg font-medium text-[#d8cc97] mb-2 flex items-center gap-2">
-                    <Clock size={18} />
-                    Recent Activity
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-zinc-300">
-                        System backup completed
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                      <span className="text-zinc-300">
-                        Failed login attempt detected
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="text-zinc-300">
-                        Data export requested
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-xs text-zinc-500 text-center">
-                  Last updated: {metrics.lastUpdated}
+                  <p>
+                    <strong>Resource:</strong> {log.resource}
+                  </p>
+                  <p>
+                    <strong>Details:</strong> {log.details}
+                  </p>
+                  <p>
+                    <strong>IP:</strong> {log.ipAddress}
+                  </p>
+                  <p>
+                    <strong>Time:</strong> {log.timestamp}
+                  </p>
                 </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
-      </div>
+      }
+      center={
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
+            <AlertTriangle size={20} />
+            Security Events
+          </h2>
 
-      {/* Coming Soon Overlay - Hidden for superadmin */}
-      {user?.personType !== 'superadmin' && (
-        <ComingSoonOverlay
-          title="Audit Log Features Coming Soon!"
-          description="We're building comprehensive audit logging with real-time monitoring, advanced security analytics, and automated threat detection. Stay tuned for enhanced security and compliance features."
-        />
-      )}
-    </div>
+          <div className="space-y-4">
+            {securityEvents.map(event => (
+              <UniversalCard.Default
+                key={event.id}
+                title={event.title}
+                subtitle={`${event.severity} severity`}
+                size="lg"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-white">{event.title}</h3>
+                  <span
+                    className={`px-2 py-1 rounded text-xs capitalize ${
+                      event.severity === 'critical'
+                        ? 'bg-red-900 text-red-300'
+                        : event.severity === 'high'
+                          ? 'bg-orange-900 text-orange-300'
+                          : event.severity === 'medium'
+                            ? 'bg-yellow-900 text-yellow-300'
+                            : 'bg-green-900 text-green-300'
+                    }`}
+                  >
+                    {event.severity}
+                  </span>
+                </div>
+
+                <p className="text-sm text-zinc-400 mb-3">
+                  {event.description}
+                </p>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">User:</span>
+                    <span className="text-white">{event.user}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Time:</span>
+                    <span className="text-white">{event.timestamp}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Status:</span>
+                    <span
+                      className={`${
+                        event.resolved ? 'text-green-300' : 'text-yellow-300'
+                      }`}
+                    >
+                      {event.resolved ? 'Resolved' : 'Open'}
+                    </span>
+                  </div>
+                  {event.resolution && (
+                    <div className="mt-2 p-2 bg-zinc-800 rounded">
+                      <p className="text-xs text-zinc-400">Resolution:</p>
+                      <p className="text-sm text-white">{event.resolution}</p>
+                    </div>
+                  )}
+                </div>
+              </UniversalCard.Default>
+            ))}
+          </div>
+        </div>
+      }
+      right={
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-[#d8cc97] mb-4 flex items-center gap-2">
+            <Settings size={20} />
+            System Metrics
+          </h2>
+
+          {metrics && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-zinc-800 rounded">
+                  <p className="text-sm text-zinc-400">Total Logs</p>
+                  <p className="text-2xl font-bold text-[#d8cc97]">
+                    {metrics.totalLogs}
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-800 rounded">
+                  <p className="text-sm text-zinc-400">Security Events</p>
+                  <p className="text-2xl font-bold text-red-400">
+                    {metrics.securityEvents}
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-800 rounded">
+                  <p className="text-sm text-zinc-400">Failed Logins</p>
+                  <p className="text-2xl font-bold text-yellow-400">
+                    {metrics.failedLogins}
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-800 rounded">
+                  <p className="text-sm text-zinc-400">Data Access</p>
+                  <p className="text-2xl font-bold text-blue-400">
+                    {metrics.dataAccessEvents}
+                  </p>
+                </div>
+              </div>
+
+              <UniversalCard.Default title="Recent Activity" size="sm">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-zinc-300">
+                      System backup completed
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                    <span className="text-zinc-300">
+                      Failed login attempt detected
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span className="text-zinc-300">Data export requested</span>
+                  </div>
+                </div>
+              </UniversalCard.Default>
+
+              <div className="text-xs text-zinc-500 text-center">
+                Last updated: {metrics.lastUpdated}
+              </div>
+            </div>
+          )}
+        </div>
+      }
+    />
   );
 }

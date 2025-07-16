@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
-import CoachListCard, {
-  type Coach as SharedCoach,
-} from '@/components/basketball/CoachListCard';
-// Types for coaches
+import CoachListCard from '@/components/basketball/CoachListCard';
+import UniversalCard from '@/components/ui/UniversalCard';
+import UniversalButton from '@/components/ui/UniversalButton';
+import { Users, Plus, Download } from 'lucide-react';
 // Types for coaches
 interface Coach {
   id: string;
@@ -27,37 +27,36 @@ interface Player {
   team?: string;
   status?: string;
 }
+// Types for teams
 interface Team {
   id: string;
   name: string;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: unknown;
 }
 // Main component
 export default function CoachesPage() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
-  const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // Player/team data for left column
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
   const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
+  const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
   const [selectedCoachPlayers, setSelectedCoachPlayers] = useState<Player[]>(
     []
   );
-  const [searchTerm, setSearchTerm] = useState('');
-  const [teamFilter, setTeamFilter] = useState('all');
-  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  // Add state for development plans to check if players have plans
+  const [allDevelopmentPlans, setAllDevelopmentPlans] = useState<any[]>([]);
+  // Add state for teams
+  const [teams, setTeams] = useState<Team[]>([]);
+
+  // Function to check if a player has a development plan
+  const hasDevelopmentPlan = (playerId: string) =>
+    allDevelopmentPlans.some(plan => plan.playerId === playerId);
+
   // Filter coaches by selected team
   // const filteredCoaches = selectedCoachId
   //   ? coaches.filter(coach => coach.id === selectedCoachId)
   //   : coaches;
-  const filteredCoachesList = coaches.filter(coach => {
-    const matchesSearch = coach.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesTeam = teamFilter === 'all' || coach.team === teamFilter;
-    return matchesSearch && matchesTeam;
-  });
   // Fetch coach players with validation (same pattern as teams page)
   const fetchCoachPlayers = async (teamId: string) => {
     try {
@@ -79,7 +78,7 @@ export default function CoachesPage() {
         new Map(
           validPlayers.map((player: Player) => [player.id, player])
         ).values()
-      );
+      ) as Player[];
       setSelectedCoachPlayers(uniquePlayers);
     } catch (error) {
       console.error('Error fetching team players:', error);
@@ -111,7 +110,6 @@ export default function CoachesPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError(null);
         // Fetch coaches from live API
         const coachesResponse = await fetch('/api/coaches');
         if (!coachesResponse.ok) throw new Error('Failed to fetch coaches');
@@ -141,29 +139,55 @@ export default function CoachesPage() {
           new Map(
             validCoaches.map((coach: Coach) => [coach.id, coach])
           ).values()
-        );
+        ) as Coach[];
         // Sort coaches alphabetically by name
         const sortedCoaches = uniqueCoaches.sort((a: Coach, b: Coach) =>
           a.name.localeCompare(b.name)
         );
         setCoaches(sortedCoaches);
-        // Set players and teams to empty arrays for now (not needed for basic coach list)
-        setPlayers([] as Player[]);
-        setTeams([] as Team[]);
         if (sortedCoaches.length > 0 && sortedCoaches[0]) {
           setSelectedCoach(sortedCoaches[0]);
         }
       } catch (err) {
-        // console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        setCoaches([] as Coach[]);
-        setPlayers([] as Player[]);
-        setTeams([] as Team[]);
+        console.error('Error fetching data:', err);
+        setCoaches([]);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
+  }, []);
+  // Fetch development plans for color logic
+  useEffect(() => {
+    const fetchDevelopmentPlans = async () => {
+      try {
+        const response = await fetch('/api/development-plans');
+        if (response.ok) {
+          const plans = await response.json();
+          setAllDevelopmentPlans(plans || []);
+        }
+      } catch (error) {
+        console.error('Error fetching development plans:', error);
+        setAllDevelopmentPlans([]);
+      }
+    };
+    fetchDevelopmentPlans();
+  }, []);
+  // Fetch teams for dropdown
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const response = await fetch('/api/teams');
+        if (response.ok) {
+          const teamsData = await response.json();
+          setTeams(teamsData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching teams:', error);
+        setTeams([]);
+      }
+    };
+    fetchTeams();
   }, []);
   // Reset page when coach selection changes
   useEffect(() => {
@@ -203,127 +227,117 @@ export default function CoachesPage() {
           selectedCoachId={selectedCoachId || undefined}
           onCoachSelect={coach => handleCoachSelect(coach.id)}
           showSearch={true}
+          showTeamFilter={true}
           maxHeight="calc(100vh - 200px)"
+          allTeams={teams}
         />
       }
       center={
         <div className="space-y-6">
+          {/* Coach Profile Header - Always visible */}
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Coach Management</h1>
+            <h1 className="text-2xl font-bold text-[#d8cc97]">Coach Profile</h1>
           </div>
 
           {selectedCoach ? (
             <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h2 className="text-xl font-semibold mb-4">
-                  {selectedCoach.name}
-                </h2>
+              <UniversalCard.Default title="Coach Profile">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-zinc-400 mb-1">
                       Name
                     </label>
-                    <p className="text-gray-900">{selectedCoach.name}</p>
+                    <p className="text-white">{selectedCoach.name}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-zinc-400 mb-1">
                       Email
                     </label>
-                    <p className="text-gray-900">{selectedCoach.email}</p>
+                    <p className="text-white">{selectedCoach.email}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-zinc-400 mb-1">
                       Team
                     </label>
-                    <p className="text-gray-900">{selectedCoach.team}</p>
+                    <p className="text-white">{selectedCoach.team}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-zinc-400 mb-1">
                       Role
                     </label>
-                    <p className="text-gray-900">{selectedCoach.role}</p>
+                    <p className="text-white">{selectedCoach.role}</p>
                   </div>
                 </div>
-              </div>
+              </UniversalCard.Default>
 
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold mb-4">Team Players</h3>
-                <div className="space-y-2">
+              {/* Roster Header - Always visible */}
+              <h2 className="text-xl font-bold text-[#d8cc97] mt-6 mb-4">
+                Roster
+              </h2>
+
+              <UniversalCard.Default>
+                <div className="grid grid-cols-2 gap-2">
                   {selectedCoachPlayers.map(player => (
                     <div
                       key={player.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                      className={`p-3 border-2 rounded-lg transition-all ${
+                        hasDevelopmentPlan(player.id)
+                          ? 'border-[#d8cc97] bg-zinc-800/50'
+                          : 'border-red-500 bg-zinc-800/50'
+                      }`}
                     >
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-white">
                           {player.name || player.displayName}
                         </p>
-                        <p className="text-sm text-gray-600">{player.team}</p>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {player.status}
+                        <p className="text-sm text-zinc-400">{player.team}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-                {selectedCoachPlayers.length === 0 && (
-                  <p className="text-center text-gray-500 py-4">
-                    No players found for this coach
-                  </p>
-                )}
-              </div>
+                {/* No empty state card for empty lists - just show nothing */}
+              </UniversalCard.Default>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <div className="h-16 w-16 mx-auto mb-4 text-gray-300">
-                <svg fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Select a Coach
-              </h3>
-              <p className="text-gray-500">
-                Choose a coach from the left sidebar to view details and manage
-                their team.
-              </p>
-            </div>
+            /* Empty state card that maintains the same layout position and sizing */
+            <UniversalCard.EmptyState
+              title="Select a Coach"
+              message="Choose a coach from the left sidebar to view details and manage their team."
+              icon={<Users className="h-16 w-16 text-zinc-600" />}
+              className="min-h-[400px] flex items-center justify-center"
+            />
           )}
         </div>
       }
       right={
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <h3 className="font-semibold mb-2">Quick Actions</h3>
+          <UniversalCard.Default
+            title="Quick Actions"
+            subtitle="Coach management tools"
+          >
             <div className="space-y-2">
-              <button className="w-full text-left p-2 text-sm text-gray-600 hover:bg-gray-50 rounded">
-                Add Coach
-              </button>
-              <button className="w-full text-left p-2 text-sm text-gray-600 hover:bg-gray-50 rounded">
+              <UniversalButton.Secondary
+                onClick={() => {
+                  /* Add coach logic */
+                }}
+                size="sm"
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Coach
+              </UniversalButton.Secondary>
+              <UniversalButton.Secondary
+                onClick={() => {
+                  /* Export data logic */
+                }}
+                size="sm"
+                className="w-full"
+              >
+                <Download className="h-4 w-4 mr-2" />
                 Export Data
-              </button>
+              </UniversalButton.Secondary>
             </div>
-          </div>
-
-          {selectedCoach && (
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <h3 className="font-semibold mb-2">Coach Stats</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Players:</span>
-                  <span className="font-medium">
-                    {selectedCoachPlayers.length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Experience:</span>
-                  <span className="font-medium">
-                    {selectedCoach.experience} years
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+          </UniversalCard.Default>
         </div>
       }
     />

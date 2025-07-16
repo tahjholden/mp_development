@@ -308,7 +308,8 @@ export default function DevelopmentPlansPage() {
 
   // Fetch all players on mount or when All Teams is selected
   useEffect(() => {
-    if (playerIds.length === 0) { // Assuming playerIds is the source of truth for selected players
+    if (playerIds.length === 0) {
+      // Assuming playerIds is the source of truth for selected players
       fetchAllPlayers();
     }
   }, [playerIds, fetchAllPlayers]);

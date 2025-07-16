@@ -19,46 +19,58 @@ export async function GET() {
     }
 
     // Get all teams from the normalized schema using correct mpbc tables
-    const teams = await db
+    // First, get unique teams
+    const uniqueTeams = await db
       .select({
         id: mpbcGroup.id,
         name: mpbcGroup.name,
-        coachFirstName: mpbcPerson.firstName,
-        coachLastName: mpbcPerson.lastName,
-        role: mpbcPersonGroup.role,
-        personType: mpbcPerson.personType,
-        email: mpbcPerson.email,
       })
       .from(mpbcGroup)
-      .innerJoin(mpbcPersonGroup, eq(mpbcGroup.id, mpbcPersonGroup.groupId))
-      .innerJoin(mpbcPerson, eq(mpbcPersonGroup.personId, mpbcPerson.id))
-      .where(and(isNotNull(mpbcPersonGroup.groupId), isNotNull(mpbcGroup.name)))
-      .groupBy(
-        mpbcGroup.id,
-        mpbcGroup.name,
-        mpbcPerson.firstName,
-        mpbcPerson.lastName,
-        mpbcPersonGroup.role,
-        mpbcPerson.personType,
-        mpbcPerson.email
-      );
+      .where(isNotNull(mpbcGroup.name))
+      .groupBy(mpbcGroup.id, mpbcGroup.name);
 
-    // Transform the data to match the expected format
-    const formattedTeams = teams.map(team => {
-      const coachName =
-        team.coachFirstName && team.coachLastName
-          ? `${team.coachFirstName} ${team.coachLastName}`.trim()
-          : team.coachFirstName || team.coachLastName || 'Unknown Coach';
+    // Then, get coach information for each team (just the first coach for display purposes)
+    const teamsWithCoaches = await Promise.all(
+      uniqueTeams.map(async team => {
+        const coachInfo = await db!
+          .select({
+            coachFirstName: mpbcPerson.firstName,
+            coachLastName: mpbcPerson.lastName,
+            role: mpbcPersonGroup.role,
+            personType: mpbcPerson.personType,
+            email: mpbcPerson.email,
+          })
+          .from(mpbcPersonGroup)
+          .innerJoin(mpbcPerson, eq(mpbcPersonGroup.personId, mpbcPerson.id))
+          .where(
+            and(
+              eq(mpbcPersonGroup.groupId, team.id),
+              eq(mpbcPersonGroup.role, 'coach')
+            )
+          )
+          .limit(1);
 
-      return {
-        id: team.id || 'unknown',
-        name: team.name || 'Unknown Team',
-        coachName,
-        role: team.role || 'Coach',
-        personType: team.personType || 'coach',
-        email: team.email,
-      };
-    });
+        const coach = coachInfo[0];
+        const coachName =
+          coach?.coachFirstName && coach?.coachLastName
+            ? `${coach.coachFirstName} ${coach.coachLastName}`.trim()
+            : coach?.coachFirstName || coach?.coachLastName || 'Unknown Coach';
+
+        return {
+          id: team.id || 'unknown',
+          name: team.name || 'Unknown Team',
+          coachName,
+          role: coach?.role || 'Coach',
+          personType: coach?.personType || 'coach',
+          email: coach?.email,
+        };
+      })
+    );
+
+    // Sort teams alphabetically
+    const formattedTeams = teamsWithCoaches.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
 
     return Response.json(formattedTeams);
   } catch {

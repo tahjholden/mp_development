@@ -100,4 +100,4 @@ export async function hasBasketballRole(
     console.error('Error in hasBasketballRole:', error);
     return false;
   }
-} 
+}

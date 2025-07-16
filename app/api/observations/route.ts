@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { mpCorePerson, mpbcObservations } from '@/lib/db/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export async function GET(req: Request) {
   try {
@@ -90,12 +90,71 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
     const body = await request.json();
-    // In a real implementation, you would save the observation to the database
-    // For now, return a success response
+    const { context, observation_text, player_id, team_id, created_by } = body;
+
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database not available' },
+        { status: 500 }
+      );
+    }
+
+    // Validate required fields
+    if (!context || !observation_text) {
+      return NextResponse.json(
+        { error: 'Context and observation text are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate context value
+    if (context !== 'individual' && context !== 'team') {
+      return NextResponse.json(
+        { error: 'Context must be either "individual" or "team"' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that we have the appropriate ID based on context
+    if (context === 'individual' && !player_id) {
+      return NextResponse.json(
+        { error: 'Player ID is required for individual observations' },
+        { status: 400 }
+      );
+    }
+
+    if (context === 'team' && !team_id) {
+      return NextResponse.json(
+        { error: 'Team ID is required for team observations' },
+        { status: 400 }
+      );
+    }
+
+    // Insert the observation
+    const result = await db
+      .insert(mpbcObservations)
+      .values({
+        context: context,
+        observationText: observation_text,
+        playerId: context === 'individual' ? player_id : null,
+        observerId: created_by,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .returning({ id: mpbcObservations.id });
+
+    if (!result || result.length === 0) {
+      return NextResponse.json(
+        { error: 'Failed to create observation' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       message: 'Observation created successfully',
-      id: 'temp-id-' + Date.now(),
+      id: result[0].id,
     });
   } catch (error) {
     console.error('Error creating observation:', error);
