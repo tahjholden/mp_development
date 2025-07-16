@@ -1,19 +1,21 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Loader2, Search } from 'lucide-react';
-import { Sidebar } from '@/components/ui/Sidebar';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { Shield, Users, Loader2 } from 'lucide-react';
 import UniversalButton from '@/components/ui/UniversalButton';
 import { UserResponseSchema } from '@/lib/utils';
 import { z } from 'zod';
+import UniversalCard from '@/components/ui/UniversalCard';
+import TeamListCard, {
+  type Team as SharedTeam,
+} from '@/components/basketball/TeamListCard';
 
-// Zod schemas for validation
+// Define schemas for teams and players
 const TeamSchema = z.object({
   id: z.string(),
   name: z.string(),
   coachName: z.string(),
 });
-const TeamsArraySchema = z.array(TeamSchema);
 
 const PlayerSchema = z.object({
   id: z.string(),
@@ -22,12 +24,15 @@ const PlayerSchema = z.object({
   personType: z.string().optional(),
   position: z.string().optional(),
 });
-const PlayersArraySchema = z.array(PlayerSchema);
+
+const TeamsResponseSchema = z.array(TeamSchema);
+const PlayersResponseSchema = z.array(PlayerSchema);
 
 interface Team {
   id: string;
   name: string;
   coachName: string;
+  [key: string]: unknown; // For additional team properties
 }
 
 interface Player {
@@ -44,49 +49,35 @@ export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamPlayers, setTeamPlayers] = useState<Player[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Search and filter state
-  const [searchTerm, setSearchTerm] = useState('');
-
   // Fetch current user and their teams
   useEffect(() => {
     const fetchUserAndTeams = async () => {
       try {
         setIsLoading(true);
-
         // Fetch current user with validation
         const response = await fetch('/api/user');
         if (!response.ok) throw new Error('Failed to fetch user');
         const userData = await response.json();
-
         // Validate user data
         const validatedUser = UserResponseSchema.safeParse(userData);
-        if (!validatedUser.success) {
-          throw new Error('Invalid user data received');
-        }
 
         if (!validatedUser.data) {
           throw new Error('No user data available');
         }
-
         setCurrentUser(validatedUser.data);
-
         // Fetch teams - all users see their teams
         const userTeamsResponse = await fetch(`/api/user/teams`);
         if (!userTeamsResponse.ok)
           throw new Error('Failed to fetch user teams');
         const rawUserTeamsData = await userTeamsResponse.json();
-
         // Validate user teams data
-        const validatedUserTeams = TeamsArraySchema.safeParse(rawUserTeamsData);
-        if (!validatedUserTeams.success) {
-          throw new Error('Invalid user teams data received');
-        }
-        const teamsData = validatedUserTeams.data;
+        const validatedUserTeams =
+          TeamsResponseSchema.safeParse(rawUserTeamsData);
 
+        const teamsData = validatedUserTeams.data || [];
         // Filter out any invalid teams and deduplicate by id
         const validTeams = teamsData.filter(
-          (team): team is Team =>
+          (team: any): team is Team =>
             team &&
             typeof team === 'object' &&
             typeof team.id === 'string' &&
@@ -96,13 +87,11 @@ export default function TeamsPage() {
             team.name.trim() !== '' &&
             team.coachName.trim() !== ''
         );
-
         const uniqueTeams = Array.from(
-          new Map(validTeams.map(team => [team.id, team])).values()
+          new Map(validTeams.map((team: Team) => [team.id, team])).values()
         );
-        uniqueTeams.sort((a, b) => a.name.localeCompare(b.name));
+        uniqueTeams.sort((a: Team, b: Team) => a.name.localeCompare(b.name));
         setTeams(uniqueTeams);
-
         // Select the first team by default if available
         if (uniqueTeams.length > 0 && uniqueTeams[0]) {
           setSelectedTeam(uniqueTeams[0]);
@@ -115,7 +104,6 @@ export default function TeamsPage() {
         setIsLoading(false);
       }
     };
-
     fetchUserAndTeams();
   }, []);
 
@@ -125,16 +113,12 @@ export default function TeamsPage() {
       const response = await fetch(`/api/teams/${teamId}/players`);
       if (!response.ok) throw new Error('Failed to fetch team players');
       const rawPlayersData = await response.json();
-
       // Validate players data
-      const validatedPlayers = PlayersArraySchema.safeParse(rawPlayersData);
-      if (!validatedPlayers.success) {
-        throw new Error('Invalid players data received');
-      }
+      const validatedPlayers = PlayersResponseSchema.safeParse(rawPlayersData);
 
       // Filter out any invalid players
-      const validPlayers = validatedPlayers.data.filter(
-        (player): player is Player =>
+      const validPlayers = (validatedPlayers.data || []).filter(
+        (player: any): player is Player =>
           player &&
           typeof player === 'object' &&
           typeof player.id === 'string' &&
@@ -144,10 +128,11 @@ export default function TeamsPage() {
           player.displayName.trim() !== '' &&
           player.teamId.trim() !== ''
       );
-
       // Deduplicate players by id
       const uniquePlayers = Array.from(
-        new Map(validPlayers.map(player => [player.id, player])).values()
+        new Map(
+          validPlayers.map((player: Player) => [player.id, player])
+        ).values()
       );
       setTeamPlayers(uniquePlayers);
     } catch {
@@ -167,231 +152,157 @@ export default function TeamsPage() {
     // but the modal is removed.
   };
 
-  // Filter teams based on search
-  const filteredTeams = teams.filter(team => {
-    return team.name.toLowerCase().includes(searchTerm.toLowerCase());
-  });
-
   // Check if there are any teams
-  const hasTeams = filteredTeams.length > 0;
+  const hasTeams = teams.length > 0;
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen h-full bg-black text-white">
-        <Sidebar
-          user={{ name: 'Coach', email: 'coach@example.com', role: 'Coach' }}
-        />
-        <div className="flex-1 flex flex-col min-h-screen">
-          <header
-            className="w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-            style={{ boxShadow: 'none' }}
-          >
-            <span
-              className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-              style={{ letterSpacing: '0.04em' }}
-            >
-              MP Player Development
-            </span>
-            <div className="flex flex-col items-end">
-              <span className="text-base font-semibold text-white leading-tight">
-                Coach
-              </span>
-              <span className="text-xs text-[#d8cc97] leading-tight">
-                coach@example.com
-              </span>
-              <span className="text-xs text-white leading-tight">Coach</span>
-            </div>
-          </header>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <Loader2 className="h-8 w-8 text-gold-500 animate-spin mb-4" />
-              <p className="text-zinc-400">Loading teams...</p>
-            </div>
+      <DashboardLayout
+        left={
+          <div className="space-y-4">
+            {/* TODO: Port your left sidebar content here */}
           </div>
-        </div>
-      </div>
+        }
+        center={
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        }
+        right={
+          <div className="space-y-4">
+            {/* TODO: Port your right sidebar content here */}
+          </div>
+        }
+      />
     );
   }
 
   return (
-    <div
-      className="flex min-h-screen h-full bg-black text-white"
-      style={{ background: 'black' }}
-    >
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
-        <span
-          className="text-2xl font-bold tracking-wide text-[#d8cc97]"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          MP Player Development
-        </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            {currentUser?.displayName || 'Coach'}
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            {currentUser?.email || 'coach@example.com'}
-          </span>
-          <span className="text-xs text-white leading-tight">
-            {currentUser?.role || 'Coach'}
-          </span>
-        </div>
-      </header>
-      <Sidebar
-        user={
-          currentUser
-            ? {
-                name: currentUser.displayName || currentUser.name || 'Coach',
-                email: currentUser.email || 'coach@example.com',
-                role: currentUser.role || 'Coach',
-              }
-            : {
-                name: 'Coach',
-                email: 'coach@example.com',
-                role: 'Coach',
-              }
-        }
-      />
-      <div
-        className="flex-1 flex ml-64 pt-16 bg-black min-h-screen"
-        style={{ background: 'black', minHeight: '100vh' }}
-      >
-        {/* LEFT COLUMN: Team Selector */}
-        <div
-          className="w-1/4 border-r border-zinc-800 p-6 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Teams</h2>
-          <div className="flex justify-between items-center mb-6">
-            <UniversalButton.Primary
-              size="sm"
-              onClick={handleAddTeam}
-              leftIcon={<Users size={16} />}
-            >
-              Add Team
-            </UniversalButton.Primary>
+    <DashboardLayout
+      left={
+        <TeamListCard
+          title="Teams"
+          teams={teams}
+          selectedTeamId={selectedTeam?.id || undefined}
+          onTeamSelect={handleTeamSelect}
+          onAddTeam={handleAddTeam}
+          showSearch={true}
+          maxHeight="calc(100vh - 200px)"
+        />
+      }
+      center={
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-[#d8cc97]">
+              Team Management
+            </h1>
           </div>
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search teams..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded bg-zinc-800 text-sm placeholder-gray-400 border border-zinc-700 focus:outline-none focus:border-[#d8cc97]"
-            />
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {!hasTeams ? (
-              <div className="text-center py-8">
-                <Shield className="text-zinc-700 w-12 h-12 mx-auto mb-4" />
-                <p className="text-zinc-400 text-sm">No teams found</p>
-                <p className="text-xs text-zinc-500 mt-1">
-                  Add your first team to get started
-                </p>
-              </div>
-            ) : (
-              filteredTeams.map(team => {
-                return (
-                  <div
-                    key={team.id}
-                    onClick={() => handleTeamSelect(team)}
-                    className={`p-3 rounded-lg cursor-pointer transition-all flex items-center justify-between border ${selectedTeam?.id === team.id ? 'bg-[#d8cc97]/20 border-[#d8cc97]' : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600'}`}
-                  >
-                    <div>
-                      <p className="font-medium text-white">{team.name}</p>
-                      <p className="text-sm text-zinc-400">
-                        {team.coachName ||
-                          currentUser?.displayName ||
-                          'Not assigned'}
-                      </p>
-                    </div>
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
+
+          {selectedTeam ? (
+            <div className="space-y-6">
+              <UniversalCard.Default
+                title={selectedTeam.name}
+                subtitle="Team Information"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-400 mb-1">
+                      Team Name
+                    </label>
+                    <p className="text-white">{selectedTeam.name}</p>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-        {/* CENTER COLUMN: Team Profile + Roster */}
-        <div
-          className="w-1/2 border-r border-zinc-800 p-8 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">
-            {selectedTeam ? selectedTeam.name : 'Team Profile'}
-          </h2>
-          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md mb-8">
-            {selectedTeam ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-zinc-400">Name</p>
-                  <p className="text-white">{selectedTeam.name}</p>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-400 mb-1">
+                      Coach
+                    </label>
+                    <p className="text-white">{selectedTeam.coachName}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-zinc-400">Coach</p>
-                  <p className="text-white">
-                    {selectedTeam.coachName ||
-                      currentUser?.displayName ||
-                      'Not assigned'}
+              </UniversalCard.Default>
+
+              <UniversalCard.Default
+                title="Team Players"
+                subtitle={`${teamPlayers.length} players`}
+              >
+                <div className="space-y-2">
+                  {teamPlayers.map(player => (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between p-3 border border-zinc-700 rounded-lg bg-zinc-800/50"
+                    >
+                      <div>
+                        <p className="font-medium text-white">
+                          {player.displayName}
+                        </p>
+                        {player.position && (
+                          <p className="text-sm text-zinc-400">
+                            Position: {player.position}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-sm text-zinc-400">
+                        {player.personType || 'Player'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {teamPlayers.length === 0 && (
+                  <p className="text-center text-zinc-400 py-4">
+                    No players found for this team
                   </p>
+                )}
+              </UniversalCard.Default>
+            </div>
+          ) : (
+            <UniversalCard.EmptyState
+              title="Select a Team"
+              message="Choose a team from the left sidebar to view details and manage players."
+              icon={<Users className="h-16 w-16 text-zinc-600" />}
+            />
+          )}
+        </div>
+      }
+      right={
+        <div className="space-y-4">
+          <UniversalCard.Default
+            title="Quick Actions"
+            subtitle="Team management tools"
+          >
+            <div className="space-y-2">
+              <UniversalButton.Secondary
+                onClick={handleAddTeam}
+                size="sm"
+                className="w-full"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Add New Team
+              </UniversalButton.Secondary>
+            </div>
+          </UniversalCard.Default>
+
+          {selectedTeam && (
+            <UniversalCard.Default
+              title="Team Stats"
+              subtitle="Current team information"
+            >
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Total Players:</span>
+                  <span className="font-medium text-white">
+                    {teamPlayers.length}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-sm text-zinc-400">Players</p>
-                  <p className="text-white">{teamPlayers.length} players</p>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Team ID:</span>
+                  <span className="font-mono text-xs text-white">
+                    {selectedTeam.id}
+                  </span>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full py-12">
-                <Shield className="text-zinc-700 w-20 h-20 mb-5" />
-                <h3 className="text-lg font-medium text-white mb-2">
-                  Select a Team to View Details
-                </h3>
-                <p className="text-sm text-zinc-400 max-w-md mb-6 text-center">
-                  Select a team from the list to view their profile and roster.
-                </p>
-              </div>
-            )}
-          </div>
-          <h2 className="text-xl font-bold mb-6 text-[#d8cc97] mt-0">Roster</h2>
-          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-2 shadow-md">
-            <div className="flex justify-between items-center mb-4">
-              <UniversalButton.Primary size="sm">
-                Add Player to Team
-              </UniversalButton.Primary>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {teamPlayers
-                .map((p: any) => ({
-                  id: p.id,
-                  name: p.displayName || p.name || 'Unknown Player',
-                  status: p.status || 'active',
-                }))
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(player => (
-                  <button
-                    key={player.id}
-                    className={`w-full text-sm font-medium py-2 px-3 border rounded-md bg-neutral-800 hover:bg-neutral-700 transition-all whitespace-nowrap overflow-hidden text-ellipsis
-                      ${player.status === 'active' ? 'border-yellow-500 text-yellow-200' : player.status === 'archived' ? 'border-red-500 text-red-400' : 'border-neutral-700 text-white'}`}
-                    title={player.name}
-                  >
-                    {player.name}
-                  </button>
-                ))}
-            </div>
-          </div>
+            </UniversalCard.Default>
+          )}
         </div>
-        {/* RIGHT COLUMN: (Optional future content) */}
-        <div
-          className="w-1/4 p-6 bg-black flex flex-col justify-start min-h-screen"
-          style={{ background: 'black' }}
-        >
-          {/* You can add insights, activity, or leave empty for now */}
-        </div>
-      </div>
-    </div>
+      }
+    />
   );
 }
