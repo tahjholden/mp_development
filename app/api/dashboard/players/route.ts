@@ -2,9 +2,14 @@ import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { mpbcPerson, mpbcPersonGroup, mpbcGroup } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
+import { requireCapability } from '@/lib/db/user-service';
+import { Capability } from '@/lib/db/role-logic';
 
 export async function GET(req: Request) {
   try {
+    // Check if user has capability to view team players
+    await requireCapability(Capability.VIEW_TEAM_PLAYERS);
+
     const { searchParams } = new URL(req.url);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const limit = Math.min(

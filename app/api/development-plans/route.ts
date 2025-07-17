@@ -3,10 +3,15 @@ import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { mpbcDevelopmentPlan, mpbcPerson } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { requireCapability } from '@/lib/db/user-service';
+import { Capability } from '@/lib/db/role-logic';
 
 export async function GET(req: Request) {
   try {
     console.log('GET /api/development-plans: Starting request');
+
+    // Check if user has capability to view development plans
+    await requireCapability(Capability.VIEW_OWN_DEVELOPMENT_PLANS);
 
     const { searchParams } = new URL(req.url);
     const playerIdsParam = searchParams.get('playerIds');
@@ -137,6 +142,9 @@ export async function GET(req: Request) {
 export async function POST() {
   try {
     console.log('POST /api/development-plans: Starting request');
+
+    // Check if user has capability to create development plans
+    await requireCapability(Capability.CREATE_DEVELOPMENT_PLAN);
 
     const user = await getUser();
     console.log(

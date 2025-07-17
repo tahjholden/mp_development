@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **API Endpoints**: Updated observations API to handle context field and improved error handling
 - **Component Architecture**: Enhanced ObservationStepper with back navigation and context-aware filtering
 - **User Experience**: Improved mobile experience with voice-to-text guidance and better navigation flow
+- **Sidebar now uses a literal, hardcoded navigation list for SuperAdmin based on `personType === 'superadmin'`, with no config or backend dependency. All other roles remain config-driven. This guarantees SuperAdmin always sees the full navigation, following the KISS principle and schema as the source of truth.**
 
 ### Fixed
 

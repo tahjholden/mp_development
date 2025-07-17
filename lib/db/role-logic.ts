@@ -23,7 +23,11 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import { getPackFeatures, isFeatureAvailable } from '@/lib/db/packs';
+import {
+  getPackFeatures,
+  isFeatureAvailable,
+  type PackFeatures,
+} from '@/lib/db/packs';
 
 /**
  * Role types in the system
@@ -81,16 +85,6 @@ export enum AccessLevel {
   TEAM = 'team',
   ORGANIZATION = 'organization',
   ALL = 'all',
-}
-
-/**
- * Role context for multi-role scenarios
- */
-export interface RoleContext {
-  personId: string;
-  organizationId: string;
-  groupId?: string;
-  contextType?: 'team' | 'organization' | 'system';
 }
 
 /**
@@ -197,53 +191,35 @@ export async function hasRole(
  */
 export async function hasCapability(
   personId: string,
-  capability: Capability,
-  context?: RoleContext
+  capability: Capability
 ): Promise<boolean> {
   const supabase = createClient();
 
   // Get person with role information
   const { data: person, error } = await supabase
     .from('mpbc_person')
-    .select('id, person_type, organization_id, is_admin, is_superadmin')
+    .select('id, person_type, organization_id')
     .eq('id', personId)
     .single();
 
   if (error || !person) {
-    // console.error('Error fetching person data:', error);
     return false;
   }
 
-  // SuperAdmin has all capabilities
-  if (person.is_superadmin) {
-    return true;
-  }
-
-  // Organization admin has all org-level capabilities
-  if (person.is_admin && isOrgLevelCapability(capability)) {
-    return true;
-  }
-
-  // Check capability based on person_type (source of truth)
+  // KISS: Use only person_type for role logic
   const personType = person.person_type as PersonType;
 
-  // Get pack features if needed for advanced capabilities
-  const packFeatures = await getPackFeatures(person.organization_id);
-
-  // Check capability based on role and context
   switch (capability) {
-    // Player capabilities
-    case Capability.VIEW_OWN_DEVELOPMENT_PLANS:
-    case Capability.VIEW_OWN_OBSERVATIONS:
-    case Capability.SUBMIT_SELF_REFLECTION:
-    case Capability.ACCESS_PLAYER_PORTAL:
-      return (
-        personType === PersonType.PLAYER ||
-        personType === PersonType.COACH ||
-        person.is_admin ||
-        person.is_superadmin
-      );
-
+    // SuperAdmin has all capabilities
+    case Capability.MANAGE_ORGANIZATIONS:
+    case Capability.MANAGE_SUBSCRIPTION:
+    case Capability.MANAGE_PHILOSOPHY_PACK:
+      return personType === PersonType.SUPERADMIN;
+    // Admin capabilities
+    case Capability.MANAGE_COACHES:
+    case Capability.MANAGE_TEAMS:
+    case Capability.VIEW_ORGANIZATION_DATA:
+      return personType === PersonType.ADMIN || personType === PersonType.SUPERADMIN;
     // Coach capabilities
     case Capability.VIEW_TEAM_PLAYERS:
     case Capability.ADD_PLAYER:
@@ -251,73 +227,19 @@ export async function hasCapability(
     case Capability.CREATE_DEVELOPMENT_PLAN:
     case Capability.ADD_OBSERVATION:
     case Capability.MANAGE_PRACTICE:
-      // Basic coaching capabilities
-      if (
-        personType !== PersonType.COACH &&
-        !person.is_admin &&
-        !person.is_superadmin
-      ) {
-        return false;
-      }
-
-      // If context is provided, check if coach is assigned to the team
-      if (context?.groupId && personType === PersonType.COACH) {
-        return await isCoachAssignedToTeam(personId, context.groupId);
-      }
-
-      return true;
-
-    // Admin capabilities
-    case Capability.MANAGE_COACHES:
-    case Capability.MANAGE_TEAMS:
-    case Capability.VIEW_ORGANIZATION_DATA:
-      return person.is_admin || person.is_superadmin;
-
-    // Superadmin capabilities
-    case Capability.MANAGE_ORGANIZATIONS:
-    case Capability.MANAGE_SUBSCRIPTION:
-      return person.is_superadmin;
-
-    // Philosophy pack management - requires superadmin or admin with feature
-    case Capability.MANAGE_PHILOSOPHY_PACK:
-      if (person.is_superadmin) return true;
-      if (person.is_admin && packFeatures?.philosophyOverlay) return true;
-      return false;
-
+      return personType === PersonType.COACH || personType === PersonType.ADMIN || personType === PersonType.SUPERADMIN;
+    // Player capabilities
+    case Capability.VIEW_OWN_DEVELOPMENT_PLANS:
+    case Capability.VIEW_OWN_OBSERVATIONS:
+    case Capability.SUBMIT_SELF_REFLECTION:
+    case Capability.ACCESS_PLAYER_PORTAL:
+      return personType === PersonType.PLAYER || personType === PersonType.COACH || personType === PersonType.ADMIN || personType === PersonType.SUPERADMIN;
     // Parent capabilities
     case Capability.VIEW_CHILD_DEVELOPMENT:
-      if (
-        personType !== PersonType.PARENT &&
-        !person.is_admin &&
-        !person.is_superadmin
-      ) {
-        return false;
-      }
-
-      // If context is provided, check if parent is linked to the player
-      if (context?.personId && personType === PersonType.PARENT) {
-        return await isParentOfPlayer(personId, context.personId);
-      }
-
-      return person.is_admin || person.is_superadmin;
-
+      return personType === PersonType.PARENT;
     // Observer capabilities
     case Capability.VIEW_ASSIGNED_TEAMS:
-      if (
-        personType !== PersonType.OBSERVER &&
-        !person.is_admin &&
-        !person.is_superadmin
-      ) {
-        return false;
-      }
-
-      // If context is provided, check if observer is assigned to the team
-      if (context?.groupId && personType === PersonType.OBSERVER) {
-        return await isObserverAssignedToTeam(personId, context.groupId);
-      }
-
-      return person.is_admin || person.is_superadmin;
-
+      return personType === PersonType.OBSERVER;
     default:
       return false;
   }
@@ -418,6 +340,7 @@ async function isObserverAssignedToTeam(
  */
 export async function getDataAccessLevel(
   personId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _entityType: 'player' | 'team' | 'observation' | 'development_plan'
 ): Promise<AccessLevel> {
   const supabase = createClient();
@@ -515,7 +438,7 @@ export async function getDataAccessConditions(
       }
       return `${tableAlias}.id = '${personId}'`;
 
-    case PersonType.COACH:
+    case PersonType.COACH: {
       // Coaches can see data for their teams
       const { data: coachTeams } = await supabase
         .from('mp_core_person_group')
@@ -551,6 +474,7 @@ export async function getDataAccessConditions(
       }
 
       return `${tableAlias}.group_id IN (${teamIds})`;
+    }
 
     default:
       return '1=0'; // No access by default
@@ -649,12 +573,27 @@ export async function getRoleUiConfig(
       showAdmin: true,
       navigationItems: [
         'dashboard',
-        'players',
+        'players', // Top-level Players section
         'teams',
         'coaches',
         'observations',
+        'sessions',
+        'drills',
+        'analytics',
+        'player-portal',
+        'parent-portal',
+        'billing',
+        'ai-features',
+        'audit-logs',
+        'resources',
         'settings',
         'admin',
+      ],
+      // Optionally, if your Sidebar expects children for 'players', ensure the UI config supports it
+      playerNavChildren: [
+        { title: 'All Players', href: '/players' },
+        { title: 'Development Plans', href: '/development-plans' },
+        { title: 'Observations', href: '/observations' },
       ],
     };
   }
@@ -673,6 +612,15 @@ export async function getRoleUiConfig(
       'teams',
       'coaches',
       'observations',
+      'sessions',
+      'drills',
+      'analytics',
+      'player-portal',
+      'parent-portal',
+      'billing',
+      'ai-features',
+      'audit-logs',
+      'resources',
       'settings',
       'admin',
     ];
@@ -696,7 +644,13 @@ export async function getRoleUiConfig(
       return {
         ...uiConfig,
         showObservations: true,
-        navigationItems: ['dashboard', 'observations'],
+        navigationItems: [
+          'dashboard',
+          'observations',
+          'player-portal',
+          'sessions',
+          'drills',
+        ],
       };
 
     case PersonType.COACH:
@@ -705,14 +659,29 @@ export async function getRoleUiConfig(
         showPlayers: true,
         showTeams: true,
         showObservations: true,
-        navigationItems: ['dashboard', 'players', 'teams', 'observations'],
+        navigationItems: [
+          'dashboard',
+          'players',
+          'teams',
+          'observations',
+          'sessions',
+          'drills',
+          'analytics',
+          'player-portal',
+        ],
       };
 
     case PersonType.PARENT:
       return {
         ...uiConfig,
         showObservations: true,
-        navigationItems: ['dashboard', 'observations'],
+        navigationItems: [
+          'dashboard',
+          'observations',
+          'parent-portal',
+          'sessions',
+          'drills',
+        ],
       };
 
     case PersonType.OBSERVER:
@@ -720,7 +689,14 @@ export async function getRoleUiConfig(
         ...uiConfig,
         showTeams: true,
         showObservations: true,
-        navigationItems: ['dashboard', 'teams', 'observations'],
+        navigationItems: [
+          'dashboard',
+          'teams',
+          'observations',
+          'sessions',
+          'drills',
+          'analytics',
+        ],
       };
 
     default:
@@ -868,7 +844,7 @@ export async function switchActiveRole(
  */
 export async function isFeatureAvailableForRole(
   personId: string,
-  feature: string
+  feature: keyof PackFeatures
 ): Promise<boolean> {
   const supabase = createClient();
 
@@ -892,7 +868,7 @@ export async function isFeatureAvailableForRole(
   // Check if the feature is available in the organization's pack
   const featureAvailable = await isFeatureAvailable(
     person.organization_id,
-    feature as string
+    feature
   );
 
   // If feature is not available in the pack, no one gets it

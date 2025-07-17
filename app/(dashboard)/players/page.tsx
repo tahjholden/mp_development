@@ -15,6 +15,8 @@ import { MoreHorizontal } from 'lucide-react';
 import PlayerListCard, {
   type Player as SharedPlayer,
 } from '@/components/basketball/PlayerListCard';
+import { useUserRole } from '@/lib/hooks/useUserRole';
+import { Capability } from '@/lib/db/role-types';
 
 // Types for observations
 interface Observation {
@@ -68,6 +70,9 @@ interface Team {
 }
 
 export default function PlayersPage() {
+  // Role-based access control
+  const { hasCapability } = useUserRole();
+
   // Normalized state pattern - industry standard
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<
@@ -359,20 +364,26 @@ export default function PlayersPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          /* Edit player logic */
-                        }}
-                      >
-                        Edit Player
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onClick={handleDeletePlayer}
-                      >
-                        Delete Player
-                      </DropdownMenuItem>
+                      {hasCapability(Capability.EDIT_PLAYER) && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            /* Edit player logic */
+                          }}
+                        >
+                          Edit Player
+                        </DropdownMenuItem>
+                      )}
+                      {hasCapability(Capability.EDIT_PLAYER) && (
+                        <DropdownMenuSeparator />
+                      )}
+                      {hasCapability(Capability.EDIT_PLAYER) && (
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={handleDeletePlayer}
+                        >
+                          Delete Player
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -405,14 +416,15 @@ export default function PlayersPage() {
                     </button>
                   </div>
                   <div className="flex gap-2">
-                    {planView === 'active' && (
-                      <UniversalButton.Secondary
-                        size="sm"
-                        onClick={handleArchivePlan}
-                      >
-                        Move to Archive
-                      </UniversalButton.Secondary>
-                    )}
+                    {planView === 'active' &&
+                      hasCapability(Capability.CREATE_DEVELOPMENT_PLAN) && (
+                        <UniversalButton.Secondary
+                          size="sm"
+                          onClick={handleArchivePlan}
+                        >
+                          Move to Archive
+                        </UniversalButton.Secondary>
+                      )}
                   </div>
                 </div>
                 {/* Show active or archived plan(s) based on toggle */}

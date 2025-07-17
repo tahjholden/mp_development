@@ -33,6 +33,14 @@ export default {
           800: '#854d0e',
           900: '#713f12',
         },
+        // Brand color system for titles and accents
+        brand: {
+          100: '#ECE5B6',
+          300: '#D9CF91',
+          500: '#C2B56B', // your base
+          600: '#AD9F5E',
+          700: '#988B4F',
+        },
         // Semantic colors
         danger: {
           50: '#fef2f2',

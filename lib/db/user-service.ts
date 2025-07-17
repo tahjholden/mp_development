@@ -16,12 +16,10 @@ import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import {
   PersonType,
-  RoleContext,
   Capability,
   hasCapability,
   getAllPersonRoles,
   getPersonRolesWithContext,
-  switchActiveRole,
 } from '@/lib/db/role-logic';
 import {
   BasketballRoleType,
@@ -77,7 +75,6 @@ export interface UnifiedUser {
   authUid?: string;
   mpCorePersonId?: string;
   mpbcPersonId?: string;
-  currentContext?: RoleContext;
   roles?: any[];
   basketballRoles?: any[];
   packFeatures?: Record<string, boolean>;
@@ -88,128 +85,34 @@ export interface UnifiedUser {
 }
 
 /**
- * Role context stored in cookies
- */
-interface StoredRoleContext {
-  personId: string;
-  organizationId: string;
-  groupId?: string;
-  contextType?: string;
-  role: string;
-}
-
-/**
  * Get the current authenticated user with unified role data
  */
 export async function getCurrentUser(): Promise<UnifiedUser | null> {
   try {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
 
-    // Get authenticated user from Supabase
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return null;
-    }
-
-    // Get core user data
-    const { data: coreUser, error: coreError } = await supabase
-      .from('mp_core_person')
-      .select(
-        'id, auth_uid, email, first_name, last_name, organization_id, active, created_at, updated_at'
-      )
-      .eq('auth_uid', user.id)
+    // KISS: Use only mpbc_person, lookup by email
+    const { data: mpbcUser, error } = await supabase
+      .from('mpbc_person')
+      .select('*')
+      .eq('email', user.email)
       .single();
 
-    if (coreError || !coreUser) {
-      console.error('Error fetching core user:', coreError);
-      return null;
-    }
+    if (error || !mpbcUser) return null;
 
-    // Get basketball user data
-    const { data: basketballUser } = await supabase
-      .from('mpbc_person')
-      .select(
-        'id, mp_core_person_id, person_type, organization_id, first_name, last_name, email, created_at, updated_at'
-      )
-      .eq('mp_core_person_id', coreUser.id)
-      .maybeSingle();
-
-    // Get organization name
-    const { data: organization } = await supabase
-      .from('mp_core_organizations')
-      .select('name')
-      .eq('id', coreUser.organization_id)
-      .maybeSingle();
-
-    // Get all roles
-    const roles = await getAllPersonRoles(coreUser.id);
-
-    // Get basketball-specific roles
-    const basketballRoles = await getBasketballRoles(coreUser.id);
-
-    // Get pack features
-    const packFeatures = await getPackFeatures(coreUser.organization_id);
-
-    // Get current role context from cookies
-    const storedContext = await getRoleContextFromCookies();
-
-    // Get all available role contexts
-    const availableContexts = await getPersonRolesWithContext(coreUser.id);
-
-    // Find the current context or use the default
-    let currentContext: RoleContext | undefined;
-
-    if (storedContext && storedContext.personId === coreUser.id) {
-      // Use stored context
-      currentContext = {
-        personId: storedContext.personId,
-        organizationId: storedContext.organizationId,
-        ...(storedContext.groupId ? { groupId: storedContext.groupId } : {}),
-        ...(storedContext.contextType
-          ? {
-              contextType: storedContext.contextType as
-                | 'team'
-                | 'organization'
-                | 'system',
-            }
-          : {}),
-      };
-    } else if (availableContexts.length > 0) {
-      // Use first available context
-      currentContext = availableContexts[0]?.context;
-    }
-
-    // Build unified user object
-    const unifiedUser: UnifiedUser = {
-      id: coreUser.id,
-      authUid: coreUser.auth_uid,
-      email: coreUser.email,
-      firstName: coreUser.first_name,
-      lastName: coreUser.last_name,
-      mpCorePersonId: coreUser.id,
-      mpbcPersonId: basketballUser?.id,
-      personType: basketballUser?.person_type,
-      isAdmin:
-        (basketballUser?.person_type as PersonType) === PersonType.ADMIN ||
-        (basketballUser?.person_type as PersonType) === PersonType.SUPERADMIN,
-      isSuperadmin:
-        (basketballUser?.person_type as PersonType) === PersonType.SUPERADMIN,
-      organizationId: coreUser.organization_id,
-      organizationName: organization?.name,
-      active: coreUser.active,
-      createdAt: new Date(coreUser.created_at),
-      ...(coreUser.updated_at
-        ? { updatedAt: new Date(coreUser.updated_at) }
-        : {}),
-      roles,
-      basketballRoles,
-      packFeatures: packFeatures as unknown as Record<string, boolean>,
-      ...(currentContext ? { currentContext } : {}),
+    return {
+      id: mpbcUser.id,
+      email: mpbcUser.email,
+      firstName: mpbcUser.first_name,
+      lastName: mpbcUser.last_name,
+      personType: mpbcUser.person_type,
+      organizationId: mpbcUser.organization_id,
+      active: mpbcUser.active,
+      createdAt: mpbcUser.created_at ? new Date(mpbcUser.created_at) : undefined,
+      updatedAt: mpbcUser.updated_at ? new Date(mpbcUser.updated_at) : undefined,
     };
-
-    return unifiedUser;
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
