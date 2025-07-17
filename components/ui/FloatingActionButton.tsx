@@ -29,8 +29,6 @@ export default function FloatingActionButton() {
       icon: <User className="h-5 w-5" />,
       onClick: () => {
         // Handle add player action
-        console.log('Add player clicked');
-        // Here you would typically open a modal or navigate to a form
         window.dispatchEvent(new CustomEvent('open-add-player-modal'));
         setIsOpen(false);
       },
@@ -41,7 +39,6 @@ export default function FloatingActionButton() {
       label: 'Add Team',
       icon: <Users className="h-5 w-5" />,
       onClick: () => {
-        console.log('Add team clicked');
         window.dispatchEvent(new CustomEvent('open-add-team-modal'));
         setIsOpen(false);
       },
@@ -52,7 +49,6 @@ export default function FloatingActionButton() {
       label: 'Add Coach',
       icon: <UserRound className="h-5 w-5" />,
       onClick: () => {
-        console.log('Add coach clicked');
         window.dispatchEvent(new CustomEvent('open-add-coach-modal'));
         setIsOpen(false);
       },
@@ -63,7 +59,6 @@ export default function FloatingActionButton() {
       label: 'Add Observation',
       icon: <ClipboardList className="h-5 w-5" />,
       onClick: () => {
-        console.log('Add observation clicked');
         // Navigate to the observation wizard
         window.location.href = '/observations/wizard';
         setIsOpen(false);
@@ -75,7 +70,6 @@ export default function FloatingActionButton() {
       label: 'Add Parent',
       icon: <UserCheck className="h-5 w-5" />,
       onClick: () => {
-        console.log('Add parent clicked');
         window.dispatchEvent(new CustomEvent('open-add-parent-modal'));
         setIsOpen(false);
       },

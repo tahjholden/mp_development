@@ -1,79 +1,143 @@
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { mpbcPerson, mpbcPersonGroup, mpbcGroup } from '@/lib/db/schema';
-import { and, isNotNull, eq } from 'drizzle-orm';
+import { mpbcGroup } from '@/lib/db/schema';
+import { requireCapability } from '@/lib/db/user-service';
+import { Capability } from '@/lib/db/role-types';
+import { z } from 'zod';
 
-export async function GET() {
+// Schema for validating team creation request
+const createTeamSchema = z.object({
+  name: z.string().min(1, "Team name is required"),
+  description: z.string().optional(),
+  organizationId: z.string().optional(),
+  program: z.string().optional(),
+  levelCategory: z.string().optional(),
+  maxCapacity: z.number().optional(),
+  active: z.boolean().optional().default(true),
+});
+
+export async function POST(req: Request) {
   try {
-    const user = await getUser();
+    // Check if user has capability to manage teams
+    await requireCapability(Capability.MANAGE_TEAMS);
 
+    const user = await getUser();
     if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!db) {
+      return Response.json({ error: 'Database not available' }, { status: 500 });
+    }
+
+    // Parse and validate request body
+    const body = await req.json();
+    const validationResult = createTeamSchema.safeParse(body);
+    
+    if (!validationResult.success) {
       return Response.json(
-        { error: 'Database not available' },
+        { error: validationResult.error.errors[0]?.message || 'Invalid request data' },
+        { status: 400 }
+      );
+    }
+
+    const { 
+      name, 
+      description, 
+      organizationId, 
+      program, 
+      levelCategory, 
+      maxCapacity, 
+      active 
+    } = validationResult.data;
+
+    // Use the user's organization if not provided
+    const orgId = organizationId || user.organizationId;
+
+    // Create the team record
+    const [team] = await db
+      .insert(mpbcGroup)
+      .values({
+        name,
+        description,
+        organizationId: orgId,
+        program,
+        levelCategory,
+        maxCapacity,
+        active,
+        groupType: 'team',
+        createdBy: user.id,
+      })
+      .returning();
+
+    if (!team) {
+      return Response.json(
+        { error: 'Failed to create team' },
         { status: 500 }
       );
     }
 
-    // Get all teams from the normalized schema using correct mpbc tables
-    // First, get unique teams
-    const uniqueTeams = await db
-      .select({
-        id: mpbcGroup.id,
-        name: mpbcGroup.name,
-      })
+    return Response.json({
+      success: true,
+      team: {
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        organizationId: team.organizationId,
+        program: team.program,
+        levelCategory: team.levelCategory,
+        maxCapacity: team.maxCapacity,
+        active: team.active,
+      }
+    });
+  } catch (error) {
+    console.error('Error creating team:', error);
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Failed to create team' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!db) {
+      return Response.json({ error: 'Database not available' }, { status: 500 });
+    }
+
+    // Query for teams
+    const teams = await db
+      .select()
       .from(mpbcGroup)
-      .where(isNotNull(mpbcGroup.name))
-      .groupBy(mpbcGroup.id, mpbcGroup.name);
+      .where(db.and(
+        db.eq(mpbcGroup.groupType, 'team'),
+        db.eq(mpbcGroup.organizationId, user.organizationId)
+      ));
 
-    // Then, get coach information for each team (just the first coach for display purposes)
-    const teamsWithCoaches = await Promise.all(
-      uniqueTeams.map(async team => {
-        const coachInfo = await db!
-          .select({
-            coachFirstName: mpbcPerson.firstName,
-            coachLastName: mpbcPerson.lastName,
-            role: mpbcPersonGroup.role,
-            personType: mpbcPerson.personType,
-            email: mpbcPerson.email,
-          })
-          .from(mpbcPersonGroup)
-          .innerJoin(mpbcPerson, eq(mpbcPersonGroup.personId, mpbcPerson.id))
-          .where(
-            and(
-              eq(mpbcPersonGroup.groupId, team.id),
-              eq(mpbcPersonGroup.role, 'coach')
-            )
-          )
-          .limit(1);
-
-        const coach = coachInfo[0];
-        const coachName =
-          coach?.coachFirstName && coach?.coachLastName
-            ? `${coach.coachFirstName} ${coach.coachLastName}`.trim()
-            : coach?.coachFirstName || coach?.coachLastName || 'Unknown Coach';
-
-        return {
-          id: team.id || 'unknown',
-          name: team.name || 'Unknown Team',
-          coachName,
-          role: coach?.role || 'Coach',
-          personType: coach?.personType || 'coach',
-          email: coach?.email,
-        };
-      })
-    );
-
-    // Sort teams alphabetically
-    const formattedTeams = teamsWithCoaches.sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
+    // Transform the data to match the expected format
+    const formattedTeams = teams.map(team => ({
+      id: team.id,
+      name: team.name,
+      description: team.description,
+      program: team.program,
+      levelCategory: team.levelCategory,
+      maxCapacity: team.maxCapacity,
+      active: team.active,
+      organizationId: team.organizationId,
+      createdAt: team.createdAt,
+    }));
 
     return Response.json(formattedTeams);
-  } catch {
-    return Response.json({ error: 'Failed to fetch teams' }, { status: 500 });
+  } catch (error) {
+    console.error('Error fetching teams:', error);
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Failed to fetch teams' },
+      { status: 500 }
+    );
   }
 }

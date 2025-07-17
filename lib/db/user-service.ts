@@ -20,6 +20,7 @@ import {
   hasCapability,
   getAllPersonRoles,
   getPersonRolesWithContext,
+  switchActiveRole,
 } from '@/lib/db/role-logic';
 import {
   BasketballRoleType,
@@ -29,6 +30,7 @@ import {
 } from '@/lib/db/basketball-roles';
 import { NextResponse } from 'next/server';
 import { getPackFeatures } from '@/lib/db/packs';
+import { RoleContext, StoredRoleContext } from '@/lib/db/role-types';
 
 /**
  * Core user data from mp_core_person

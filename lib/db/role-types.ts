@@ -43,4 +43,19 @@ export enum Capability {
 
   // Observer capabilities
   VIEW_ASSIGNED_TEAMS = 'view_assigned_teams',
+}
+
+export interface RoleContext {
+  personId: string;
+  organizationId: string;
+  groupId?: string;
+  contextType?: string;
+}
+
+export interface StoredRoleContext {
+  personId: string;
+  organizationId: string;
+  groupId?: string;
+  contextType?: string;
+  role: string;
 } 

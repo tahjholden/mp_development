@@ -54,7 +54,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           setUser(userData.user);
         }
       } catch (err) {
-        console.error('Error fetching user:', err);
+        // Log error silently
         setError('Failed to load user data');
       } finally {
         setIsLoading(false);
@@ -147,12 +147,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const userRole = user?.personType || 'coach';
 
   return (
-    <div className="flex min-h-screen h-full bg-black text-white">
-      {/* Header - Fixed at top spanning full width */}
-      <header
-        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-        style={{ boxShadow: 'none' }}
-      >
+      <div className="flex min-h-screen h-full bg-black text-white">
+        {/* Header - Fixed at top spanning full width */}
+        <header
+          className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+          style={{ boxShadow: 'none' }}
+        >
         <span
           className="text-2xl font-bold tracking-wide text-[#d8cc97]"
           style={{ letterSpacing: '0.04em' }}
@@ -213,7 +213,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           {right || null}
         </div>
         
-        {/* Floating Action Button */}
+        {/* Floating Action Button with Modal State Management */}
         <FloatingActionButton />
       </div>
       

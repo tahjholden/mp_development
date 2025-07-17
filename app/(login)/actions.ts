@@ -61,6 +61,7 @@ export async function signIn(prevState: any, formData: FormData) {
     return { error: result.error.errors[0]?.message || 'Validation failed' };
   }
   const { email } = result.data;
+  const password = formData.get('password') as string;
 
   if (!db) {
     return {
@@ -90,8 +91,25 @@ export async function signIn(prevState: any, formData: FormData) {
     };
   }
 
-  // For now, we'll skip password verification since we're simplifying
-  // In production, you'd verify the password here
+  // For development purposes, accept any password
+  // In production, you should use a proper password verification system
+  // For example:
+  // const isValidPassword = await verifyPassword(password, foundPerson.passwordHash);
+  // if (!isValidPassword) {
+  //   return {
+  //     error: 'Invalid email or password.',
+  //     email,
+  //   };
+  // }
+  
+  // IMPORTANT: Replace this with proper password verification before going to production!
+  // This is just a temporary solution for development
+  if (!password || password.length < 6) {
+    return {
+      error: 'Invalid email or password.',
+      email,
+    };
+  }
 
   // Set the session with mpbc person data
   await setMpbcSession(foundPerson.id, foundPerson.organizationId || '');
@@ -104,20 +122,14 @@ export async function signIn(prevState: any, formData: FormData) {
   );
 
   // Role-based redirect after successful signin
-  // For now, all users go to the main dashboard
-  // In the future, you could implement role-specific dashboards:
-  // const userRole = foundPerson.person_type || 'coach';
-  // if (userRole === 'player') {
-  //   redirect('/player-dashboard');
-  // } else if (userRole === 'admin') {
-  //   redirect('/admin-dashboard');
-  // } else if (userRole === 'superadmin') {
-  //   redirect('/superadmin-dashboard');
-  // } else {
-  //   redirect('/dashboard');
-  // }
-
-  redirect('/dashboard');
+  const userRole = foundPerson.personType || 'coach';
+  if (userRole === 'player') {
+    redirect('/dashboard'); // Player dashboard
+  } else if (userRole === 'admin' || userRole === 'superadmin') {
+    redirect('/dashboard'); // Admin dashboard
+  } else {
+    redirect('/dashboard'); // Coach dashboard
+  }
 }
 
 const signUpSchema = z.object({
