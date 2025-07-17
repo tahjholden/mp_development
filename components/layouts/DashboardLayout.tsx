@@ -2,11 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/ui/Sidebar';
-import FloatingActionButton from '@/components/ui/FloatingActionButton';
-import AddPlayerModal from '@/components/modals/AddPlayerModal';
-import AddTeamModal from '@/components/modals/AddTeamModal';
-import AddCoachModal from '@/components/modals/AddCoachModal';
-import AddParentModal from '@/components/modals/AddParentModal';
+import AddDropdown from '@/components/ui/AddDropdown';
 
 interface DashboardLayoutProps {
   /**
@@ -53,7 +49,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           const userData = await response.json();
           setUser(userData.user);
         }
-      } catch (err) {
+      } catch {
         // Log error silently
         setError('Failed to load user data');
       } finally {
@@ -71,7 +67,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           user={{
             name: 'Coach',
             email: 'coach@example.com',
-            role: 'Coach'
+            role: 'Coach',
           }}
           onSignOut={() => {}}
         />
@@ -83,15 +79,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             >
               MP Player Development
             </span>
-            <div className="flex flex-col items-end">
-              <span className="text-base font-semibold text-white leading-tight">
-                Coach
-              </span>
-              <span className="text-xs text-[#d8cc97] leading-tight">
-                coach@example.com
-              </span>
-              <span className="text-xs text-white leading-tight">Coach</span>
-            </div>
+            <AddDropdown />
           </header>
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center">
@@ -123,15 +111,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             >
               MP Player Development
             </span>
-            <div className="flex flex-col items-end">
-              <span className="text-base font-semibold text-white leading-tight">
-                Coach
-              </span>
-              <span className="text-xs text-[#d8cc97] leading-tight">
-                coach@example.com
-              </span>
-              <span className="text-xs text-white leading-tight">Coach</span>
-            </div>
+            <AddDropdown />
           </header>
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center">
@@ -143,39 +123,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     );
   }
 
-  // Determine user role for conditional rendering
-  const userRole = user?.personType || 'coach';
-
   return (
-      <div className="flex min-h-screen h-full bg-black text-white">
-        {/* Header - Fixed at top spanning full width */}
-        <header
-          className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
-          style={{ boxShadow: 'none' }}
-        >
+    <div className="flex min-h-screen h-full bg-black text-white">
+      {/* Header - Fixed at top spanning full width */}
+      <header
+        className="fixed top-0 left-0 w-full z-50 bg-black h-16 flex items-center px-8 border-b border-[#d8cc97] justify-between"
+        style={{ boxShadow: 'none' }}
+      >
         <span
           className="text-2xl font-bold tracking-wide text-[#d8cc97]"
           style={{ letterSpacing: '0.04em' }}
         >
           MP Player Development
         </span>
-        <div className="flex flex-col items-end">
-          <span className="text-base font-semibold text-white leading-tight">
-            {user?.name ||
-              `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
-              `User ${user?.id}`}
-          </span>
-          <span className="text-xs text-[#d8cc97] leading-tight">
-            {user?.email}
-          </span>
-          <span className="text-xs text-white leading-tight capitalize">
-            {userRole === 'superadmin'
-              ? 'SuperAdmin'
-              : userRole === 'admin'
-                ? 'Admin'
-                : userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-          </span>
-        </div>
+        <AddDropdown />
       </header>
 
       {/* Sidebar */}
@@ -212,16 +173,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <div className="w-1/4 p-6 bg-black flex flex-col justify-start min-h-screen">
           {right || null}
         </div>
-        
-        {/* Floating Action Button with Modal State Management */}
-        <FloatingActionButton />
       </div>
-      
-      {/* Modals - Rendered at the root level */}
-      <AddPlayerModal />
-      <AddTeamModal />
-      <AddCoachModal />
-      <AddParentModal />
     </div>
   );
 };

@@ -1,11 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, X, User, Users, UserCheck, ClipboardList, UserRound } from 'lucide-react';
+import {
+  Plus,
+  X,
+  User,
+  Users,
+  UserCheck,
+  ClipboardList,
+  UserRound,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/hooks/useUserRole';
 import { Capability } from '@/lib/db/role-types';
+import { useRouter } from 'next/navigation';
 
 type ActionItem = {
   id: string;
@@ -18,6 +27,7 @@ type ActionItem = {
 export default function FloatingActionButton() {
   const [isOpen, setIsOpen] = useState(false);
   const { hasCapability } = useUserRole();
+  const router = useRouter();
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
@@ -28,8 +38,8 @@ export default function FloatingActionButton() {
       label: 'Add Player',
       icon: <User className="h-5 w-5" />,
       onClick: () => {
-        // Handle add player action
-        window.dispatchEvent(new CustomEvent('open-add-player-modal'));
+        // Navigate to add player page
+        router.push('/players/add');
         setIsOpen(false);
       },
       capability: Capability.ADD_PLAYER,
@@ -39,7 +49,8 @@ export default function FloatingActionButton() {
       label: 'Add Team',
       icon: <Users className="h-5 w-5" />,
       onClick: () => {
-        window.dispatchEvent(new CustomEvent('open-add-team-modal'));
+        // Navigate to add team page
+        router.push('/teams/add');
         setIsOpen(false);
       },
       capability: Capability.MANAGE_TEAMS,
@@ -49,7 +60,8 @@ export default function FloatingActionButton() {
       label: 'Add Coach',
       icon: <UserRound className="h-5 w-5" />,
       onClick: () => {
-        window.dispatchEvent(new CustomEvent('open-add-coach-modal'));
+        // Navigate to add coach page
+        router.push('/coaches/add');
         setIsOpen(false);
       },
       capability: Capability.MANAGE_COACHES,
@@ -60,7 +72,7 @@ export default function FloatingActionButton() {
       icon: <ClipboardList className="h-5 w-5" />,
       onClick: () => {
         // Navigate to the observation wizard
-        window.location.href = '/observations/wizard';
+        router.push('/observations/wizard');
         setIsOpen(false);
       },
       capability: Capability.ADD_OBSERVATION,
@@ -70,7 +82,8 @@ export default function FloatingActionButton() {
       label: 'Add Parent',
       icon: <UserCheck className="h-5 w-5" />,
       onClick: () => {
-        window.dispatchEvent(new CustomEvent('open-add-parent-modal'));
+        // Navigate to add parent page
+        router.push('/parents/add');
         setIsOpen(false);
       },
       capability: Capability.ADD_PLAYER, // Assuming parent management is tied to player management
@@ -110,17 +123,19 @@ export default function FloatingActionButton() {
               <motion.button
                 key={action.id}
                 initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: 0, 
+                animate={{
+                  opacity: 1,
+                  y: 0,
                   scale: 1,
-                  transition: { delay: index * 0.05 } 
+                  transition: { delay: index * 0.05 },
                 }}
-                exit={{ 
-                  opacity: 0, 
-                  y: 20, 
+                exit={{
+                  opacity: 0,
+                  y: 20,
                   scale: 0.8,
-                  transition: { delay: (availableActions.length - index - 1) * 0.05 } 
+                  transition: {
+                    delay: (availableActions.length - index - 1) * 0.05,
+                  },
                 }}
                 onClick={action.onClick}
                 className="flex items-center mb-2 bg-zinc-800 text-white px-4 py-2 rounded-full shadow-lg hover:bg-zinc-700 transition-colors"
@@ -139,12 +154,10 @@ export default function FloatingActionButton() {
       <button
         onClick={toggleOpen}
         className={cn(
-          "p-4 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center",
-          isOpen 
-            ? "bg-zinc-700 rotate-45" 
-            : "bg-[#d8cc97] hover:bg-[#c4b87f]"
+          'p-4 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center',
+          isOpen ? 'bg-zinc-700 rotate-45' : 'bg-[#d8cc97] hover:bg-[#c4b87f]'
         )}
-        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-label={isOpen ? 'Close menu' : 'Open menu'}
       >
         {isOpen ? (
           <X className="h-6 w-6 text-white" />
